@@ -56,7 +56,7 @@ PHP 8.0+ is required (tests run on the PHP CLI with WordPress functions stubbed)
 
 ## Where to start reading
 
-[AGENTS.md](AGENTS.md) → [docs/ai-index.md](docs/ai-index.md) → [Code Map index](docs/code-map/000-README.md) → [Station and Drawer Lifecycle Contract](docs/architecture/StationDrawerLifecycleContract-v1.md).
+[AGENTS.md](AGENTS.md) → [docs/ai-index.md](docs/ai-index.md) → [docs/roadmap.md](docs/roadmap.md) → [Code Map index](docs/code-map/000-README.md) → [Station and Drawer Lifecycle Contract](docs/architecture/StationDrawerLifecycleContract-v1.md).
 
 ## Origin
 

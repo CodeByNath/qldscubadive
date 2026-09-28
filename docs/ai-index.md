@@ -11,6 +11,8 @@ The QSD Platform is the Queensland Scuba Diving business platform. WordPress is 
 5. Related Code Maps only when the source crosses a boundary
 6. Relevant [Project History](project-history/000-README.md) only when needed
 
+For current open work and standing decisions, read the [Roadmap and handover](roadmap.md).
+
 ## Peer Station model
 
 - [Station Manager](code-map/station-manager.md) is coordinator-only. It owns registration contracts/resolvers, ordering and availability coordination, boot/finalize, generic surface composition, native record-identity transport, and retained-collection infrastructure. It owns no presentation primitive, domain logic, persistence, lifecycle rule, or drawer editor.
