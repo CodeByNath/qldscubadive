@@ -96,7 +96,11 @@ jobs:
           case "$SSH_USER" in (*@*|*" "*) fail "STAGING_SSH_USER must be the user name only, without @host.";; esac
 
           install -d -m 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          # Trim blank lines and stray spaces before/after the key (common when
+          # pasting); lines inside the key are kept exactly as they are.
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' | sed -e 's/[[:space:]]*$//' \
+            | awk 'NF { if (!first) first = NR; last = NR } { line[NR] = $0 } END { for (i = first; i <= last; i++) print line[i] }' \
+            > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           head -n1 ~/.ssh/deploy_key | grep -q -- '-----BEGIN .*PRIVATE KEY-----' \
             || fail "STAGING_SSH_KEY does not start with a '-----BEGIN … PRIVATE KEY-----' line. Paste the whole PRIVATE key (not the public key), including the BEGIN and END lines."
