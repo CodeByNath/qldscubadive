@@ -92,6 +92,28 @@ jobs:
           fi
           ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
+      # Safety guard: the SSH account can reach every site on the hosting
+      # plan (including the live site), so refuse to deploy unless the target
+      # is exactly the staging WordPress root and looks like a WordPress install.
+      - name: Verify the target is the staging site
+        working-directory: .
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH }}
+          EXPECTED_WP_PATH: /home/customer/www/staging2.qldscubadive.com.au/public_html
+        run: |
+          set -euo pipefail
+          if [ "$WP_PATH" != "$EXPECTED_WP_PATH" ]; then
+            echo "::error::STAGING_WP_PATH is not the staging site root ($EXPECTED_WP_PATH). Refusing to deploy."
+            exit 1
+          fi
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "test -f '$WP_PATH/wp-config.php' && test -d '$WP_PATH/wp-content/plugins' && test -d '$WP_PATH/wp-content/themes'" \
+            || { echo "::error::$WP_PATH is not a WordPress root on the server. Refusing to deploy."; exit 1; }
+          echo "Target verified: $WP_PATH"
+
       - name: Copy plugin and theme
         working-directory: .
         env:
@@ -102,6 +124,9 @@ jobs:
         run: |
           set -euo pipefail
           test -f wp-content/plugins/qsd-platform/dist/js/admin-station.js
+          # --delete applies only inside the two destination folders below
+          # (wp-content/plugins/qsd-platform/ and wp-content/themes/qsd-shell/);
+          # nothing else on the server is written or removed.
           SSH="ssh -p $SSH_PORT"
           # Runtime files only: PHP, templates, Atomic Engine CSS, built dist.
           rsync -az --delete -e "$SSH" \
