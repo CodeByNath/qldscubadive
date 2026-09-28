@@ -1,12 +1,11 @@
-// Runtime configuration injected by WordPress via AssetLoader.php → wp_localize_script.
+// Runtime configuration injected by WordPress via Core\AssetLoader (window.QSDConfig).
 // Currently carries API access; extended here with future runtime context
 // (page type, user flags, feature gates) as the platform grows.
 
 export interface RuntimeConfig {
   apiRoot: string;
   nonce: string;
-  contactUrl?: string;
-  costBuilderUrl?: string;
+  logoutUrl?: string;
 }
 
 // window.QSDConfig is globally declared in api/client.ts.

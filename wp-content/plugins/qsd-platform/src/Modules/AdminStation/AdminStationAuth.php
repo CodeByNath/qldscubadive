@@ -7,25 +7,14 @@ namespace QSD\Platform\Modules\AdminStation;
  *
  * WordPress remains the auth/session host: this class does nothing but
  * validate the request, hand credentials to wp_signon(), and redirect back
- * to the same page. It owns no role, capability, or account provisioning —
- * that stays with Core\PlatformAccess. It owns no page/route of its own:
- * unlike the retired Command Centre's AdminRouter (fixed /admin-command-
- * centre/ slug, WP-admin menu page, login_redirect/admin_init hooks), the
- * Admin Station shortcode can sit on any page — so this only ever processes
- * a submission made TO that same page (proven by the current queried post
- * actually carrying the shortcode, not by trusting anything the client
- * says), and only ever redirects back to that same page, server-derived —
- * never a client-supplied destination, never wp-login.php, never wp-admin.
+ * to the Admin Station. It owns no role, capability, or account provisioning
+ * — that stays with Core\PlatformAccess.
  *
- * Audit correction: template_redirect fired globally with no page check,
- * and the return destination was a client-supplied hidden field trusted
- * until wp_safe_redirect() — whose own default validation fallback is
- * admin_url(), exactly the WP-admin journey this feature exists to avoid.
- * Both are fixed here: processing is gated on isAdminStationRequest(), and
- * the destination is derived from the current request itself (the form
- * self-submits — action="" — so the POST always lands back on the same
- * URL it was rendered from) and validated against an explicit non-admin
- * fallback, never wp_safe_redirect()'s own default.
+ * Processing is gated on the request actually being the Admin Station route
+ * (AdminStationModule::isStationRequest(), a query var set only by the
+ * plugin's own rewrite rule), and the post-login destination is always the
+ * server-derived AdminStationModule::url() — never a client-supplied value,
+ * never wp-login.php, never wp-admin.
  */
 class AdminStationAuth
 {
@@ -44,8 +33,8 @@ class AdminStationAuth
         $redirect = $this->handleLoginRequest(
             $_SERVER['REQUEST_METHOD'] ?? '',
             $_POST,
-            $this->isAdminStationRequest(),
-            $this->currentRequestUrl(),
+            AdminStationModule::isStationRequest(),
+            AdminStationModule::url(),
         );
         if ($redirect === null) {
             return;
@@ -70,9 +59,9 @@ class AdminStationAuth
      *
      * @param array<string, mixed> $post
      */
-    public function handleLoginRequest(string $method, array $post, bool $isAdminStationPage, string $currentUrl): ?string
+    public function handleLoginRequest(string $method, array $post, bool $isStationRequest, string $stationUrl): ?string
     {
-        if (!$isAdminStationPage) {
+        if (!$isStationRequest) {
             return null;
         }
         if ($method !== 'POST' || empty($post[self::NONCE_FIELD])) {
@@ -82,10 +71,10 @@ class AdminStationAuth
             return null;
         }
 
-        // The only destination this ever returns to: wherever the request
-        // actually landed, with any stale prior-failure flag stripped so a
+        // The only destination this ever returns to: the Admin Station's own
+        // server-derived URL, with any stale prior-failure flag stripped so a
         // retry never stacks/echoes it once it succeeds. Never client input.
-        $redirectTo = remove_query_arg('login_error', $currentUrl);
+        $redirectTo = remove_query_arg('login_error', $stationUrl);
 
         $user = wp_signon([
             'user_login'    => sanitize_user(wp_unslash((string) ($post['qsd_username'] ?? ''))),
@@ -100,25 +89,5 @@ class AdminStationAuth
         }
 
         return $redirectTo;
-    }
-
-    /**
-     * Source-grounded Admin Station page predicate — the same shape the
-     * retired Command Centre's own addBodyClass() used (has_shortcode()
-     * against the queried post's content), not a hardcoded slug, since the
-     * shortcode can sit on any page.
-     */
-    private function isAdminStationRequest(): bool
-    {
-        if (!is_singular()) {
-            return false;
-        }
-        $post = get_post();
-        return $post instanceof \WP_Post && has_shortcode((string) $post->post_content, AdminStationModule::SHORTCODE);
-    }
-
-    private function currentRequestUrl(): string
-    {
-        return esc_url_raw(home_url(wp_unslash((string) ($_SERVER['REQUEST_URI'] ?? '/'))));
     }
 }

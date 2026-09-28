@@ -5,7 +5,7 @@ declare(strict_types=1);
 // Admin Station branded login gate (Phase 1, audit-corrected): AdminStationAuth::
 // handleLoginRequest() is the pure decision core behind the template_redirect-
 // hooked processLogin() — this stub exercises it directly, without needing to
-// mock process termination, covering the page-scoped gate, nonce/auth handling,
+// mock process termination, covering the route-scoped gate, nonce/auth handling,
 // server-derived (never client-trusted) redirect resolution, and that no
 // credential value or the underlying WP_Error's own distinguishing message ever
 // reaches the returned URL. A second block does structural source-text proof
@@ -19,7 +19,7 @@ function sanitize_key(string $value): string { return strtolower(preg_replace('/
 function sanitize_user(string $value): string { return trim(strip_tags($value)); }
 function wp_unslash(mixed $value): mixed { return is_string($value) ? stripslashes($value) : $value; }
 function is_ssl(): bool { return false; }
-function home_url(string $path = '/'): string { return 'https://cz-test.local' . $path; }
+function home_url(string $path = '/'): string { return 'https://qsd-test.local' . $path; }
 function esc_url_raw(string $url): string { return $url; }
 
 function add_query_arg(string $key, string $value, string $url): string
@@ -84,10 +84,10 @@ function check_login_gate(bool $condition, string $label, mixed $detail = null):
 $auth = new AdminStationAuth();
 $onPage  = true;
 $offPage = false;
-$url     = 'https://cz-test.local/some-admin-station-page/';
+$url     = 'https://qsd-test.local/station/';
 
 // ── 1) Off the Admin Station page, an otherwise-valid submission is ignored ──
-echo "1) processing is scoped to the Admin Station page itself\n";
+echo "1) processing is scoped to the Admin Station route itself\n";
 {
     global $__nextSignonResult;
     $__nextSignonResult = (object) ['ID' => 1];
@@ -122,7 +122,7 @@ echo "\n2) non-submissions of this form return null (page renders normally)\n";
 }
 
 // ── 3) A valid submission redirects to the CURRENT request's own URL ───────
-echo "\n3) successful authentication redirects to the current request's own URL — never client input\n";
+echo "\n3) successful authentication redirects to the server-derived Admin Station URL — never client input\n";
 {
     global $__nextSignonResult, $__lastSignonCredentials;
     $__nextSignonResult = (object) ['ID' => 42]; // any non-WP_Error value signals success
@@ -136,7 +136,7 @@ echo "\n3) successful authentication redirects to the current request's own URL 
         'qsd_admin_station_redirect'   => 'https://evil.example/phish',
     ], $onPage, $url);
 
-    check_login_gate($redirect === $url, 'redirects to exactly the current request URL, unchanged, on success', $redirect);
+    check_login_gate($redirect === $url, 'redirects to exactly the Admin Station URL, unchanged, on success', $redirect);
     check_login_gate(!str_contains((string) $redirect, 'evil.example'), 'a client-supplied redirect-shaped field has zero effect on the destination');
     check_login_gate($__lastSignonCredentials['user_login'] === 'nath', 'the sanitized username reaches wp_signon()');
     check_login_gate($__lastSignonCredentials['user_password'] === 'correct horse battery staple', 'the raw password reaches wp_signon() unmodified (never sanitized/mangled)');
@@ -241,8 +241,16 @@ echo "\n6) no retired Command Centre mechanism resurrected; redirect never falls
         'auth processing hooks template_redirect (early enough for cookies), not admin_init or a custom router',
     );
     check_login_gate(
-        str_contains($authSource, 'has_shortcode(') && str_contains($authSource, 'AdminStationModule::SHORTCODE'),
-        'the Admin-Station-page predicate is source-grounded (checks the actual shortcode is present), not a hardcoded page slug',
+        str_contains($authSource, 'AdminStationModule::isStationRequest()') && str_contains($authSource, 'AdminStationModule::url()'),
+        'processing is gated on the plugin-owned /station/ route and redirects to its server-derived URL',
+    );
+    check_login_gate(
+        !str_contains($authSource, 'REQUEST_URI') && !str_contains($authSource, 'has_shortcode('),
+        'the destination is never derived from the raw request path, and no shortcode page is involved',
+    );
+    check_login_gate(
+        str_contains($moduleSource, "add_rewrite_rule('^' . self::ROUTE_SLUG") && str_contains($moduleSource, "add_filter('template_include'"),
+        'the Admin Station is served by the plugin\'s own rewrite rule and document template, independent of the theme',
     );
     check_login_gate(
         !str_contains($authSource, 'qsd_admin_station_redirect') && !str_contains($moduleSource, 'qsd_admin_station_redirect'),
@@ -250,19 +258,29 @@ echo "\n6) no retired Command Centre mechanism resurrected; redirect never falls
     );
     check_login_gate(
         str_contains($moduleSource, 'PlatformAccess::CAP'),
-        'the shortcode still gates on the shared Core\\PlatformAccess capability, not a reintroduced local one',
+        'the route still gates on the shared Core\\PlatformAccess capability, not a reintroduced local one',
     );
     check_login_gate(
-        str_contains($moduleSource, '!is_user_logged_in()') && str_contains($moduleSource, 'renderLoginGate'),
+        str_contains($moduleSource, '!is_user_logged_in()') && str_contains($moduleSource, "'login-gate.php'"),
         'a logged-out visitor renders the branded login gate',
     );
     check_login_gate(
-        str_contains($moduleSource, '!current_user_can(PlatformAccess::CAP)') && str_contains($moduleSource, 'renderAccessDenied'),
+        str_contains($moduleSource, '!current_user_can(PlatformAccess::CAP)') && str_contains($moduleSource, "'access-denied.php'"),
         'a logged-in visitor without the platform capability renders the product-styled access-denied state, not WP admin',
     );
     check_login_gate(
         !str_contains($moduleSource, 'provisionDefaultUser') && !str_contains($moduleSource, "'accountmanager'"),
-        'this phase never touches account/credential provisioning — that stays PlatformAccess-owned and unchanged',
+        'the Admin Station never provisions accounts or credentials',
+    );
+}
+
+// ── 7) No hard-coded platform account anywhere ─────────────────────────────
+echo "\n7) the platform never creates accounts or ships a default credential\n";
+{
+    $access = (string) file_get_contents(dirname(__DIR__) . '/src/Core/PlatformAccess.php');
+    check_login_gate(
+        !str_contains($access, 'wp_insert_user') && !str_contains($access, 'user_pass'),
+        'PlatformAccess registers the role and capability only — it creates no user and carries no password',
     );
 }
 

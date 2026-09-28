@@ -1,32 +1,20 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) exit;
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 /*
- * Shell theme setup.
- * The plugin (QSD Platform) owns all assets, layout, and frontend runtime.
- * This file only declares WordPress feature support needed for a valid document shell.
+ * QSD Shell — the runtime document shell.
+ *
+ * WordPress here is a runtime and storage host: the QSD Platform plugin serves
+ * the Admin Station at /station/ with its own document, and the public website
+ * is a separate front end that reads the qsd/v1 API. This theme therefore owns
+ * no layout, assets, or content rendering.
  */
-add_action( 'after_setup_theme', function () {
-	// Allow WordPress / plugins to inject <title> via wp_head().
-	add_theme_support( 'title-tag' );
+add_action('after_setup_theme', static function (): void {
+    add_theme_support('title-tag');
+    add_theme_support('html5', ['style', 'script']);
+});
 
-	// Featured image support (used by SEO plugins and social meta).
-	add_theme_support( 'post-thumbnails' );
-
-	// RSS feed links auto-injected into wp_head().
-	add_theme_support( 'automatic-feed-links' );
-
-	// Apply WordPress's own block stylesheet so Gutenberg blocks render correctly.
-	add_theme_support( 'wp-block-styles' );
-
-	// Clean HTML5 output for core-generated markup.
-	add_theme_support( 'html5', [
-		'search-form',
-		'comment-form',
-		'comment-list',
-		'gallery',
-		'caption',
-		'style',
-		'script',
-	] );
-} );
+// Nothing WordPress renders on its own is meant to be indexed.
+add_filter('wp_robots', 'wp_robots_no_robots');

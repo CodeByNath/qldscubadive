@@ -1,30 +1,15 @@
+// window.QSDConfig is written by Core\AssetLoader on the /station/ route.
 interface QSDConfig {
   apiRoot: string;
   nonce: string;
-  contactUrl?: string;
-  costBuilderUrl?: string;
-  // CRM-1C: the compiled dist/ and hand-authored atomic-engine/ base URLs —
-  // used only by Admin Station's Request print, to load the exact same
-  // stylesheets AssetLoader.php already registers for customer-facing
-  // pages, but inside an isolated print window rather than as global
-  // Admin Station styles. See printRequestProposal.tsx.
-  distUrl?: string;
-  atomicEngineUrl?: string;
   // Admin Station header User menu's Log out action — a server-generated,
-  // nonce-protected WordPress logout URL (wp_logout_url()) that redirects
-  // back to the current page. See AssetLoader.php::outputRuntimeConfig().
+  // nonce-protected WordPress logout URL that returns to the Admin Station.
   logoutUrl?: string;
-}
-
-interface QSDAdminConfig {
-  restUrl: string;
-  nonce: string;
 }
 
 declare global {
   interface Window {
     QSDConfig?: QSDConfig;
-    QSDAdmin?: QSDAdminConfig;
   }
 }
 
@@ -32,7 +17,7 @@ function getConfig(): QSDConfig {
   const config = window.QSDConfig;
   if (!config) {
     throw new Error(
-      'QSDConfig is not defined. Ensure AssetLoader.php calls wp_localize_script for qsd-cost-builder.',
+      'QSDConfig is not defined. Core\\AssetLoader writes it on the /station/ route.',
     );
   }
   return config;

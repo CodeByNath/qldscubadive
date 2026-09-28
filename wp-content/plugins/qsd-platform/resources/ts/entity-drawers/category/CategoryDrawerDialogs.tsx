@@ -21,7 +21,7 @@ export function CategoryDrawerDialogs({ controller }: { controller: CategoryDraw
                   ? 'Save the Category Overview before publishing.'
                   : c.isActive
                   ? 'This confirms the current Category Overview draft as settled.'
-                  : 'This settles the Overview and enables the Category for the public Cost Builder.'}
+                  : 'This settles the Overview and makes the Category live for the public website.'}
               </p>
             </div>
             <div class="cz-publish-confirm__footer">

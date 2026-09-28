@@ -4,9 +4,29 @@ namespace QSD\Platform\Core;
 
 use QSD\Platform\Modules\AdminStation\AdminStationModule;
 
+/**
+ * Loads the Admin Station's assets — on the /station/ route only.
+ *
+ * WordPress serves no other platform UI, so nothing is enqueued on any other
+ * request: the public website is a separate front end that talks to the
+ * qsd/v1 API.
+ *
+ * Load order on the station route:
+ *   Atomic Engine tokens/base (00–09) → drawer-kit.css → admin-station.css
+ *   window.QSDConfig → admin-station.js (ES module)
+ */
 class AssetLoader
 {
-    private const MODULE_HANDLES = ['qsd-homepage', 'qsd-cost-builder', 'qsd-admin-station'];
+    private const SCRIPT_HANDLE = 'qsd-admin-station';
+    private const STYLE_HANDLE  = 'qsd-admin-station';
+    private const DRAWER_HANDLE = 'qsd-drawer-kit';
+    private const CONFIG_HANDLE = 'qsd-config';
+
+    private const ATOMIC_FILES = [
+        '00-tokens.css', '01-reset.css', '02-base.css', '03-layout.css',
+        '04-buttons.css', '05-cards.css', '06-forms.css', '07-tabs.css',
+        '08-modals.css', '09-utilities.css',
+    ];
 
     public function register(): void
     {
@@ -16,206 +36,93 @@ class AssetLoader
 
     public function enqueue(): void
     {
-        $this->enqueueAtomicStyles();
-        $this->outputRuntimeConfig();
-        $this->enqueueDistAssets();
-        $this->registerCostBuilderAssets();
-        $this->registerHomepageAssets();
-        $this->registerDrawerKitStyles();
-        $this->registerAdminStationAssets();
-    }
-
-    /**
-     * Outputs window.QSDConfig unconditionally via a no-src script handle.
-     * Decoupled from any dist file existing — the config is always on the page.
-     */
-    private function outputRuntimeConfig(): void
-    {
-        wp_register_script('qsd-config', false, [], null, true);
-        wp_enqueue_script('qsd-config');
-
-        $config = wp_json_encode([
-            'apiRoot'         => esc_url_raw(rest_url('qsd/v1/')),
-            'nonce'           => wp_create_nonce('wp_rest'),
-            'contactUrl'      => esc_url(apply_filters('qsd_contact_url', home_url('/contact/'))),
-            'costBuilderUrl'  => esc_url(apply_filters('qsd_cost_builder_url', home_url('/pricing/'))),
-            // CRM-1C: lets Admin Station's Request print load the exact
-            // customer stylesheets (atomic-engine tokens + cost-builder.css)
-            // inside an isolated print window only — never as global Admin
-            // Station styles. Same base URLs this class already uses below.
-            'distUrl'         => esc_url_raw(QSD_DIST_URL),
-            'atomicEngineUrl' => esc_url_raw(QSD_ATOMIC_ENGINE_URL),
-            // Admin Station header's User menu Log out action — see
-            // adminStationLogoutUrl() below for why it is decoded first.
-            'logoutUrl'       => $this->adminStationLogoutUrl(),
-        ]);
-
-        wp_add_inline_script('qsd-config', 'window.QSDConfig = ' . $config . ';');
-    }
-
-    /**
-     * The nonce-protected WordPress logout URL, decoded for JSON/JS use.
-     *
-     * wp_logout_url() delegates to wp_nonce_url(), which returns an HTML-
-     * ENCODED URL (it applies esc_html(), so every `&` becomes `&amp;`).
-     * That is correct for an HTML href written into markup, but this value is
-     * serialized into window.QSDConfig and later assigned as a DOM href
-     * from JavaScript, where nothing ever decodes it. The literal `&amp;` then
-     * renames every query parameter after the first — `amp;_wpnonce`,
-     * `amp;redirect_to` — so WordPress sees no nonce (it falls back to its own
-     * "Do you really want to log out?" confirmation screen) and no redirect
-     * (it lands on wp-login.php instead of this Station). Live-confirmed on
-     * 2026-09-15, with the browser URL showing the literal `&amp;`.
-     *
-     * wp_specialchars_decode(..., ENT_QUOTES) is the exact inverse of the
-     * esc_html() WordPress applied. The URL and its nonce still come from
-     * wp_logout_url() alone — neither is ever hand-built here.
-     */
-    private function adminStationLogoutUrl(): string
-    {
-        return esc_url_raw(wp_specialchars_decode(wp_logout_url($this->adminStationDestination()), ENT_QUOTES));
-    }
-
-    /**
-     * The canonical permalink of the page currently rendering the Admin
-     * Station shortcode, or the site's front page when the current request
-     * isn't that page. Never a hardcoded slug, and never derived from the raw
-     * request path — the same source-grounded predicate
-     * AdminStationAuth::isAdminStationRequest() already uses for the
-     * post-login redirect, so this stays correct if that page's slug changes.
-     * The front-page fallback means logout never lands on WordPress admin.
-     */
-    private function adminStationDestination(): string
-    {
-        if (is_singular()) {
-            $post = get_post();
-            if ($post instanceof \WP_Post && has_shortcode((string) $post->post_content, AdminStationModule::SHORTCODE)) {
-                $permalink = get_permalink($post);
-                if ($permalink !== false) {
-                    return $permalink;
-                }
-            }
+        if (!AdminStationModule::isStationRequest()) {
+            return;
         }
-        return home_url('/');
+
+        $atomicHandle = $this->enqueueAtomicStyles();
+        $this->enqueueStationStyles($atomicHandle);
+
+        // The config and the app bundle are only for a signed-in platform
+        // manager; the login gate and access-denied states need styles only.
+        if (is_user_logged_in() && current_user_can(PlatformAccess::CAP)) {
+            $this->outputRuntimeConfig();
+            $this->enqueueStationScript();
+        }
     }
 
     public function setModuleType(string $tag, string $handle): string
     {
-        if (in_array($handle, self::MODULE_HANDLES, true)) {
+        if ($handle === self::SCRIPT_HANDLE) {
             return str_replace('<script ', '<script type="module" ', $tag);
         }
         return $tag;
     }
 
+    /** @return string the handle of the last Atomic stylesheet, for dependency ordering */
+    private function enqueueAtomicStyles(): string
+    {
+        $handle = '';
+        foreach (self::ATOMIC_FILES as $i => $file) {
+            $handle = 'qsd-atomic-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT);
+            wp_enqueue_style($handle, QSD_ATOMIC_ENGINE_URL . 'css/' . $file, [], QSD_PLUGIN_VERSION);
+        }
+        return $handle;
+    }
+
     /**
-     * The shared entity-drawer stylesheet.
-     *
-     * Holds the host-neutral entity-drawer rules mounted by the Admin Station's
-     * entity compositions. Registered once here and declared as a DEPENDENCY of
-     * the Admin Station stylesheet, which loads it exactly once and always
-     * before it — so the page's own sheet keeps the last word.
-     *
-     * Registered before its caller so the handle exists when it names it.
+     * The shared entity-drawer stylesheet loads before the Admin Station
+     * stylesheet (as its dependency), so the station's own chrome keeps the
+     * last word on any overlap.
      */
-    private function registerDrawerKitStyles(): void
+    private function enqueueStationStyles(string $after): void
     {
-        $distPath = QSD_DIST_PATH;
-        $distUrl  = QSD_DIST_URL;
+        $drawer  = 'css/drawer-kit.css';
+        $station = 'css/admin-station.css';
 
-        if (file_exists($distPath . 'css/drawer-kit.css')) {
-            wp_register_style('qsd-drawer-kit', $distUrl . 'css/drawer-kit.css', [], filemtime($distPath . 'css/drawer-kit.css'));
+        if (file_exists(QSD_DIST_PATH . $drawer)) {
+            wp_enqueue_style(self::DRAWER_HANDLE, QSD_DIST_URL . $drawer, [$after], (string) filemtime(QSD_DIST_PATH . $drawer));
+        }
+        if (file_exists(QSD_DIST_PATH . $station)) {
+            wp_enqueue_style(self::STYLE_HANDLE, QSD_DIST_URL . $station, [self::DRAWER_HANDLE], (string) filemtime(QSD_DIST_PATH . $station));
         }
     }
 
-    private function registerAdminStationAssets(): void
+    private function enqueueStationScript(): void
     {
-        $distPath = QSD_DIST_PATH;
-        $distUrl  = QSD_DIST_URL;
-
-        // CSS: register-only; the admin-station shortcode enqueues it (with a
-        // wp_head safety net) when its page renders.
-        if (file_exists($distPath . 'css/admin-station.css')) {
-            // Depends on the shared drawer kit: all four Admin Station entity
-            // compositions mount the shared renderer and need its rules.
-            wp_register_style('qsd-admin-station', $distUrl . 'css/admin-station.css', ['qsd-drawer-kit'], filemtime($distPath . 'css/admin-station.css'));
-        }
-
-        // JS: register-only; the shortcode enqueues after the mount div is in
-        // the DOM.
-        if (file_exists($distPath . 'js/admin-station.js')) {
-            wp_register_script('qsd-admin-station', $distUrl . 'js/admin-station.js', ['qsd-config'], filemtime($distPath . 'js/admin-station.js'), true);
+        $script = 'js/admin-station.js';
+        if (file_exists(QSD_DIST_PATH . $script)) {
+            wp_enqueue_script(self::SCRIPT_HANDLE, QSD_DIST_URL . $script, [self::CONFIG_HANDLE], (string) filemtime(QSD_DIST_PATH . $script), true);
         }
     }
 
-    private function enqueueAtomicStyles(): void
+    /** window.QSDConfig — API root, REST nonce, and the Admin Station logout URL. */
+    private function outputRuntimeConfig(): void
     {
-        $base = QSD_ATOMIC_ENGINE_URL . 'css/';
-        $files = [
-            '00-tokens.css', '01-reset.css', '02-base.css', '03-layout.css',
-            '04-buttons.css', '05-cards.css', '06-forms.css', '07-tabs.css',
-            '08-modals.css', '09-utilities.css',
-        ];
+        wp_register_script(self::CONFIG_HANDLE, false, [], null, true);
+        wp_enqueue_script(self::CONFIG_HANDLE);
 
-        foreach ($files as $i => $file) {
-            wp_enqueue_style(
-                'qsd-atomic-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT),
-                $base . $file,
-                [],
-                QSD_PLUGIN_VERSION
-            );
-        }
+        $config = wp_json_encode([
+            'apiRoot'   => esc_url_raw(rest_url('qsd/v1/')),
+            'nonce'     => wp_create_nonce('wp_rest'),
+            'logoutUrl' => $this->logoutUrl(),
+        ]);
+
+        wp_add_inline_script(self::CONFIG_HANDLE, 'window.QSDConfig = ' . $config . ';');
     }
 
-    private function enqueueDistAssets(): void
+    /**
+     * The nonce-protected WordPress logout URL, returning to the Admin Station
+     * (which then shows its login gate), decoded for JSON/JS use.
+     *
+     * wp_logout_url() delegates to wp_nonce_url(), which HTML-encodes the URL
+     * (`&` becomes `&amp;`). That is right for markup, but this value is
+     * assigned as a DOM href from JavaScript where nothing decodes it, so the
+     * literal `&amp;` would rename every parameter after the first and drop
+     * the nonce. wp_specialchars_decode(..., ENT_QUOTES) is the exact inverse.
+     */
+    private function logoutUrl(): string
     {
-        $distPath = QSD_DIST_PATH;
-        $distUrl  = QSD_DIST_URL;
-
-        if (file_exists($distPath . 'js/core.js')) {
-            wp_enqueue_script('qsd-core', $distUrl . 'js/core.js', ['qsd-config'], filemtime($distPath . 'js/core.js'), true);
-        }
-
-        if (file_exists($distPath . 'css/core.css')) {
-            wp_enqueue_style('qsd-core', $distUrl . 'css/core.css', ['qsd-atomic-00'], filemtime($distPath . 'css/core.css'));
-        }
+        return esc_url_raw(wp_specialchars_decode(wp_logout_url(AdminStationModule::url()), ENT_QUOTES));
     }
-
-    private function registerCostBuilderAssets(): void
-    {
-        $distPath     = QSD_DIST_PATH;
-        $distUrl      = QSD_DIST_URL;
-        $fallbackPath = QSD_APP_PATH . 'modules/cost-builder/assets/';
-        $fallbackUrl  = QSD_APP_URL . 'modules/cost-builder/assets/';
-
-        // CSS: enqueued globally so it lands in <head> before shortcodes fire.
-        if (file_exists($distPath . 'css/cost-builder.css')) {
-            wp_enqueue_style('qsd-cost-builder', $distUrl . 'css/cost-builder.css', ['qsd-atomic-09'], filemtime($distPath . 'css/cost-builder.css'));
-        } elseif (file_exists($fallbackPath . 'css/cost-builder.css')) {
-            wp_enqueue_style('qsd-cost-builder', $fallbackUrl . 'css/cost-builder.css', ['qsd-atomic-09'], filemtime($fallbackPath . 'css/cost-builder.css'));
-        }
-
-        // JS: register-only; shortcode handler enqueues it after the mount div is in the DOM.
-        if (file_exists($distPath . 'js/cost-builder.js')) {
-            wp_register_script('qsd-cost-builder', $distUrl . 'js/cost-builder.js', ['qsd-config'], filemtime($distPath . 'js/cost-builder.js'), true);
-        } elseif (file_exists($fallbackPath . 'js/cost-builder.js')) {
-            wp_register_script('qsd-cost-builder', $fallbackUrl . 'js/cost-builder.js', ['qsd-config'], filemtime($fallbackPath . 'js/cost-builder.js'), true);
-        }
-    }
-
-    private function registerHomepageAssets(): void
-    {
-        $distPath = QSD_DIST_PATH;
-        $distUrl  = QSD_DIST_URL;
-
-        // CSS: enqueued globally so it lands in <head> before shortcodes fire.
-        if (file_exists($distPath . 'css/homepage.css')) {
-            wp_enqueue_style('qsd-homepage', $distUrl . 'css/homepage.css', ['qsd-atomic-09'], filemtime($distPath . 'css/homepage.css'));
-        }
-
-        // JS: register-only; shortcode handler enqueues it after the mount div is in the DOM.
-        if (file_exists($distPath . 'js/homepage.js')) {
-            wp_register_script('qsd-homepage', $distUrl . 'js/homepage.js', ['qsd-config'], filemtime($distPath . 'js/homepage.js'), true);
-        }
-    }
-
 }
