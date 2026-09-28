@@ -14,6 +14,7 @@ Current state, open work, and the decisions behind them. Update this file as wor
 - **Entities are private to WordPress** (`public: false`, no `/wp/v2`, archives, search or sitemaps). Public reads will go through `qsd/v1` routes that return `active` records and settled content only — never drafts.
 - **Platform IDs are the public key.** Prefixes are permanent once records exist; new Stations add their own `QSD…` prefix.
 - **npm stays on developer machines and CI.** The server receives built files only; `dist/` is not committed.
+- **"Service" stays the internal name** (`qsd_service`, `/admin/services`, `QSDS`) for courses, dives, snorkelling and trips. Admin labels (e.g. "Experiences") are a later cosmetic change. Retail gear will be its own **Product** Station; public URL wording is decided by the front end, not by these internal names.
 - **The platform never creates accounts.** Business users get the `qsd_platform_manager` role in WordPress.
 - **Staging safety.** The deploy refuses any `STAGING_WP_PATH` other than `/home/customer/www/staging2.qldscubadive.com.au/public_html`, and writes only `wp-content/plugins/qsd-platform/` and `wp-content/themes/qsd-shell/`. The SSH account can reach the live site too — never add a deploy target, command, or `--delete` scope outside those two folders without the owner's explicit approval. There is no production deploy yet.
 
