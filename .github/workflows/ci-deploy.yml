@@ -6,7 +6,8 @@ name: Test and deploy
 #
 # The server never runs npm or Composer: it receives built files only.
 #
-# Required repository secrets (Settings → Secrets and variables → Actions):
+# Settings → Secrets and variables → Actions. The key and passphrase must be
+# repository Secrets; host, port, user and path may be Secrets or Variables:
 #   STAGING_SSH_HOST        e.g. c1117292.sgvps.net
 #   STAGING_SSH_PORT        e.g. 18765
 #   STAGING_SSH_USER        the SiteGround SSH user
@@ -76,17 +77,20 @@ jobs:
         env:
           SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
           SSH_PASSPHRASE: ${{ secrets.STAGING_SSH_PASSPHRASE }}
-          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-          SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
-          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
-          WP_PATH: ${{ secrets.STAGING_WP_PATH }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || vars.STAGING_SSH_HOST }}
+          SSH_PORT: ${{ secrets.STAGING_SSH_PORT || vars.STAGING_SSH_PORT }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER || vars.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH || vars.STAGING_WP_PATH }}
         run: |
           set -uo pipefail
           fail() { echo "::error::$1"; exit 1; }
 
-          for name in SSH_HOST SSH_PORT SSH_USER SSH_KEY WP_PATH; do
-            [ -n "${!name}" ] || fail "Secret STAGING_$name is empty or missing. Add it under Settings → Secrets and variables → Actions → Repository secrets (not Variables)."
+          missing=""
+          for name in SSH_HOST SSH_PORT SSH_USER WP_PATH; do
+            [ -n "${!name}" ] || missing="$missing STAGING_$name"
           done
+          [ -n "$SSH_KEY" ] || missing="$missing STAGING_SSH_KEY(must be a Secret)"
+          [ -z "$missing" ] || fail "Missing or empty:$missing. Host, port, user and path may be Repository secrets or Repository variables; the key and passphrase must be Repository secrets (Settings → Secrets and variables → Actions)."
           case "$SSH_PORT" in (*[!0-9]*) fail "STAGING_SSH_PORT must be a number only (e.g. 18765).";; esac
           case "$SSH_HOST" in (*@*|*/*|*:*|*" "*) fail "STAGING_SSH_HOST must be the host name only (e.g. c1117292.sgvps.net), without user, port or ssh://.";; esac
           case "$SSH_USER" in (*@*|*" "*) fail "STAGING_SSH_USER must be the user name only, without @host.";; esac
@@ -122,8 +126,8 @@ jobs:
       - name: Check SSH login
         working-directory: .
         env:
-          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || vars.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER || vars.STAGING_SSH_USER }}
         run: |
           $SSH_CMD "$SSH_USER@$SSH_HOST" true \
             || { echo "::error::SSH login refused. Check STAGING_SSH_USER, and that this key is authorised in SiteGround's SSH Keys Manager."; exit 1; }
@@ -135,9 +139,9 @@ jobs:
       - name: Verify the target is the staging site
         working-directory: .
         env:
-          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
-          WP_PATH: ${{ secrets.STAGING_WP_PATH }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || vars.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER || vars.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH || vars.STAGING_WP_PATH }}
           EXPECTED_WP_PATH: /home/customer/www/staging2.qldscubadive.com.au/public_html
         run: |
           set -euo pipefail
@@ -153,9 +157,9 @@ jobs:
       - name: Copy plugin and theme
         working-directory: .
         env:
-          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
-          WP_PATH: ${{ secrets.STAGING_WP_PATH }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || vars.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER || vars.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH || vars.STAGING_WP_PATH }}
         run: |
           set -euo pipefail
           test -f wp-content/plugins/qsd-platform/dist/js/admin-station.js
@@ -173,8 +177,8 @@ jobs:
       - name: Smoke check
         working-directory: .
         env:
-          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
-          WP_PATH: ${{ secrets.STAGING_WP_PATH }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || vars.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER || vars.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH || vars.STAGING_WP_PATH }}
         run: |
           $SSH_CMD "$SSH_USER@$SSH_HOST" "ls -1 '$WP_PATH/wp-content/plugins/qsd-platform' '$WP_PATH/wp-content/plugins/qsd-platform/dist/js' '$WP_PATH/wp-content/themes/qsd-shell'"
