@@ -5,8 +5,8 @@ The Admin Station uses scoped station tokens plus the shared drawer stylesheet. 
 ## Authoritative files
 
 - `resources/ts/admin-station/styles/admin-station-tokens.css` — the single Admin Station token definition site. Light/dark station tokens plus the field-system contract; `--station-card-shadow` supplies shallow card depth separately from overlay `--station-shadow`.
-- `resources/ts/admin-station/styles/admin-station.css` — shell, navigation, cards, drawer layer/backdrop/panel/sizes, the shared [list system](admin-station-list-system.md), and the Station-level feature surfaces (Service Catalogue, Service Category card, Tier Workspace Engine, lower deck, Tier settings, Rate Sheet tool).
-- `resources/ts/admin-station/styles/admin-station-responsive.css` — responsive shell, card, catalogue, Tier-workspace and drawer rules. The Tier workspace collapses three columns to two at a component 1100px breakpoint, then to a single column at the 767px shell breakpoint.
+- `resources/ts/admin-station/styles/admin-station.css` — shell, navigation, cards, drawer layer/backdrop/panel/sizes, the shared [list system](admin-station-list-system.md), and the Station-level feature surfaces (Service Catalogue, Service Category card, Service lower deck).
+- `resources/ts/admin-station/styles/admin-station-responsive.css` — responsive shell, card, catalogue, list, and drawer rules, collapsing to a single column at the 767px shell breakpoint.
 - `resources/css/modules/drawer-kit.css` — drawer content: modules, status pills, notification panels, **the shared field system**, inline editors, dialogs, module actions, and record footers.
 
 `resources/ts/modules/admin-station.ts` emits `dist/css/admin-station.css` in the order tokens → base → responsive. Vite builds `drawer-kit.css` as its own stable entry; `Core/AssetLoader.php` registers it once and makes the Admin Station sheet depend on it, so drawer-kit always precedes the station sheet.
@@ -35,7 +35,7 @@ Checkboxes omit the base: its `appearance: none` would erase the native tick.
 
 The default size is `--station-control-height`, so a drawer field and a station-page filter are the same control. `--station-field-*` is the whole contract; every name aliases an existing station family or a 4px-rhythm value.
 
-Editors render fields through `drawer-kit/fields/AdminField`, not hand-authored markup. Specialised editors — the Rate Sheet grid, the repeatable FAQ and inclusion collections, the transforming category control — keep their own layout and consume the shared control classes.
+Editors render fields through `drawer-kit/fields/AdminField`, not hand-authored markup. Specialised editors — the repeatable FAQ and inclusion collections, the transforming category control — keep their own layout and consume the shared control classes.
 
 ## Responsive rules
 

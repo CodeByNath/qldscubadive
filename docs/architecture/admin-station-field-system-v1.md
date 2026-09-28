@@ -1,8 +1,9 @@
 # Admin Station Field System — Locked Implementation Blueprint (v1)
 
-**Status: LOCKED.** This document is the authoritative specification for the Admin Station
-field-system consolidation. Implementation follows §10 phase by phase. Deviation requires an
-explicit amendment recorded here, with file and line evidence for the conflict.
+**Status:** Historical — implemented. The consolidation this blueprint specified is complete
+and its rules are enforced by `npm run contract:admin-station-css`. The audit tables below
+describe the CompuZign source it was written against (including Package/Tier files that are not
+part of this repository); they are kept as the rationale for the current field system.
 
 Audited at: `qsd-platform` @ `e5d987b` (branch `main`, clean tree)
 Plugin root (`PLUGIN`): `wp-content/plugins/qsd-platform`

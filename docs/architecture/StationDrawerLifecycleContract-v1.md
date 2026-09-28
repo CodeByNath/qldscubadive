@@ -5,10 +5,10 @@
 **Current authority:** This document, the owning Station source, and the current [Code Map](../code-map/000-README.md)
 
 This is the platform rule for adding or changing a Station, module, drawer, or
-drawer footer. It records the behaviour now proven by Service, Service
-Category, Package Family, Tier occupant, and Tier Add-on. Tier Group / Tier
-System, Rate Sheet, Promotion, and the remaining Package surfaces stay outside
-this promotion and retain their explicit current-state contracts (see §8).
+drawer footer. It records the behaviour proven by Service and Service Category
+(and, in the CompuZign platform this was extracted from, by Package Family,
+Tier occupant, and Tier Add-on — those examples remain below where they
+illustrate an optional pattern).
 
 ## 1. Core rule
 
@@ -58,10 +58,9 @@ notification explains that publication is waiting. `active` is settled,
 configured, and active. `disabled` is the explicit Disable action's mask.
 
 The raw storage enum `platform_status: 'disabled'` is **not** automatically the
-Disabled pill. A newly persisted Service, Category, Package Family, or Tier
-occupant is unmasked with a pending Overview; it presents as Pending dim/full
-according to readiness. Service, Category, and Family use their documented
-mask signal; Tier occupants use authoritative `is_explicitly_disabled`. Only
+Disabled pill. A newly persisted Service or Category is unmasked with a pending Overview; it presents as Pending dim/full
+according to readiness. Service and Category use their documented mask
+signal (`previous_platform_status`). Only
 the explicit Disable action makes the record and every module Disabled. This
 distinction prevents a never-published draft from being described as a
 user-disabled record.
@@ -84,8 +83,7 @@ the panel says why.
 4. A complete Overview Save crosses the owning persistence boundary exactly
    once. The Station takes the returned record/occupant, seeds authoritative
    detail and module status, then hands the returned identity to the already
-   mounted drawer. Tier uses its existing Overview module endpoint; conformance
-   does not add a create endpoint or endpoint family.
+   mounted drawer.
    There is no full loading mask, remount, or notification unbinding.
 5. The saved Overview is `pending-full` with a publication notification. It is
    not settled or active. Service child modules become editable: an empty child
@@ -96,37 +94,6 @@ Overview completeness is entity-owned. Service requires its title, category,
 and description/content gate. Category requires its name; description is
 optional, and saving an empty description is authoritative (settlement removes
 the owned description rather than retaining stale text).
-
-### Tier occupant creation model
-
-Tier occupant, including Tier Add-on, uses this exact locked flow:
-
-```text
-Empty Tier slot
-→ Configure
-→ same Tier occupant drawer
-
-First successful Overview Save
-→ durable Pending occupant created
-→ occupant_id assigned
-→ Overview remains draft
-→ module_status.overview = pending
-→ no CZT
-→ no CZTA
-→ same drawer remains mounted
-
-Publish
-→ settle drafts
-→ activate occupant
-→ assign CZT
-→ conditionally assign CZTA
-```
-
-Tier Add-on is the same Tier occupant plus `is_addon = true` and an optional
-dormant `CZTA` identity. It has no separate drawer, entity lifecycle,
-controller, footer, or endpoint family. First Publish assigns `CZT`; it also
-assigns `CZTA` when the occupant is an Add-on. A dormant `CZTA` is preserved
-and reused if the same occupant later changes role.
 
 ## 4. Child modules and false-success prevention
 
@@ -155,18 +122,6 @@ sibling modules, pills, notifications, and the record footer remain mounted.
 | Archive / Move to Trash | Owning Station travel operation (Archive/Trash may be offered by the record footer where legal). | The drawer closes through its guarded terminal path; the record and its pending/settled data remain recoverable according to Station rules. |
 | Restore | Bin/archive travel-surface operation, not available inside the drawer. | Returns to the unmasked Pending re-entry state, preserving module data/drafts; it does not auto-activate. |
 | Permanently delete | Legal only for a trashed record and guarded by the owning Station's dependency rules. | Removes the record; no drawer or module may fake a successful delete. |
-
-Tier occupant presentation follows the same lifecycle vocabulary:
-
-```text
-Incomplete configuration → Pending dim
-Publication-ready saved draft → Pending full
-Publish → Active
-Disable → Disabled
-Enable → Pending dim/full according to readiness
-Never published → Move to Trash
-Previously published → Archive
-```
 
 For a local `new` drawer with no persisted ID, Move to Trash is simply discard/
 close of local authoring state; it is not a status write against a nonexistent
@@ -214,69 +169,27 @@ If the source does not yet meet one of these points, mark the Station and its
 
 ### Conforming now
 
-- **Service:** `service-station.md` and
-  `service-catalogue.md`; Service Overview Save creates the persisted Pending
-  Service, preserves the mounted handoff, unlocks child saves, and Publish
-  settles/activates the returned ID.
-- **Service Category:** `categories.md`; Overview Save creates the persisted Pending
-  Category, preserves the mounted handoff, keeps Assigned Services read-only,
-  and Publish settles/activates that ID.
-- **Package Family:** `package-station.md`; Overview Save creates the persisted
-  Pending Family with native and `CZPG` identity in the same mounted drawer.
-- **Tier occupant:** `tiers.md`; first successful Overview Save creates the
-  durable Pending occupant with `occupant_id`, preserves the mounted drawer and
-  pending Overview draft, and leaves Publish to settle, activate, and assign
-  `CZT`. Its shared modules, pills, notifications, inline editors, and canonical
-  footer follow the locked grammar, including Disable/Enable, pre-publication
-  Move to Trash, and post-publication Archive.
-- **Tier Add-on:** `tier-addon.md`; the exact same conforming Tier occupant with
-  `is_addon = true` and optional dormant `CZTA`. First Add-on Publish assigns
-  `CZTA` alongside `CZT`; it adds no drawer, lifecycle, controller, footer, or
-  endpoint family.
+- **Service:** `service-station.md` and `service-catalogue.md`; Service
+  Overview Save creates the persisted Pending Service, preserves the mounted
+  handoff, unlocks child saves, and Publish settles/activates the returned ID.
+- **Service Category:** `categories.md`; Overview Save creates the persisted
+  Pending Category, preserves the mounted handoff, keeps Assigned Services
+  read-only, and Publish settles/activates that ID.
 - **Shared drawer ownership:** `drawer-system.md` and
   `admin-station-drawer.md`; the host is generic and the Station is the write
   boundary.
 
-### Pending migration — current source/docs intentionally differ
+### Known gaps (tracked, not exceptions)
 
-These are not evidence that the contract is optional. They are the explicit
-follow-up inventory and must not be described as conforming until migrated:
+- **Travel surfaces:** Restore and Permanent delete are implemented by both
+  Stations' backends and API clients, and Service declares its bin tables,
+  but no Admin Station surface lists archived or trashed records yet (§5
+  places Restore on a bin/archive travel surface).
+- **Transition enforcement:** the `/status` routes accept any valid target;
+  strict per-action transitions are currently enforced by the drawer only.
 
-- **Tier Group / Tier System registration:** `tier-registration.md`,
-  `package-settings.md`, and `package-station.md` retain their separate
-  aggregate registration and Publish/Apply lifecycle. This promotion covers
-  fixed-slot occupants and Add-ons only; it does not promote Tier Group / Tier
-  System.
-- **Tier inclusion and Rate Sheet tools:** `rate-sheet.md`,
-  `tier-rate-sheet-connections.md`, and the Package drawer maps describe
-  relationship/collection editors with their own readiness and travel
-  semantics; they have not completed this drawer-module migration.
-- **Package capability blueprint:** `PackageCapabilityAssignments-v1.md` is a
-  current accepted Package execution blueprint, not evidence that its Family
-  and Tier surfaces have adopted this lifecycle contract.
-- **Promotion authoring:** `promotions.md` records that its Admin drawer is
-  absent and its lifecycle remains Package-owned; it is pending a compliant
-  mounted drawer.
-
-### Historical or superseded records that intentionally retain older wording
-
-Immutable history/specification records are not rewritten. Their older claims
-(for example restore landing directly in Disabled, or the former Service
-CreateStep/Locked-step composition) are historical evidence, not instructions:
-
-- `StationLifecycleEngine-v1.md`
-- `AdminWorkstationDrawerPrinciples-v1.md`
-- `ServiceDrawerModuleArchitecture-v1.md`
-- `DrawerModuleSystem-v1.md`
-- `PlatformEntityOnboardingGuide-v1.md`
-- `QSDArchitectureADR-v1.md`
-- `S6-CategoryOnboardingBlueprint-v1.md`
-- `docs/project-history/016-service-lifecycle-mask.md`
-- `docs/project-history/PackageCategoryGroups-v1.md`
-
-The current Code Maps and this contract override those recorded paths and
-pre-migration lifecycle descriptions. [Project History](../project-history/000-README.md)
-remains immutable.
+Every new Station implements this contract from the start; there is no
+pending-migration inventory in this repository.
 
 ## 9. Drawer group presentation: Tabs, Accordion, child navigation, and focused tasks
 
@@ -392,7 +305,8 @@ unreachable by convention alone. When `splitForward` is present, Close
 renders beside the LEFT split, not at the far right, so the RIGHT publish
 split stands alone. A Station must not invent a third footer shape; it uses
 either the default single-split-plus-primary-Publish shape or the dual
-independent-split shape exactly as `TierDrawerFooter.tsx` implements it.
+independent-split shape exactly as described here (`EntityActionFooter`
+supports both through `split`, `splitForward`, and `menuOnly`).
 
 ## Related current maps
 
@@ -400,8 +314,4 @@ independent-split shape exactly as `TierDrawerFooter.tsx` implements it.
 [Service Catalogue](../code-map/service-catalogue.md) ·
 [Categories](../code-map/categories.md) ·
 [Drawer System](../code-map/drawer-system.md) ·
-[Lifecycle and Module State](../code-map/lifecycle-system.md) ·
-[Package Station](../code-map/package-station.md) ·
-[Tiers](../code-map/tiers.md) ·
-[Tier Add-on](../code-map/tier-addon.md) ·
-[Tier Edition](../code-map/tier-edition.md)
+[Lifecycle and Module State](../code-map/lifecycle-system.md)

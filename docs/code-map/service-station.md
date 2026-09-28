@@ -9,7 +9,9 @@ Service Station owns `qsd_service` posts, Category relationships, meta/drafts,
 inclusion/FAQ pools, lifecycle, endpoints, client state, catalogue presentation,
 and drawer editing.
 
-Cost Builder separately owns `qsd_service_pricing`. Package Station owns Package relationships, Package Families, Rate Sheets, and Tiers. A Service-shaped or Service-nested URL does not transfer authority.
+The Service record carries no price, tier, or availability. Those arrive later
+as their own Service modules (following the Inclusions/FAQs pattern) or as their
+own Stations, never as Overview fields.
 
 ## Frontend peer
 
@@ -31,8 +33,7 @@ Station Manager supplies host-engine contracts and resolution only. Admin Statio
 - `ServiceModule.php` wires the module.
 - [ServiceController.php](../../wp-content/plugins/qsd-platform/src/Modules/Service/Http/ServiceController.php) owns Service catalogue, detail, module, lifecycle, and pool routes. Its authenticated Platform-ID GET resolves a bound Service, then calls the unchanged numeric `fetchDetail` projection.
 - [ServiceSchema.php](../../wp-content/plugins/qsd-platform/src/Modules/Service/Support/ServiceSchema.php) owns Service keys, module vocabulary, sanitization, and REST arguments.
-- [ServicePools.php](../../wp-content/plugins/qsd-platform/src/Modules/Service/Support/ServicePools.php) is the public pool-write boundary used by Service and Package Tier saves.
-- [Service Catalogue Admin Import Runbook](../service-catalogue-admin-import-runbook.md) records the proven temporary authenticated-Admin workflow for future catalogue batches. No import action remains mounted in the application.
+- [ServicePools.php](../../wp-content/plugins/qsd-platform/src/Modules/Service/Support/ServicePools.php) is the public pool-write boundary; any future Station that adds pool items uses it. Referencing Stations report through the `qsd_service_pool_references` filter (see [Service Connections](service-connections.md)).
 
 WordPress post/meta access stays cohesive here; there is no pass-through repository. Core post-type/taxonomy registrars declare entities but do not own behavior.
 
@@ -45,8 +46,7 @@ unchanged. Adapters map backend `platform_id` to application `platformId`.
 The drawer manifest exposes it through optional `identity.platformIdOf`;
 `identity.idOf` still returns the numeric Service ID. Service Overview reads
 that `QSDS` directly beneath the Service's own **Name** — the term that replaced
-"Title" in every label an admin reads or edits, matching Package Family
-Overview, which likewise shows Platform ID alone and no native `group_id`.
+"Title" in every label an admin reads or edits.
 
 ## Module and lifecycle states
 
@@ -59,8 +59,8 @@ Disable/Enable use `/status` with `action: disable|enable`; they never settle, a
 
 ## Contract baseline
 
-[service-route-baseline.php](../../wp-content/plugins/qsd-platform/tests/service-route-baseline.php) snapshots combined route registrations, not handler bodies or runtime behaviour. Its known Category status-argument drift remains deferred.
+[service-route-baseline.php](../../wp-content/plugins/qsd-platform/tests/service-route-baseline.php) snapshots the 26 Service and Category route registrations (paths, methods, permissions, arguments), not handler bodies or runtime behaviour. Regenerate it with `php tests/service-route-baseline.php --update` only for an intended route change, and review the fixture diff.
 
 ## Related Code Maps
 
-[Station Manager](station-manager.md), [Service Catalogue](service-catalogue.md), [Service Connections](service-connections.md), [Package Station](package-station.md), [Lifecycle](lifecycle-system.md), and [Drawer System](drawer-system.md).
+[Station Manager](station-manager.md), [Service Catalogue](service-catalogue.md), [Service Connections](service-connections.md), [Lifecycle](lifecycle-system.md), and [Drawer System](drawer-system.md).

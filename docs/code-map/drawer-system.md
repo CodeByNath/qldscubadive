@@ -2,9 +2,7 @@
 
 The locked cross-Station lifecycle, pill, notification, child-lock, footer,
 and travel contract is [Station and Drawer Lifecycle Contract v1](../architecture/StationDrawerLifecycleContract-v1.md).
-Service, Service Category, Package Family, Tier occupant, and Tier Add-on
-conform today. Tier Group / Tier System and the remaining Package surfaces keep
-their separate inventory there.
+Service and Service Category conform today; every new Station must conform.
 
 ## Responsibility split
 
@@ -23,7 +21,7 @@ The drawer system separates coordination, hosting, rendering, and persistence:
 - [entityDrawerHost.ts](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/entityDrawerHost.ts) defines the host-neutral close/footer/guard/mutation bridge.
 - [InlineEditorShell.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/InlineEditorShell.tsx) owns Save/Cancel, dirty confirmation, validation, loading, and errors — a specialisation of `FocusedTaskShell.tsx`.
 - [EntityActionFooter.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/EntityActionFooter.tsx) and [CanonicalEntityFooter.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/CanonicalEntityFooter.tsx) provide footer grammar and lifecycle mapping.
-- [SupportedActionFooter.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/SupportedActionFooter.tsx) renders owner-supplied action descriptors; Tier Group and Tier use it for their supported sets.
+- [SupportedActionFooter.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/SupportedActionFooter.tsx) renders owner-supplied action descriptors for a Station whose record has a non-canonical supported action set (no current consumer).
 - `ui/DrawerGroupTabs.tsx`, `DrawerGroupAccordion.tsx`, `drawerGroups.ts`, `ChildChipStrip.tsx`, `useScrollHide.ts`: additive multi-group content primitives ([contract §9–§12](../architecture/StationDrawerLifecycleContract-v1.md#9-drawer-group-presentation-tabs-accordion-child-navigation-and-focused-tasks)).
 - `schema/types.ts` and `schema/{elements,shells}` define neutral entity, binding, placement, action, and edit-session contracts.
 
@@ -60,20 +58,14 @@ mask; Enable and Restore clear it and return to Pending while preserving draft
 data. Service child modules are Edit-locked only until Overview Save has issued
 their ID; afterward child saves are authoritative Station writes.
 
-Enforced by `npm run contract:drawer-module-entry`, which executes each rule and reads the compositions for the wiring they need, and by `node scripts/module-state-snapshot.mjs`, which pins every exported rule's `{ status, notes }`. Surfaces under it: empty Tier slots ([Tiers](tiers.md)), whole-instance Tier Rate Sheet access ([Package Home Settings](package-settings.md)), Tier registration ([Tier System Registration](tier-registration.md)), Family creation (the mature drawer's `'new'` identity), and the Rate Sheet pool ([Rate Sheet](rate-sheet.md)).
+Enforced by `npm run contract:drawer-module-entry`, which executes each rule and reads the compositions for the wiring they need, and by `node scripts/module-state-snapshot.mjs`, which pins every exported rule's `{ status, notes }`. A new Station adds its shells, empty entry states, and composition checks to that contract.
 
-Package Family, Tier occupant, and Tier Add-on use the locked drawer/footer
-grammar. Tier Group / Tier System uses shared presentation but retains its
-separate Package-owned lifecycle. Tier Inclusion, Rate Sheet lifecycle, and Promotion
-still have documented lifecycle differences and remain pending migration;
-they must not be copied as the platform default. The full inventory is in the
-contract's [conformance table](../architecture/StationDrawerLifecycleContract-v1.md#8-conformance-and-pending-inventory).
+The conformance inventory is in the contract's [conformance table](../architecture/StationDrawerLifecycleContract-v1.md#8-conformance-and-pending-inventory).
 
 ## Domain compositions and adapters
 
-- `package-station/drawer/{package-family,tier}/` and `drawer/{schema,editors}/` are Package-owned. Their registered adapters are [PackageFamilyDrawerContent.tsx](../../wp-content/plugins/qsd-platform/resources/ts/package-station/surface/packageFamily/PackageFamilyDrawerContent.tsx) and [TierDrawerHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/package-station/surface/tierSurface/TierDrawerHost.tsx). The Tier host strictly distinguishes whole-instance `tier-instance:{instance}`, occupant `tier-instance:{instance}:{occupant}`, and empty-slot `tier-slot:{instance}:{slot}` routes; all reuse the registered `tier` key.
 - `service-station/drawer/` is Service-owned; [ServiceDrawerHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/service-station/surface/ServiceDrawerHost.tsx) is its registered adapter.
-- `entity-drawers/category/` and `entity-drawers/schema/` remain Category residue hosted through Admin Station's [CategoryDrawerHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/stations/serviceCategory/CategoryDrawerHost.tsx).
+- `entity-drawers/category/` and `entity-drawers/schema/` hold the Category composition, hosted through Admin Station's [CategoryDrawerHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/stations/serviceCategory/CategoryDrawerHost.tsx).
 - [drawerChrome.ts](../../wp-content/plugins/qsd-platform/resources/ts/entity-drawers/shared/drawerChrome.ts) remains genuinely shared close/lifecycle/dialog coordination.
 
 Controllers render no JSX; presentation calls no endpoints. Native identities pass through Station Manager unchanged.

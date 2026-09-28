@@ -160,7 +160,7 @@ for (const duplicate of duplicateMaps) {
 }
 
 const historyMarkdown = (await readdir(historyDir)).filter((name) => name.endsWith('.md'));
-const allowedLegacyHistory = new Set(['000-README.md', 'PackageCategoryGroups-v1.md']);
+const allowedLegacyHistory = new Set(['000-README.md']);
 for (const name of historyMarkdown) {
   if (!allowedLegacyHistory.has(name) && !/^\d{3}-.*\.md$/.test(name)) {
     failures.push(`docs/project-history: unnumbered history record ${name}`);

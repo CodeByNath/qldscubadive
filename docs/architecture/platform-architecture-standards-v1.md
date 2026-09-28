@@ -12,9 +12,8 @@ QSD is a relational, data-driven platform. Business truth belongs to its owning 
 There is no mandatory one-size-fits-all repository/builder pipeline. Use the smallest cohesive path that preserves the real authority:
 
 ```text
-WordPress entity/meta → domain controller/service → typed endpoint → station hook → consumer
-PackageRepository option → domain controller/builder → typed endpoint → station hook → consumer
-WordPress catalogue → repository → PricingBuilder → typed endpoint → public consumer
+WordPress entity/meta → domain controller/service → typed endpoint → station hook → Admin Station consumer
+owning Station's storage → domain controller → public qsd/v1 read endpoint → separate public front end
 ```
 
 A repository is appropriate when it owns meaningful querying, storage, migration, or projection behaviour. It must not be introduced merely to wrap a single WordPress call. Controllers may coordinate WordPress entity APIs when that is the established cohesive domain boundary.
@@ -37,12 +36,9 @@ Use WordPress posts, terms, taxonomy relationships, metadata, and options accord
 
 - Taxonomies suit shared classification, queryable relationships, and term enrichment.
 - Entity meta suits entity-owned structured state.
-- Options/repositories suit Package Station's established aggregate persistence.
-- References across domains must write through the owning public contract.
-- Rate Sheets are pricing authority only, never a direct consumer reference.
-  Do not traverse Rate Sheet rows to infer Package Family membership, content,
-  inclusions, or Category summaries; follow the owning Family/source/inclusion
-  relationships instead.
+- Options/repositories suit a Station's aggregate persistence when records are not WordPress entities.
+- References across domains must write through the owning public contract (for Service pools, `ServicePools` and the `qsd_service_pool_references` filter).
+- Follow the owning relationship; never infer membership by traversing another Station's rows.
 
 Registration is not ownership: centralized post-type or taxonomy registrars may declare an entity while its domain module owns behaviour. A nested REST path is likewise not ownership.
 
@@ -61,9 +57,9 @@ Screen placement and source ownership are separate:
 - `resources/ts/drawer-kit/` owns generic schema rendering, editor chrome, status/notification presentation, actions, and host bridges.
 - `resources/ts/entity-drawers/<entity>/` owns host-neutral entity drawer composition and entity-specific coordination.
 - `resources/ts/admin-station/` owns Admin Station navigation, surfaces, registries, shell adapters, and its one drawer shell.
-- `resources/ts/components/admin/` owns Command Centre routing/hosts and any domain UI that has not moved to a neutral owner.
+- `resources/ts/<station>/` owns each domain Station's frontend peer (types, API, state, presentation, drawer).
 
-Package Family, Category, Service, and Tier compositions mount in both hosts. Neither host may fork a reduced copy. Generic shells must not branch on entity; registries select entity adapters, and adapters preserve native record identity.
+Category and Service compositions mount in the one Admin Station host; a composition is never forked into a reduced copy. Generic shells must not branch on entity; registries select entity adapters, and adapters preserve native record identity.
 
 ### Locked Station and Drawer lifecycle
 
@@ -89,13 +85,13 @@ Do not duplicate the mature drawer kit, station lifecycle, typed transport, rela
 
 ## 7. Runtime and shell boundary
 
-The WordPress theme is a passive compatibility, lifecycle, and routing surface. The platform plugin owns application UI, Atomic Engine styles, runtime configuration, state, REST behaviour, requests, pricing, and operational systems.
+WordPress is the runtime and storage host. The theme is a passive document shell; the platform plugin owns the Admin Station UI, Atomic Engine styles, runtime configuration, state, REST behaviour, and operational systems. The public website is a separate front end that reads the API.
 
 ```text
-WordPress route → shell template → content/shortcode mount → platform runtime → module
+/station/ rewrite route → plugin document template → login gate | access denied | mount → platform runtime → Stations
 ```
 
-Runtime configuration flows through `window.QSDConfig`. Required CSS must be registered early enough for the page lifecycle; shortcode execution must not be assumed to place styles in an already-rendered `<head>`.
+Runtime configuration flows through `window.QSDConfig`, written only on the `/station/` route; no platform asset loads anywhere else.
 
 ## 8. Change standard
 

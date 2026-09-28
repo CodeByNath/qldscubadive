@@ -4,7 +4,7 @@ Category is the second current implementation of the locked [Station and Drawer 
 
 ## Purpose and ownership
 
-Category owns numeric identity and Overview draft/lifecycle. Category carries no group concept — the retired Service Category Group selector and its `group_id` create/update payload were removed (Service Category Group audit); see [Service Category Groups](category-groups.md) for what was removed and what legacy data remains, ignored. Assigned Services are read-only projections; assignment stays Service-owned.
+Category owns numeric identity and Overview draft/lifecycle. Category carries no group concept; creation and editing take Name and Description only. `CategoryMeta` still recognises a legacy `station_role` of `'group'`, and `listCategories()` lists only `station_role === 'category'` terms. Assigned Services are read-only projections; assignment stays Service-owned.
 
 `Core\Plugin` supplies the shared `PlatformIdentifierStation` through
 `AdminModule` to the Category controller. Category owns both native
@@ -33,8 +33,10 @@ Admin Station contributes only host/registration; placement does not transfer
 domain ownership.
 
 **Service Home Connections is the active Category entry point** and opens this
-drawer by native ID. The registered `ServiceCategoryCarousel` data source is
-currently unplaced.
+drawer by native ID; Settings → Create Category opens it at `'new'`. A Category
+with no assigned Services is not listed anywhere yet, so it cannot be reopened
+until a Service uses it (see [Lifecycle](lifecycle-system.md#known-gaps)). The
+registered `ServiceCategoryCarousel` data source is currently unplaced.
 
 ## State and persistence
 
@@ -49,8 +51,8 @@ Overview and Connections use shared schema shells, status pills, notifications, 
 
 ## Validation
 
-From the plugin root: `npx tsc --noEmit`, `npx tsx scripts/category-identifier-api-contract.ts`, `npm run build`, `npm run regression:category-create`, `php tests/category-pending-lifecycle.php`, `php tests/category-inline-identity-race.php`, `php tests/category-create-group-id-payload-contract.php`, and `npm run docs:check`. The unrelated module-state snapshot remains deferred.
+From the plugin root: `npx tsc --noEmit`, `npx tsx scripts/category-identifier-api-contract.ts`, `npm run build`, `npm run regression:category-create`, `php tests/category-pending-lifecycle.php`, `php tests/category-inline-identity-race.php`, `php tests/category-create-group-id-payload-contract.php`, and `npm run docs:check`.
 
 ## Related Code Maps
 
-[Admin Station Drawer](admin-station-drawer.md), [Service Category Groups](category-groups.md), [Lifecycle](lifecycle-system.md).
+[Admin Station Drawer](admin-station-drawer.md), [Service Connections](service-connections.md), [Lifecycle](lifecycle-system.md).

@@ -19,7 +19,6 @@ Root: `wp-content/plugins/qsd-platform/resources/ts/station-manager/`
 
 ```text
 registerServiceStation()
-→ registerPackageStation()
 → registerAdminStation()
 → registerPresentationPolicy()
 → finalizeStationRegistry()
@@ -33,10 +32,10 @@ registerServiceStation()
 - Peer `register.ts` files are entry-only. Registration finishes before finalize; resolvers are never called at module scope and throw before successful finalization.
 - Duplicate keys/projections and post-finalize registration throw. Navigation and bindings sort by declared `order`, with registration order as the stable tie-breaker.
 - Unknown data sources/kits throw. Unmapped destinations and drawers intentionally resolve to `null`; drawer resolvability is not strengthened at finalize.
-- Service and Package register owned capabilities. Admin registers its capabilities and authors all placement policy by string key. Manager imports only Preact, the type-only drawer-kit shell contract, and itself—never a peer or Admin Station.
+- Service (and each future domain Station) registers its own capabilities. Admin registers its capabilities and authors all placement policy by string key. Manager imports only Preact, the type-only drawer-kit shell contract, and itself—never a peer or Admin Station.
 - Record ids remain native `string | number`; no coordinator boundary coerces them.
 
-`category-group-cards` is an Admin-owned presentation capability registered by `registerAdminStation()`, but it is load-bearing for the Package Families wall. If it is absent, binding-to-kit validation throws before mount.
+A new domain Station adds `resources/ts/<station>/register.ts` and one call in the entry file, before `registerAdminStation()`; Admin then places it by string key in `registerPresentationPolicy()`.
 
 ## Reserved seams
 
@@ -44,4 +43,4 @@ Tool identity, `StationConditions` availability evaluation, per-entity activatio
 
 ## Related Code Maps
 
-[Admin Station](admin-station.md), [Surface Binding](admin-station-surface-binding.md), [Service Station](service-station.md), [Package Station](package-station.md), and [Drawer System](drawer-system.md).
+[Admin Station](admin-station.md), [Surface Binding](admin-station-surface-binding.md), [Service Station](service-station.md), and [Drawer System](drawer-system.md).

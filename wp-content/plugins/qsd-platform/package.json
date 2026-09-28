@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test:php": "for t in tests/*.php; do [ \"$t\" = tests/autoload.php ] || php \"$t\" || exit 1; done",
     "test:js": "node scripts/run-all.mjs",
-    "test": "npm run typecheck && npm run test:php && npm run build && npm run test:js",
+    "test": "npm run typecheck && npm run test:php && npm run build && npm run test:js && npm run docs:check",
     "contract:admin-station-css": "node scripts/admin-station-css-contract.mjs",
     "contract:api-client-timeout": "tsx scripts/api-client-timeout-contract.ts",
     "contract:category-identifier-api": "tsx scripts/category-identifier-api-contract.ts",

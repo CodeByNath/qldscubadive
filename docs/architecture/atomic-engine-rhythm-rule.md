@@ -92,7 +92,7 @@ Token → Element → Module → Section → Page
 - **Elements** are born with identity (Button, Heading, Card, Badge, Icon).
 - **Elements** evolve through the contract language (sm, base, lg).
 - **Modules** compose elements (Hero, ServiceCard, QuoteSummary).
-- **Sections** order modules (Homepage, Cost Builder).
+- **Sections** order modules (Station Home walls and lanes).
 - **Nothing** invents pixels or duplicate components outside this chain.
 
 ---

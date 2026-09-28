@@ -12,15 +12,17 @@ This file is the single source of truth for repository-wide guidance for human c
 - Directory-local `CLAUDE.md` files contain only local ownership, entry points, boundaries, links, and validation.
 - [`docs/project-history/`](docs/project-history/000-README.md) contains immutable architectural and milestone history.
 
-## Coordination branch check
+## Project and runtime
 
-Before normal repository startup, check `Project-work-instructions`; if it has newer changes, sync it and read `project-work/AGENTS.md` plus the active work file first.
+This repository is the **QSD Platform** for Queensland Scuba Diving. WordPress is the runtime and storage host only: the `qsd-platform` plugin provides the Stations, Platform IDs, lifecycle, the `qsd/v1` API, and the Admin Station at `/station/`; the `qsd-shell` theme is a minimal document shell. The public website is a separate front end that reads the API. Start at [docs/ai-index.md](docs/ai-index.md).
 
-"Run the cycle" (or "run it" with no other context) means: check `Project-work-instructions` for updates, and if any are found, read the active work file and act on its status.
+Development tooling (npm) runs on a developer machine or CI only. The server receives built files and never runs npm or Composer.
 
-## Branch hygiene
+## Branches
 
-The repository holds at most 3 branches at any time: the two permanent branches `main` and `Project-work-instructions`, plus one slot reserved for whatever work is currently in flight (a topic/review branch). Reuse that one topic branch across every review round of the same work item rather than creating a new one. Deleting it is not optional cleanup — it is the final step of closing that work item, performed the moment its work lands on `main`, so the repository returns to exactly 2 branches between work items. Before deleting any branch, confirm it is a merged ancestor with `git merge-base --is-ancestor <branch> main`; never delete one that isn't without explicit confirmation.
+- `main` — integration. Every push runs the full test suite in CI.
+- `staging` — deploys to the SiteGround staging site (`.github/workflows/ci-deploy.yml`).
+- At most one topic branch for work in flight, deleted once merged (confirm with `git merge-base --is-ancestor <branch> main` first).
 
 ## Repository workflow
 
@@ -96,7 +98,7 @@ Read [`docs/project-history/000-README.md`](docs/project-history/000-README.md) 
 - Treat completed Project History documents as immutable.
 - Never append later work to an existing history document.
 - Give every later milestone a new sequentially numbered document, including work on the same subsystem.
-- Ask the user before creating a history document; never create one automatically.
+- Ask the project owner before creating a history document; never create one automatically.
 - Keep each milestone focused and approximately 300 to 1,000 words.
 - Do not create milestones for routine maintenance, minor fixes, incomplete investigations, or formatting-only changes.
 
@@ -157,12 +159,12 @@ Every change must preserve clarity, capability, ownership, justified reuse, runt
 
 ## Validation
 
-Avoid repeated repository-wide validation. Perform focused validation while implementing where practical, then run complete validation once after implementation. Prefer concise output for successful builds, lint, and tests; show enough detail to diagnose failures.
+Avoid repeated repository-wide validation. Perform focused validation while implementing where practical, then run the complete suite once after implementation, from `wp-content/plugins/qsd-platform/`: `npm test` (typecheck, PHP tests, build, JS contracts and regressions) and `npm run docs:check`.
 
 Before finishing:
 
 1. Update affected Code Maps.
-2. Update local instruction metadata only when its documented ownership, entry points, runtime flow, persistence, dependencies, or boundaries changed; replace stale audit metadata rather than appending audit history.
-3. Verify canonical paths and Markdown links.
-4. Ask whether a new Project History document should be created when the completed work qualifies as a major milestone; routine documentation maintenance and path correction do not qualify.
+2. Update local instruction metadata only when its documented ownership, entry points, runtime flow, persistence, dependencies, or boundaries changed.
+3. Verify canonical paths and Markdown links (`npm run docs:check`).
+4. Ask whether a new Project History document should be created when the completed work qualifies as a major milestone.
 5. Report validation and working-tree status without committing or pushing unless explicitly requested.
