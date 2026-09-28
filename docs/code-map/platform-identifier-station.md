@@ -44,7 +44,7 @@ own reservation/binding in its controller, mirroring Service.
 `PlatformIdentifierPolicy` is the only place a prefix is defined. Frontend
 sources, contracts, and Code Maps consume that vocabulary and never coin one.
 `npm run contract:platform-identity-schema` reads the prefixes, alphabet, and
-suffix length from the policy and scans `resources/ts`, `scripts`, and `docs`.
+suffix length from the policy and scans `resources/ts`, `scripts`, `docs`, and `skills`.
 A token must be exactly a canonical prefix, or one plus a full-length suffix.
 
 ## Registry contract

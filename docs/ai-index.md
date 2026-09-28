@@ -31,6 +31,9 @@ Service and Category conform; every new Station must conform.
 
 ## Adding a Station
 
+Run the [platform architecture skill](../skills/qsd-platform-architecture/SKILL.md) audit first.
+
+
 A new domain (for example courses, dive trips, equipment) follows Service:
 
 - **Backend:** `src/Modules/<Station>/` with a Schema (keys, module vocabulary, REST args), a Controller applying `StationLifecycle`, per-module drafts, and a new prefix in `PlatformIdentifierPolicy`; wire it in `Core\Plugin`.

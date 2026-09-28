@@ -18,6 +18,10 @@ This repository is the **QSD Platform** for Queensland Scuba Diving. WordPress i
 
 Development tooling (npm) runs on a developer machine or CI only. The server receives built files and never runs npm or Composer.
 
+## Platform skill
+
+Before proposing or designing any new feature, Station, module, field, or entity relationship, read and follow [skills/qsd-platform-architecture/SKILL.md](skills/qsd-platform-architecture/SKILL.md) (Claude Code discovers it through `.claude/skills/qsd-platform-architecture/`). Keep the canonical Skill, its `references/`, and `agents/openai.yaml` in sync when the platform's identity vocabulary or ownership changes.
+
 ## Branches
 
 - `main` — integration. Every push runs the full test suite in CI.

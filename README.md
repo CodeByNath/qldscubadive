@@ -23,7 +23,8 @@ wp-content/plugins/qsd-platform/   the platform plugin
   tests/                           PHP contract tests (plain `php tests/x.php`)
   scripts/                         JS contracts and mounted lifecycle regressions
 wp-content/themes/qsd-shell/       minimal runtime shell theme
-docs/                              AI index, architecture contracts, Code Maps
+docs/                              AI index, roadmap, architecture contracts, Code Maps
+skills/qsd-platform-architecture/  platform architecture skill (canonical; .claude/skills points here)
 AGENTS.md                          working standard for contributors and AI assistants
 ```
 

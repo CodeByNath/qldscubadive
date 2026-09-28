@@ -96,6 +96,7 @@ const scanned = [
   ...sourceFiles(resolve(pluginRoot, 'resources/ts'), /\.(ts|tsx)$/),
   ...sourceFiles(resolve(pluginRoot, 'scripts'), /\.(ts|mjs)$/),
   ...sourceFiles(resolve(repoRoot, 'docs'), /\.md$/),
+  ...sourceFiles(resolve(repoRoot, 'skills'), /\.(md|yaml)$/),
 ];
 const coined = new Set<string>();
 for (const file of scanned) {
