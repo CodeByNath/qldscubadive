@@ -69,6 +69,8 @@ jobs:
           name: dist
           path: wp-content/plugins/qsd-platform/dist
 
+      # Prepares the key and reports precisely what is wrong, as annotations,
+      # without ever printing a secret value.
       - name: Load SSH key
         working-directory: .
         env:
@@ -76,21 +78,56 @@ jobs:
           SSH_PASSPHRASE: ${{ secrets.STAGING_SSH_PASSPHRASE }}
           SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
           SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+
+          for name in SSH_HOST SSH_PORT SSH_USER SSH_KEY WP_PATH; do
+            [ -n "${!name}" ] || fail "Secret STAGING_$name is empty or missing. Add it under Settings → Secrets and variables → Actions → Repository secrets (not Variables)."
+          done
+          case "$SSH_PORT" in (*[!0-9]*) fail "STAGING_SSH_PORT must be a number only (e.g. 18765).";; esac
+          case "$SSH_HOST" in (*@*|*/*|*:*|*" "*) fail "STAGING_SSH_HOST must be the host name only (e.g. c1117292.sgvps.net), without user, port or ssh://.";; esac
+          case "$SSH_USER" in (*@*|*" "*) fail "STAGING_SSH_USER must be the user name only, without @host.";; esac
+
           install -d -m 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          eval "$(ssh-agent -s)"
-          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
-          if [ -n "$SSH_PASSPHRASE" ]; then
-            printf '#!/bin/sh\nprintf "%%s" "$SSH_PASSPHRASE"\n' > ~/.ssh/askpass
-            chmod 700 ~/.ssh/askpass
-            SSH_ASKPASS="$HOME/.ssh/askpass" SSH_ASKPASS_REQUIRE=force DISPLAY=none ssh-add ~/.ssh/deploy_key < /dev/null
-          else
-            ssh-add ~/.ssh/deploy_key
+          head -n1 ~/.ssh/deploy_key | grep -q -- '-----BEGIN .*PRIVATE KEY-----' \
+            || fail "STAGING_SSH_KEY does not start with a '-----BEGIN … PRIVATE KEY-----' line. Paste the whole PRIVATE key (not the public key), including the BEGIN and END lines."
+          tail -n1 ~/.ssh/deploy_key | grep -q -- '-----END .*PRIVATE KEY-----' \
+            || fail "STAGING_SSH_KEY does not end with its '-----END … PRIVATE KEY-----' line. Paste the whole key."
+
+          if ! ssh-keygen -y -P "$SSH_PASSPHRASE" -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+            if [ -z "$SSH_PASSPHRASE" ]; then
+              fail "STAGING_SSH_KEY is protected by a password, but STAGING_SSH_PASSPHRASE is empty or missing."
+            else
+              fail "STAGING_SSH_KEY could not be opened with STAGING_SSH_PASSPHRASE: the password is wrong, or the key text was damaged when pasted."
+            fi
           fi
-          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          # Remove the password from this runner-local copy so ssh never prompts.
+          if [ -n "$SSH_PASSPHRASE" ]; then
+            ssh-keygen -p -P "$SSH_PASSPHRASE" -N "" -f ~/.ssh/deploy_key > /dev/null 2>&1 \
+              || fail "Could not unlock STAGING_SSH_KEY for use."
+          fi
+
+          timeout 20 ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          [ -s ~/.ssh/known_hosts ] \
+            || fail "No SSH server answered at STAGING_SSH_HOST on port STAGING_SSH_PORT. Check both values."
+
+          echo "SSH_CMD=ssh -p $SSH_PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes" >> "$GITHUB_ENV"
+          echo "SSH key loaded; server reachable."
+
+      - name: Check SSH login
+        working-directory: .
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+        run: |
+          $SSH_CMD "$SSH_USER@$SSH_HOST" true \
+            || { echo "::error::SSH login refused. Check STAGING_SSH_USER, and that this key is authorised in SiteGround's SSH Keys Manager."; exit 1; }
+          echo "SSH login works."
 
       # Safety guard: the SSH account can reach every site on the hosting
       # plan (including the live site), so refuse to deploy unless the target
@@ -99,7 +136,6 @@ jobs:
         working-directory: .
         env:
           SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-          SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
           SSH_USER: ${{ secrets.STAGING_SSH_USER }}
           WP_PATH: ${{ secrets.STAGING_WP_PATH }}
           EXPECTED_WP_PATH: /home/customer/www/staging2.qldscubadive.com.au/public_html
@@ -109,7 +145,7 @@ jobs:
             echo "::error::STAGING_WP_PATH is not the staging site root ($EXPECTED_WP_PATH). Refusing to deploy."
             exit 1
           fi
-          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+          $SSH_CMD "$SSH_USER@$SSH_HOST" \
             "test -f '$WP_PATH/wp-config.php' && test -d '$WP_PATH/wp-content/plugins' && test -d '$WP_PATH/wp-content/themes'" \
             || { echo "::error::$WP_PATH is not a WordPress root on the server. Refusing to deploy."; exit 1; }
           echo "Target verified: $WP_PATH"
@@ -118,7 +154,6 @@ jobs:
         working-directory: .
         env:
           SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-          SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
           SSH_USER: ${{ secrets.STAGING_SSH_USER }}
           WP_PATH: ${{ secrets.STAGING_WP_PATH }}
         run: |
@@ -127,21 +162,19 @@ jobs:
           # --delete applies only inside the two destination folders below
           # (wp-content/plugins/qsd-platform/ and wp-content/themes/qsd-shell/);
           # nothing else on the server is written or removed.
-          SSH="ssh -p $SSH_PORT"
           # Runtime files only: PHP, templates, Atomic Engine CSS, built dist.
-          rsync -az --delete -e "$SSH" \
+          rsync -az --delete -e "$SSH_CMD" \
             --include='/qsd-platform.php' --include='/src/***' --include='/app/***' \
             --include='/atomic-engine/***' --include='/dist/***' --exclude='*' \
             wp-content/plugins/qsd-platform/ "$SSH_USER@$SSH_HOST:$WP_PATH/wp-content/plugins/qsd-platform/"
-          rsync -az --delete -e "$SSH" \
+          rsync -az --delete -e "$SSH_CMD" \
             wp-content/themes/qsd-shell/ "$SSH_USER@$SSH_HOST:$WP_PATH/wp-content/themes/qsd-shell/"
 
       - name: Smoke check
         working-directory: .
         env:
           SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-          SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
           SSH_USER: ${{ secrets.STAGING_SSH_USER }}
           WP_PATH: ${{ secrets.STAGING_WP_PATH }}
         run: |
-          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ls -1 '$WP_PATH/wp-content/plugins/qsd-platform' '$WP_PATH/wp-content/plugins/qsd-platform/dist/js'"
+          $SSH_CMD "$SSH_USER@$SSH_HOST" "ls -1 '$WP_PATH/wp-content/plugins/qsd-platform' '$WP_PATH/wp-content/plugins/qsd-platform/dist/js' '$WP_PATH/wp-content/themes/qsd-shell'"
