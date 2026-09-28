@@ -1,0 +1,122 @@
+name: Test and deploy
+
+# Every push and pull request runs the full test suite. A push to the
+# `staging` branch (or a manual run) additionally builds the Admin Station and
+# copies the plugin and theme to the SiteGround staging site over SSH.
+#
+# The server never runs npm or Composer: it receives built files only.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   STAGING_SSH_HOST        e.g. c1117292.sgvps.net
+#   STAGING_SSH_PORT        e.g. 18765
+#   STAGING_SSH_USER        the SiteGround SSH user
+#   STAGING_SSH_KEY         private key from SiteGround's SSH Keys Manager
+#   STAGING_SSH_PASSPHRASE  that key's password (leave unset if none)
+#   STAGING_WP_PATH         absolute WordPress root, e.g. /home/customer/www/<site>/public_html
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: wp-content/plugins/qsd-platform
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: wp-content/plugins/qsd-platform/package-lock.json
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Upload built Admin Station
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: wp-content/plugins/qsd-platform/dist
+          retention-days: 7
+
+  deploy-staging:
+    needs: test
+    if: github.ref == 'refs/heads/staging' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download built Admin Station
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: wp-content/plugins/qsd-platform/dist
+
+      - name: Load SSH key
+        working-directory: .
+        env:
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          SSH_PASSPHRASE: ${{ secrets.STAGING_SSH_PASSPHRASE }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          if [ -n "$SSH_PASSPHRASE" ]; then
+            printf '#!/bin/sh\nprintf "%%s" "$SSH_PASSPHRASE"\n' > ~/.ssh/askpass
+            chmod 700 ~/.ssh/askpass
+            SSH_ASKPASS="$HOME/.ssh/askpass" SSH_ASKPASS_REQUIRE=force DISPLAY=none ssh-add ~/.ssh/deploy_key < /dev/null
+          else
+            ssh-add ~/.ssh/deploy_key
+          fi
+          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copy plugin and theme
+        working-directory: .
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH }}
+        run: |
+          set -euo pipefail
+          test -f wp-content/plugins/qsd-platform/dist/js/admin-station.js
+          SSH="ssh -p $SSH_PORT"
+          # Runtime files only: PHP, templates, Atomic Engine CSS, built dist.
+          rsync -az --delete -e "$SSH" \
+            --include='/qsd-platform.php' --include='/src/***' --include='/app/***' \
+            --include='/atomic-engine/***' --include='/dist/***' --exclude='*' \
+            wp-content/plugins/qsd-platform/ "$SSH_USER@$SSH_HOST:$WP_PATH/wp-content/plugins/qsd-platform/"
+          rsync -az --delete -e "$SSH" \
+            wp-content/themes/qsd-shell/ "$SSH_USER@$SSH_HOST:$WP_PATH/wp-content/themes/qsd-shell/"
+
+      - name: Smoke check
+        working-directory: .
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH }}
+        run: |
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ls -1 '$WP_PATH/wp-content/plugins/qsd-platform' '$WP_PATH/wp-content/plugins/qsd-platform/dist/js'"
