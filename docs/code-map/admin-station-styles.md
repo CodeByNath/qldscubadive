@@ -15,7 +15,7 @@ The Admin Station uses scoped station tokens plus the shared drawer stylesheet. 
 
 ## Ownership boundary
 
-Three owners, no overlap. See [Admin Station Field System](../architecture/admin-station-field-system-v1.md) for the full specification.
+Three owners, no overlap. The field-system specification lives in [drawer-kit/CLAUDE.md](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/CLAUDE.md) and is enforced by `npm run contract:admin-station-css`.
 
 **Shell CSS** (`admin-station.css`, `admin-station-tokens.css`, `admin-station-responsive.css`) owns station layout, header, navigation, body, footer, slide menu, presentation surfaces, station tabs and tab sets, the drawer layer, backdrop, drawer placement, drawer widths, station breakpoints, and every design token.
 

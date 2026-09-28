@@ -5,10 +5,8 @@
 **Current authority:** This document, the owning Station source, and the current [Code Map](../code-map/000-README.md)
 
 This is the platform rule for adding or changing a Station, module, drawer, or
-drawer footer. It records the behaviour proven by Service and Service Category
-(and, in the CompuZign platform this was extracted from, by Package Family,
-Tier occupant, and Tier Add-on — those examples remain below where they
-illustrate an optional pattern).
+drawer footer. It records the behaviour proven by Service and Service
+Category.
 
 ## 1. Core rule
 
@@ -18,7 +16,7 @@ drawer is a mounted presentation of that Station. It may coordinate identity
 handoff and render the footer, but it must not create a second lifecycle or call
 an endpoint from presentation code.
 
-For a new conforming record or occupant, a complete Overview Save is the
+For a new conforming record, a complete Overview Save is the
 persistence boundary:
 
 ```text
@@ -81,7 +79,7 @@ the panel says why.
    Services module is a read-only relationship projection and has no child
    editor to unlock.
 4. A complete Overview Save crosses the owning persistence boundary exactly
-   once. The Station takes the returned record/occupant, seeds authoritative
+   once. The Station takes the returned record, seeds authoritative
    detail and module status, then hands the returned identity to the already
    mounted drawer.
    There is no full loading mask, remount, or notification unbinding.
@@ -193,8 +191,8 @@ pending-migration inventory in this repository.
 
 ## 9. Drawer group presentation: Tabs, Accordion, child navigation, and focused tasks
 
-This section locks the additive drawer-composition primitives introduced for
-the Tier occupant/Edition drawer: `drawer-kit/ui/drawerGroups.ts`,
+This section locks the additive drawer-composition primitives for grouped
+drawers: `drawer-kit/ui/drawerGroups.ts`,
 `DrawerGroupTabs.tsx`, `DrawerGroupAccordion.tsx`, `ui/ChildChipStrip.tsx`,
 `ui/useScrollHide.ts`, and `FocusedTaskShell.tsx`. They are optional to
 adopt — most current drawers still render through `EntityDrawer.tsx`'s fixed
@@ -223,7 +221,7 @@ persistent sticky chrome above an open panel). A nested `ChildChipStrip`
 reads this variable and must not hardcode an offset of its own.
 
 **Child navigation** for a group whose content further splits into child
-records (Options → Editions today) is `ChildChipStrip` — a subordinate,
+records (for example a course and its scheduled sessions) is `ChildChipStrip` — a subordinate,
 visibly smaller sibling of the group bar, never a second top-level tab
 system. Its optional `trailing` slot holds exactly one fixed, non-chip
 control (e.g. a Bin icon); `trailing` never participates in chip selection.
@@ -277,24 +275,18 @@ rendering primitive. The locked convention is:
   an overlay) is `useInlineConfirm`. It renders nothing itself and must not
   be treated as, or replaced by, an overlay modal.
 - Every destructive action on a bin/travel surface must be guarded by one of
-  the two mechanisms above. The Tier Edition bin's Move-to-Bin, Publish
-  Edition, and in-bin permanent-delete rows currently fire directly on click
-  with neither guard, unlike the Tier occupant bin's `useInlineConfirm`-armed
-  permanent delete. This is a recorded deviation, not a pattern to copy: a
-  new Station or surface must use the occupant bin as its reference, and this
-  gap should close before the Edition bin is cited as fully conforming.
+  the two mechanisms above; a permanent delete is always `useInlineConfirm`-armed.
 
 ## 12. Footer split-button grammar
 
 The default record-footer shape — `CanonicalEntityFooter`/
-`EntityActionFooter` as used by Service, Service Category, Package Family,
-and Tier Group/System — is one `split` action (status/travel: Disable,
+`EntityActionFooter` as used by Service and Service Category — is one `split` action (status/travel: Disable,
 Enable, Move to Trash, with Archive/Trash in overflow) plus a separate
 `primary` Publish button. This remains the default shape for a new
 conforming Station.
 
 A Station whose record owns a second, independently lifecycled child
-collection with its own Publish action (Tier occupant/Edition today) may
+collection with its own Publish action may
 instead use the additive **dual independent split**: `split` (LEFT,
 backward/travel actions, Move to Bin always last) and `splitForward` (RIGHT,
 forward/publish actions), each opening only its own overflow menu through

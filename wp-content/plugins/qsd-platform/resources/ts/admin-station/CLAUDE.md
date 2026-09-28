@@ -36,7 +36,7 @@ The shell sheet owns station layout, header, navigation, body, footer, slide men
 
 It does **not** own control appearance. Input, select, textarea, checkbox, label, hint, error, focus, disabled, readonly and field sizing belong to the drawer kit's field system (`cz-tf-*`). Feature CSS living in this sheet owns grids, rows, columns and domain-specific presentation only, and must not declare `border`, `border-radius`, `height`, `min-height`, `outline`, `box-shadow`, `background` or `color` on an `input`, `select`, `textarea`, `label` or a `cz-tf-*` class.
 
-Read [Admin Station](../../../../../../docs/code-map/admin-station.md), [Admin Station Styles](../../../../../../docs/code-map/admin-station-styles.md), [Admin Station Drawer](../../../../../../docs/code-map/admin-station-drawer.md), and the locked [Admin Station Field System](../../../../../../docs/architecture/admin-station-field-system-v1.md).
+Read [Admin Station](../../../../../../docs/code-map/admin-station.md), [Admin Station Styles](../../../../../../docs/code-map/admin-station-styles.md), [Admin Station Drawer](../../../../../../docs/code-map/admin-station-drawer.md), and the field-system rules in [drawer-kit/CLAUDE.md](../drawer-kit/CLAUDE.md).
 
 ## Validation
 

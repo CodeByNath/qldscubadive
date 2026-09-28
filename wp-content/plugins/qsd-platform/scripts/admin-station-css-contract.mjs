@@ -7,7 +7,7 @@
  * stops them growing back. It is deliberately a short list of rules, not a
  * linter — rule 5 was added for a live-confirmed select-popup contrast defect.
  *
- * Specification: docs/architecture/admin-station-field-system-v1.md
+ * Specification: the field-system section of resources/ts/drawer-kit/CLAUDE.md
  *
  * Run: npm run contract:admin-station-css
  */
