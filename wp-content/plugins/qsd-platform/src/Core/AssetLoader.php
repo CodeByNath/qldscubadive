@@ -1,12 +1,12 @@
 <?php
 
-namespace CompuZign\Platform\Core;
+namespace QSD\Platform\Core;
 
-use CompuZign\Platform\Modules\AdminStation\AdminStationModule;
+use QSD\Platform\Modules\AdminStation\AdminStationModule;
 
 class AssetLoader
 {
-    private const MODULE_HANDLES = ['compuzign-homepage', 'compuzign-cost-builder', 'compuzign-admin-station'];
+    private const MODULE_HANDLES = ['qsd-homepage', 'qsd-cost-builder', 'qsd-admin-station'];
 
     public function register(): void
     {
@@ -26,31 +26,31 @@ class AssetLoader
     }
 
     /**
-     * Outputs window.CompuZignConfig unconditionally via a no-src script handle.
+     * Outputs window.QSDConfig unconditionally via a no-src script handle.
      * Decoupled from any dist file existing — the config is always on the page.
      */
     private function outputRuntimeConfig(): void
     {
-        wp_register_script('compuzign-config', false, [], null, true);
-        wp_enqueue_script('compuzign-config');
+        wp_register_script('qsd-config', false, [], null, true);
+        wp_enqueue_script('qsd-config');
 
         $config = wp_json_encode([
-            'apiRoot'         => esc_url_raw(rest_url('compuzign/v1/')),
+            'apiRoot'         => esc_url_raw(rest_url('qsd/v1/')),
             'nonce'           => wp_create_nonce('wp_rest'),
-            'contactUrl'      => esc_url(apply_filters('compuzign_contact_url', home_url('/contact/'))),
-            'costBuilderUrl'  => esc_url(apply_filters('compuzign_cost_builder_url', home_url('/pricing/'))),
+            'contactUrl'      => esc_url(apply_filters('qsd_contact_url', home_url('/contact/'))),
+            'costBuilderUrl'  => esc_url(apply_filters('qsd_cost_builder_url', home_url('/pricing/'))),
             // CRM-1C: lets Admin Station's Request print load the exact
             // customer stylesheets (atomic-engine tokens + cost-builder.css)
             // inside an isolated print window only — never as global Admin
             // Station styles. Same base URLs this class already uses below.
-            'distUrl'         => esc_url_raw(COMPUZIGN_DIST_URL),
-            'atomicEngineUrl' => esc_url_raw(COMPUZIGN_ATOMIC_ENGINE_URL),
+            'distUrl'         => esc_url_raw(QSD_DIST_URL),
+            'atomicEngineUrl' => esc_url_raw(QSD_ATOMIC_ENGINE_URL),
             // Admin Station header's User menu Log out action — see
             // adminStationLogoutUrl() below for why it is decoded first.
             'logoutUrl'       => $this->adminStationLogoutUrl(),
         ]);
 
-        wp_add_inline_script('compuzign-config', 'window.CompuZignConfig = ' . $config . ';');
+        wp_add_inline_script('qsd-config', 'window.QSDConfig = ' . $config . ';');
     }
 
     /**
@@ -59,7 +59,7 @@ class AssetLoader
      * wp_logout_url() delegates to wp_nonce_url(), which returns an HTML-
      * ENCODED URL (it applies esc_html(), so every `&` becomes `&amp;`).
      * That is correct for an HTML href written into markup, but this value is
-     * serialized into window.CompuZignConfig and later assigned as a DOM href
+     * serialized into window.QSDConfig and later assigned as a DOM href
      * from JavaScript, where nothing ever decodes it. The literal `&amp;` then
      * renames every query parameter after the first — `amp;_wpnonce`,
      * `amp;redirect_to` — so WordPress sees no nonce (it falls back to its own
@@ -119,37 +119,37 @@ class AssetLoader
      */
     private function registerDrawerKitStyles(): void
     {
-        $distPath = COMPUZIGN_DIST_PATH;
-        $distUrl  = COMPUZIGN_DIST_URL;
+        $distPath = QSD_DIST_PATH;
+        $distUrl  = QSD_DIST_URL;
 
         if (file_exists($distPath . 'css/drawer-kit.css')) {
-            wp_register_style('compuzign-drawer-kit', $distUrl . 'css/drawer-kit.css', [], filemtime($distPath . 'css/drawer-kit.css'));
+            wp_register_style('qsd-drawer-kit', $distUrl . 'css/drawer-kit.css', [], filemtime($distPath . 'css/drawer-kit.css'));
         }
     }
 
     private function registerAdminStationAssets(): void
     {
-        $distPath = COMPUZIGN_DIST_PATH;
-        $distUrl  = COMPUZIGN_DIST_URL;
+        $distPath = QSD_DIST_PATH;
+        $distUrl  = QSD_DIST_URL;
 
         // CSS: register-only; the admin-station shortcode enqueues it (with a
         // wp_head safety net) when its page renders.
         if (file_exists($distPath . 'css/admin-station.css')) {
             // Depends on the shared drawer kit: all four Admin Station entity
             // compositions mount the shared renderer and need its rules.
-            wp_register_style('compuzign-admin-station', $distUrl . 'css/admin-station.css', ['compuzign-drawer-kit'], filemtime($distPath . 'css/admin-station.css'));
+            wp_register_style('qsd-admin-station', $distUrl . 'css/admin-station.css', ['qsd-drawer-kit'], filemtime($distPath . 'css/admin-station.css'));
         }
 
         // JS: register-only; the shortcode enqueues after the mount div is in
         // the DOM.
         if (file_exists($distPath . 'js/admin-station.js')) {
-            wp_register_script('compuzign-admin-station', $distUrl . 'js/admin-station.js', ['compuzign-config'], filemtime($distPath . 'js/admin-station.js'), true);
+            wp_register_script('qsd-admin-station', $distUrl . 'js/admin-station.js', ['qsd-config'], filemtime($distPath . 'js/admin-station.js'), true);
         }
     }
 
     private function enqueueAtomicStyles(): void
     {
-        $base = COMPUZIGN_ATOMIC_ENGINE_URL . 'css/';
+        $base = QSD_ATOMIC_ENGINE_URL . 'css/';
         $files = [
             '00-tokens.css', '01-reset.css', '02-base.css', '03-layout.css',
             '04-buttons.css', '05-cards.css', '06-forms.css', '07-tabs.css',
@@ -158,63 +158,63 @@ class AssetLoader
 
         foreach ($files as $i => $file) {
             wp_enqueue_style(
-                'compuzign-atomic-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT),
+                'qsd-atomic-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT),
                 $base . $file,
                 [],
-                COMPUZIGN_PLUGIN_VERSION
+                QSD_PLUGIN_VERSION
             );
         }
     }
 
     private function enqueueDistAssets(): void
     {
-        $distPath = COMPUZIGN_DIST_PATH;
-        $distUrl  = COMPUZIGN_DIST_URL;
+        $distPath = QSD_DIST_PATH;
+        $distUrl  = QSD_DIST_URL;
 
         if (file_exists($distPath . 'js/core.js')) {
-            wp_enqueue_script('compuzign-core', $distUrl . 'js/core.js', ['compuzign-config'], filemtime($distPath . 'js/core.js'), true);
+            wp_enqueue_script('qsd-core', $distUrl . 'js/core.js', ['qsd-config'], filemtime($distPath . 'js/core.js'), true);
         }
 
         if (file_exists($distPath . 'css/core.css')) {
-            wp_enqueue_style('compuzign-core', $distUrl . 'css/core.css', ['compuzign-atomic-00'], filemtime($distPath . 'css/core.css'));
+            wp_enqueue_style('qsd-core', $distUrl . 'css/core.css', ['qsd-atomic-00'], filemtime($distPath . 'css/core.css'));
         }
     }
 
     private function registerCostBuilderAssets(): void
     {
-        $distPath     = COMPUZIGN_DIST_PATH;
-        $distUrl      = COMPUZIGN_DIST_URL;
-        $fallbackPath = COMPUZIGN_APP_PATH . 'modules/cost-builder/assets/';
-        $fallbackUrl  = COMPUZIGN_APP_URL . 'modules/cost-builder/assets/';
+        $distPath     = QSD_DIST_PATH;
+        $distUrl      = QSD_DIST_URL;
+        $fallbackPath = QSD_APP_PATH . 'modules/cost-builder/assets/';
+        $fallbackUrl  = QSD_APP_URL . 'modules/cost-builder/assets/';
 
         // CSS: enqueued globally so it lands in <head> before shortcodes fire.
         if (file_exists($distPath . 'css/cost-builder.css')) {
-            wp_enqueue_style('compuzign-cost-builder', $distUrl . 'css/cost-builder.css', ['compuzign-atomic-09'], filemtime($distPath . 'css/cost-builder.css'));
+            wp_enqueue_style('qsd-cost-builder', $distUrl . 'css/cost-builder.css', ['qsd-atomic-09'], filemtime($distPath . 'css/cost-builder.css'));
         } elseif (file_exists($fallbackPath . 'css/cost-builder.css')) {
-            wp_enqueue_style('compuzign-cost-builder', $fallbackUrl . 'css/cost-builder.css', ['compuzign-atomic-09'], filemtime($fallbackPath . 'css/cost-builder.css'));
+            wp_enqueue_style('qsd-cost-builder', $fallbackUrl . 'css/cost-builder.css', ['qsd-atomic-09'], filemtime($fallbackPath . 'css/cost-builder.css'));
         }
 
         // JS: register-only; shortcode handler enqueues it after the mount div is in the DOM.
         if (file_exists($distPath . 'js/cost-builder.js')) {
-            wp_register_script('compuzign-cost-builder', $distUrl . 'js/cost-builder.js', ['compuzign-config'], filemtime($distPath . 'js/cost-builder.js'), true);
+            wp_register_script('qsd-cost-builder', $distUrl . 'js/cost-builder.js', ['qsd-config'], filemtime($distPath . 'js/cost-builder.js'), true);
         } elseif (file_exists($fallbackPath . 'js/cost-builder.js')) {
-            wp_register_script('compuzign-cost-builder', $fallbackUrl . 'js/cost-builder.js', ['compuzign-config'], filemtime($fallbackPath . 'js/cost-builder.js'), true);
+            wp_register_script('qsd-cost-builder', $fallbackUrl . 'js/cost-builder.js', ['qsd-config'], filemtime($fallbackPath . 'js/cost-builder.js'), true);
         }
     }
 
     private function registerHomepageAssets(): void
     {
-        $distPath = COMPUZIGN_DIST_PATH;
-        $distUrl  = COMPUZIGN_DIST_URL;
+        $distPath = QSD_DIST_PATH;
+        $distUrl  = QSD_DIST_URL;
 
         // CSS: enqueued globally so it lands in <head> before shortcodes fire.
         if (file_exists($distPath . 'css/homepage.css')) {
-            wp_enqueue_style('compuzign-homepage', $distUrl . 'css/homepage.css', ['compuzign-atomic-09'], filemtime($distPath . 'css/homepage.css'));
+            wp_enqueue_style('qsd-homepage', $distUrl . 'css/homepage.css', ['qsd-atomic-09'], filemtime($distPath . 'css/homepage.css'));
         }
 
         // JS: register-only; shortcode handler enqueues it after the mount div is in the DOM.
         if (file_exists($distPath . 'js/homepage.js')) {
-            wp_register_script('compuzign-homepage', $distUrl . 'js/homepage.js', ['compuzign-config'], filemtime($distPath . 'js/homepage.js'), true);
+            wp_register_script('qsd-homepage', $distUrl . 'js/homepage.js', ['qsd-config'], filemtime($distPath . 'js/homepage.js'), true);
         }
     }
 

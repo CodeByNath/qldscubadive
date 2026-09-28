@@ -168,7 +168,7 @@ export async function permanentDeleteCategory(categoryId: number): Promise<Categ
 
 // Promotions — child collection of the independent Package Station. The
 // serviceId in these URLs is navigation context only; storage is always the
-// single cz_package_station authority.
+// single qsd_package_station authority.
 export function fetchServicePromotionStation(serviceId: number): Promise<ServicePromotionStationResponse> {
   return apiClient.get<ServicePromotionStationResponse>(`admin/services/${serviceId}/package-station/promotions`);
 }

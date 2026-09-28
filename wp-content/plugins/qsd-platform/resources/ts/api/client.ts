@@ -1,4 +1,4 @@
-interface CompuZignConfig {
+interface QSDConfig {
   apiRoot: string;
   nonce: string;
   contactUrl?: string;
@@ -16,23 +16,23 @@ interface CompuZignConfig {
   logoutUrl?: string;
 }
 
-interface CompuZignAdminConfig {
+interface QSDAdminConfig {
   restUrl: string;
   nonce: string;
 }
 
 declare global {
   interface Window {
-    CompuZignConfig?: CompuZignConfig;
-    CompuZignAdmin?: CompuZignAdminConfig;
+    QSDConfig?: QSDConfig;
+    QSDAdmin?: QSDAdminConfig;
   }
 }
 
-function getConfig(): CompuZignConfig {
-  const config = window.CompuZignConfig;
+function getConfig(): QSDConfig {
+  const config = window.QSDConfig;
   if (!config) {
     throw new Error(
-      'CompuZignConfig is not defined. Ensure AssetLoader.php calls wp_localize_script for compuzign-cost-builder.',
+      'QSDConfig is not defined. Ensure AssetLoader.php calls wp_localize_script for qsd-cost-builder.',
     );
   }
   return config;

@@ -18,7 +18,7 @@ function check(condition: unknown, message: string): asserts condition {
 function category(overrides: Partial<CategoryStationItem>): CategoryStationItem {
   return {
     id: 1,
-    platformId: 'CZC2A7KZ',
+    platformId: 'QSDC2A7KZ',
     name: 'Category',
     slug: 'category',
     description: '',

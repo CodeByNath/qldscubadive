@@ -20,7 +20,7 @@ const DETAILS_ACTIONS: Record<string, ShellActionSchema> = {
 
 export interface CategoryOverviewShellData {
   name: string;
-  /** Permanent `CZC`, read-only. Blank only while the Category is still the
+  /** Permanent `QSDC`, read-only. Blank only while the Category is still the
    *  unsaved pending draft — the reservation happens at create. */
   platformId: string;
   description: string;

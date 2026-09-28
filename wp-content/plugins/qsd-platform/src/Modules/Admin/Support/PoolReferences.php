@@ -1,12 +1,12 @@
 <?php
 
-namespace CompuZign\Platform\Modules\Admin\Support;
+namespace QSD\Platform\Modules\Admin\Support;
 
 /**
  * PoolReferences — reference-graph utilities for the shared Service pools.
  *
  * Features (inclusions) and FAQs are owned exclusively by the Service pools
- * (cz_service_inclusions / cz_service_faqs). Tier occupants and Promotion
+ * (qsd_service_inclusions / qsd_service_faqs). Tier occupants and Promotion
  * instances persist references only — `{id, label}` pairs where the id is
  * authoritative and the label is a display cache, or bare id strings for
  * FAQ refs. These helpers implement the two graph operations every station
@@ -36,7 +36,7 @@ final class PoolReferences
      * $flagMissing is false — used for exclusions, where an off-pool ref is
      * legitimate). Refs without an id are dropped; order is preserved.
      *
-     * @param array<int, mixed> $pool cz_service_inclusions items: [{id, label}]
+     * @param array<int, mixed> $pool qsd_service_inclusions items: [{id, label}]
      * @param array<int, mixed> $refs stored ref-pairs: [{id, label}]
      * @return array<int, array{id: string, label: string, missing?: bool}>
      */
@@ -80,7 +80,7 @@ final class PoolReferences
      * Dangling FAQ refs: the subset of bare-id refs with no matching pool item.
      * Refs are returned in original order; never pruned from the source.
      *
-     * @param array<int, mixed>  $pool cz_service_faqs items: [{id, question, answer}]
+     * @param array<int, mixed>  $pool qsd_service_faqs items: [{id, question, answer}]
      * @param array<int, mixed>  $refs stored refs: [string]
      * @return string[] dangling ids
      */
@@ -113,7 +113,7 @@ final class PoolReferences
      * additive, absent pre-D2), and promotion instances of every status
      * including their lifecycle drafts (additive, absent pre-C1).
      *
-     * @param array<string, mixed> $packageStation     cz_service_package_station
+     * @param array<string, mixed> $packageStation     qsd_service_package_station
      * @param array<int, mixed>    $promotionInstances Package Station promotion instances
      * @return array<string, string[]> pool id → holder labels (e.g. 'tier:premium', 'promo:promo_ab12:draft')
      */
@@ -178,7 +178,7 @@ final class PoolReferences
      * Collect every FAQ-pool id referenced anywhere in the station graph.
      * Same holder span and label scheme as collectInclusionRefs.
      *
-     * @param array<string, mixed> $packageStation     cz_service_package_station
+     * @param array<string, mixed> $packageStation     qsd_service_package_station
      * @param array<int, mixed>    $promotionInstances Package Station promotion instances
      * @return array<string, string[]> pool id → holder labels
      */

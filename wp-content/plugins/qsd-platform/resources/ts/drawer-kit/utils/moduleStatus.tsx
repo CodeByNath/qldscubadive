@@ -231,7 +231,7 @@ export function resolvePromotionSummary(
 // row, reusing the same surface-package data and resolvers the drawer uses. No fetch.
 //
 // Known limitation: surface-package-derived only. Services whose tiers live in the
-// new cz_service_package_station meta have no matching surface package, so they
+// new qsd_service_package_station meta have no matching surface package, so they
 // resolve to pending-dim — consistent with what the drawer reveals today.
 
 export const COMMERCIAL_TIER_KEYS = ['basic', 'standard', 'premium', 'enterprise', 'ultimate'] as const;

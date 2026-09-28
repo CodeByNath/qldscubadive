@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 /*
  * Shell theme setup.
- * The plugin (CompuZign Platform) owns all assets, layout, and frontend runtime.
+ * The plugin (QSD Platform) owns all assets, layout, and frontend runtime.
  * This file only declares WordPress feature support needed for a valid document shell.
  */
 add_action( 'after_setup_theme', function () {

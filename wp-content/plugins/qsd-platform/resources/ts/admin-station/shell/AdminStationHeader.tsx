@@ -1,6 +1,6 @@
 // Header — the Admin Station's global bar.
 //
-// Order: [menu] CompuZign [Services][Packages][Promotions] … [theme][user]
+// Order: [menu] QSD [Services][Packages][Promotions] … [theme][user]
 //
 // Station pills are rendered from the shared navigation source (never
 // hardcoded). The right-side user control opens a small dropdown carrying the
@@ -27,7 +27,7 @@ export function AdminStationHeader({ menuOpen, onToggleMenu, menuButtonRef, onSe
   // Server-generated, nonce-protected WordPress logout URL (AssetLoader.php).
   // Never substitute a '#' placeholder: if it's genuinely absent, the Log out
   // action is omitted rather than shown as a non-functional link.
-  const logoutUrl = window.CompuZignConfig?.logoutUrl;
+  const logoutUrl = window.QSDConfig?.logoutUrl;
 
   const userControlRef = useRef<HTMLDivElement>(null);
   const userButtonRef = useRef<HTMLButtonElement>(null);
@@ -76,7 +76,7 @@ export function AdminStationHeader({ menuOpen, onToggleMenu, menuButtonRef, onSe
           <MenuIcon />
         </button>
 
-        <span class="cz-station-brand">CompuZign</span>
+        <span class="cz-station-brand">Queensland Scuba Diving</span>
 
         <nav class="cz-station-header__nav" aria-label="Stations">
           {headerNavItems().map((item) => {

@@ -2,7 +2,7 @@
 
 Station Manager coordinates navigation definitions and activation-key resolution. Admin Station renders the registered rows and stores the current selection; each Station registers its own navigation item and destination.
 
-Root: `wp-content/plugins/compuzign-platform/resources/ts/station-manager/registry/`
+Root: `wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/`
 
 ## Registration and boot
 

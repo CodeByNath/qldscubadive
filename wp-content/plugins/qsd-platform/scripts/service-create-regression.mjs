@@ -40,7 +40,7 @@ globalThis.Node = window.Node;
 globalThis.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
 globalThis.cancelAnimationFrame = (id) => clearTimeout(id);
 
-window.CompuZignConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' };
+window.QSDConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' };
 
 // ── Fetch mock — the only faked boundary ────────────────────────────────
 let createServiceCalls = 0;
@@ -52,7 +52,7 @@ let settleCalls = 0;
 let activationCalls = 0;
 const lifecycleIds = [];
 const CREATED_ID = 501;
-const PLATFORM_ID = 'CZS7K9Q2';
+const PLATFORM_ID = 'QSDS7K9Q2';
 const CATEGORY = { id: 1, name: 'Test Category', slug: 'test-category', description: '' };
 
 let serverService = null; // set once createService succeeds
@@ -336,7 +336,7 @@ check(
   `settled=${result.settled}, create=${createServiceCalls}, settle=${settleCalls}, activate=${activationCalls}`,
 );
 check('the typed name is reflected in the rendered Overview', container.textContent.includes('Regression Test Service'));
-// CZS is reserved at create, so the Overview reads its permanent identity in
+// QSDS is reserved at create, so the Overview reads its permanent identity in
 // the same mount — beneath the name it belongs to, never a native post id.
 check('the Overview reads the created Service\'s Platform ID under its name',
   findModule('Service Overview')?.textContent.includes(PLATFORM_ID),

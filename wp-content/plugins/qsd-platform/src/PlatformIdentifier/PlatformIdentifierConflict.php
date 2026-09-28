@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace CompuZign\Platform\PlatformIdentifier;
+namespace QSD\Platform\PlatformIdentifier;
 
 final class PlatformIdentifierConflict extends \RuntimeException
 {

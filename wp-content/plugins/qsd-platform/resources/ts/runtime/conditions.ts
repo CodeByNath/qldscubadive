@@ -18,7 +18,7 @@ export interface PageCondition {
 
 export interface ArchiveCondition {
   type: 'archive';
-  // Future: match by post type archive (e.g. 'cz_service').
+  // Future: match by post type archive (e.g. 'qsd_service').
   postType: string;
 }
 
@@ -45,7 +45,7 @@ export function resolveCondition(condition: MountCondition): HTMLElement | null 
     case 'archive':
     case 'single':
       // Not yet implemented — WordPress will need to inject page-type context
-      // via CompuZignConfig for these conditions to resolve.
+      // via QSDConfig for these conditions to resolve.
       return null;
 
     default:

@@ -1,6 +1,6 @@
 <?php
 
-namespace CompuZign\Platform\Core;
+namespace QSD\Platform\Core;
 
 class Health
 {

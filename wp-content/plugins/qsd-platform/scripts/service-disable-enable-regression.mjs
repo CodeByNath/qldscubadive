@@ -50,11 +50,11 @@ globalThis.Node = window.Node;
 globalThis.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
 globalThis.cancelAnimationFrame = (id) => clearTimeout(id);
 
-window.CompuZignConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' };
+window.QSDConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' };
 
 // ── Fetch mock — the only faked boundary ────────────────────────────────
 const SERVICE_ID = 701;
-const PLATFORM_ID = 'CZS6R2VN';
+const PLATFORM_ID = 'QSDS6R2VN';
 const CATEGORY = { id: 1, name: 'Test Category', slug: 'test-category', description: '' };
 
 // Server-side truth — a Service that has already been published, with every

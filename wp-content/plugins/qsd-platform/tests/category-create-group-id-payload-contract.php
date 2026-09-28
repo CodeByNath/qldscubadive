@@ -25,12 +25,12 @@ declare(strict_types=1);
  * Usage: php tests/category-create-group-id-payload-contract.php
  */
 
-$GLOBALS['cz_captured_routes'] = [];
+$GLOBALS['qsd_captured_routes'] = [];
 
 if (!function_exists('register_rest_route')) {
     function register_rest_route(string $namespace, string $route, array $args = [], bool $override = false): bool
     {
-        $GLOBALS['cz_captured_routes'][] = ['namespace' => $namespace, 'route' => $route, 'config' => $args];
+        $GLOBALS['qsd_captured_routes'][] = ['namespace' => $namespace, 'route' => $route, 'config' => $args];
         return true;
     }
 }
@@ -44,13 +44,13 @@ if (!function_exists('add_action')) {
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-(new \CompuZign\Platform\Modules\Admin\Http\AdminCategoriesController(
-    new \CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation()
+(new \QSD\Platform\Modules\Admin\Http\AdminCategoriesController(
+    new \QSD\Platform\PlatformIdentifier\PlatformIdentifierStation()
 ))->registerRoutes();
 
 $createRoute = null;
 $groupRouteExists = false;
-foreach ($GLOBALS['cz_captured_routes'] as $captured) {
+foreach ($GLOBALS['qsd_captured_routes'] as $captured) {
     if ($captured['route'] === '/admin/categories/(?P<id>\d+)/group') {
         $groupRouteExists = true;
     }
@@ -96,8 +96,8 @@ check(
 
 check(
     'AdminCategoriesController no longer exposes updateGroup or validateGroupId',
-    !method_exists(\CompuZign\Platform\Modules\Admin\Http\AdminCategoriesController::class, 'updateGroup')
-        && !(new \ReflectionClass(\CompuZign\Platform\Modules\Admin\Http\AdminCategoriesController::class))->hasMethod('validateGroupId'),
+    !method_exists(\QSD\Platform\Modules\Admin\Http\AdminCategoriesController::class, 'updateGroup')
+        && !(new \ReflectionClass(\QSD\Platform\Modules\Admin\Http\AdminCategoriesController::class))->hasMethod('validateGroupId'),
 );
 
 check(

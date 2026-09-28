@@ -1,30 +1,30 @@
 <?php
 
-namespace CompuZign\Platform\Core;
+namespace QSD\Platform\Core;
 
 /**
  * PlatformAccess — the shared platform capability, role, and default holder.
  *
- * This is the single backend authority for who may reach CompuZign's
+ * This is the single backend authority for who may reach QSD's
  * authenticated admin surfaces. It owns only access registration: the platform
  * capability, the role that carries it, the transparent grant for developers,
  * and provisioning of the initial platform user. It contains no routing, menu,
  * redirect, asset, or UI logic.
  *
  * Capability model:
- *   manage_compuzign — the platform capability that gates the admin surfaces.
- *   Granted natively to users in the cz_platform_manager role (registered here).
+ *   manage_qsd — the platform capability that gates the admin surfaces.
+ *   Granted natively to users in the qsd_platform_manager role (registered here).
  *   Also granted transparently (via user_has_cap filter) to any user who has
  *   manage_options, so developer accounts retain access without role migration.
  *
  * Provisioning:
- *   Assign new business/platform users the 'cz_platform_manager' role.
- *   They receive manage_compuzign natively and never need install_plugins.
+ *   Assign new business/platform users the 'qsd_platform_manager' role.
+ *   They receive manage_qsd natively and never need install_plugins.
  */
 class PlatformAccess
 {
-    public const CAP  = 'manage_compuzign';
-    public const ROLE = 'cz_platform_manager';
+    public const CAP  = 'manage_qsd';
+    public const ROLE = 'qsd_platform_manager';
 
     public function register(): void
     {
@@ -37,8 +37,8 @@ class PlatformAccess
 
     /**
      * Register the platform manager role on init if it does not yet exist.
-     * The role carries manage_compuzign and read only — no WP admin surface access.
-     * Also repairs a stale DB entry where the role exists but is missing manage_compuzign
+     * The role carries manage_qsd and read only — no WP admin surface access.
+     * Also repairs a stale DB entry where the role exists but is missing manage_qsd
      * (e.g., from a previous deploy that stored an incomplete capability set).
      * Idempotent: safe to run on every request.
      */
@@ -71,7 +71,7 @@ class PlatformAccess
         }
 
         $host  = (string) parse_url(home_url(), PHP_URL_HOST);
-        $email = 'accountmanager@' . ($host ?: 'compuzign.com');
+        $email = 'accountmanager@' . ($host ?: 'example.com');
 
         wp_insert_user([
             'user_login'   => 'accountmanager',
@@ -85,7 +85,7 @@ class PlatformAccess
     // ── Capability ────────────────────────────────────────────────────────────
 
     /**
-     * Grant manage_compuzign to any user who already has manage_options.
+     * Grant manage_qsd to any user who already has manage_options.
      * Fires on every current_user_can() call — keep the fast path cheap.
      */
     public function grantPlatformCap(array $allCaps, array $caps, array $args, \WP_User $user): array

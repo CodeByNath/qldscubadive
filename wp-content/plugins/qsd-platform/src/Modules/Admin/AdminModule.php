@@ -1,12 +1,12 @@
 <?php
 
-namespace CompuZign\Platform\Modules\Admin;
+namespace QSD\Platform\Modules\Admin;
 
-use CompuZign\Platform\Core\Health;
-use CompuZign\Platform\Modules\Admin\Http\AdminCategoriesController;
-use CompuZign\Platform\Modules\Admin\Http\AdminController;
-use CompuZign\Platform\Modules\Admin\Http\AdminRequestsController;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
+use QSD\Platform\Core\Health;
+use QSD\Platform\Modules\Admin\Http\AdminCategoriesController;
+use QSD\Platform\Modules\Admin\Http\AdminController;
+use QSD\Platform\Modules\Admin\Http\AdminRequestsController;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 /**
  * AdminModule wires the authenticated admin REST controllers. It owns backend

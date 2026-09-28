@@ -4,8 +4,8 @@
 field-system consolidation. Implementation follows §10 phase by phase. Deviation requires an
 explicit amendment recorded here, with file and line evidence for the conflict.
 
-Audited at: `compuzign-platform` @ `e5d987b` (branch `main`, clean tree)
-Plugin root (`PLUGIN`): `wp-content/plugins/compuzign-platform`
+Audited at: `qsd-platform` @ `e5d987b` (branch `main`, clean tree)
+Plugin root (`PLUGIN`): `wp-content/plugins/qsd-platform`
 Scope: Admin Station shell, drawer system, drawer content, Admin field controls, and the CSS/tokens
 those use. **Admin Station only** — the Cost Builder, homepage, storefront, quote builder and the
 global Atomic Engine are out of scope and must not be modified.
@@ -61,9 +61,9 @@ are those of the audited commit; later phases shift them, so locate rules by sel
 ### 2.1 Runtime chain (verified end to end)
 
 ```
-compuzign-platform.php:31
+qsd-platform.php:31
  → app/bootstrap/init.php:9                       Plugin::boot()
- → src/Core/AssetLoader.php:83                    registers compuzign-admin-station (dep: compuzign-drawer-kit)
+ → src/Core/AssetLoader.php:83                    registers qsd-admin-station (dep: qsd-drawer-kit)
  → src/Modules/AdminStation/AdminStationModule.php:30-39   shortcode enqueues it
  → dist/js/admin-station.js  ⟵ vite.config.ts:20  resources/ts/modules/admin-station.ts
  → admin-station/AdminStation.tsx:21              <div class="cz-admin-station" data-station-theme>
@@ -261,7 +261,7 @@ Do not rebuild any of these:
 5. **Schema renderer** — `drawer-kit/schema/` (922 lines). `ShellSchema`, `ShellSlot`, `ShellEditSession` (`types.ts:98-110`), `ShellEditorSchema` (`:112-114`), `TableSchema`/`ColumnDef`/`RowActionDef` (`:129-154`). The block/renderer contract the brief asks for **largely exists**; it needs a field-level layer beneath it, not a replacement.
 6. **`--station-*` token file** — `admin-station-tokens.css`. 81 tokens, 79 used, light/dark themes, well documented. This is the surviving palette.
 7. **`EntityActionFooter` + `InlineEditorShell`** — the three-level footer model (record footer / module-card footer / edit-session footer) is correct and deliberate, not duplication.
-8. **Stylesheet load order** — the `compuzign-drawer-kit` → `compuzign-admin-station` dependency at `AssetLoader.php:83` and the late-print behaviour give the station's own sheet the last word. Preserve exactly.
+8. **Stylesheet load order** — the `qsd-drawer-kit` → `qsd-admin-station` dependency at `AssetLoader.php:83` and the late-print behaviour give the station's own sheet the last word. Preserve exactly.
 
 ---
 
@@ -781,7 +781,7 @@ Chosen because it is the smallest change that exercises every part of the archit
 ## Appendix A — Reproducing the dead-class check
 
 ```bash
-cd wp-content/plugins/compuzign-platform
+cd wp-content/plugins/qsd-platform
 
 # Every identifier that appears in any TS/TSX/PHP source (catches dynamic fragments)
 rg -o --no-filename '[A-Za-z][A-Za-z0-9_-]*' resources/ts src app templates \

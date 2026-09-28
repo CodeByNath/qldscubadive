@@ -67,7 +67,7 @@ function wp_signon(array $credentials, bool $secureCookie = false): mixed
 // Core\PlatformAccess/Health, which this stub deliberately does not define.
 require_once __DIR__ . '/../src/Modules/AdminStation/AdminStationAuth.php';
 
-use CompuZign\Platform\Modules\AdminStation\AdminStationAuth;
+use QSD\Platform\Modules\AdminStation\AdminStationAuth;
 
 $failures = [];
 function check_login_gate(bool $condition, string $label, mixed $detail = null): void
@@ -94,15 +94,15 @@ echo "1) processing is scoped to the Admin Station page itself\n";
 
     $ignoredElsewhere = $auth->handleLoginRequest('POST', [
         AdminStationAuth::NONCE_FIELD => 'valid-nonce',
-        'cz_username'                 => 'nath',
-        'cz_password'                 => 'x',
+        'qsd_username'                 => 'nath',
+        'qsd_password'                 => 'x',
     ], $offPage, $url);
     check_login_gate($ignoredElsewhere === null, 'an otherwise fully valid nonce+credentials POST is ignored when the current request is not the Admin Station page');
 
     $processedOnPage = $auth->handleLoginRequest('POST', [
         AdminStationAuth::NONCE_FIELD => 'valid-nonce',
-        'cz_username'                 => 'nath',
-        'cz_password'                 => 'x',
+        'qsd_username'                 => 'nath',
+        'qsd_password'                 => 'x',
     ], $onPage, $url);
     check_login_gate($processedOnPage !== null, 'the identical submission is processed when the current request IS the Admin Station page');
 }
@@ -112,11 +112,11 @@ echo "\n2) non-submissions of this form return null (page renders normally)\n";
 {
     check_login_gate($auth->handleLoginRequest('GET', [], $onPage, $url) === null, 'a GET request is never processed');
     check_login_gate(
-        $auth->handleLoginRequest('POST', ['cz_username' => 'x', 'cz_password' => 'y'], $onPage, $url) === null,
+        $auth->handleLoginRequest('POST', ['qsd_username' => 'x', 'qsd_password' => 'y'], $onPage, $url) === null,
         'a POST with no nonce field at all is never processed',
     );
     check_login_gate(
-        $auth->handleLoginRequest('POST', [AdminStationAuth::NONCE_FIELD => 'garbage', 'cz_username' => 'x'], $onPage, $url) === null,
+        $auth->handleLoginRequest('POST', [AdminStationAuth::NONCE_FIELD => 'garbage', 'qsd_username' => 'x'], $onPage, $url) === null,
         'a POST with an invalid/stale nonce is never processed — same as no submission, no distinguishing error',
     );
 }
@@ -129,11 +129,11 @@ echo "\n3) successful authentication redirects to the current request's own URL 
 
     $redirect = $auth->handleLoginRequest('POST', [
         AdminStationAuth::NONCE_FIELD => 'valid-nonce',
-        'cz_username'                 => 'nath',
-        'cz_password'                 => 'correct horse battery staple',
+        'qsd_username'                 => 'nath',
+        'qsd_password'                 => 'correct horse battery staple',
         // An attacker-supplied field of this old name must have zero effect —
         // there is no such parameter in the signature at all any more.
-        'cz_admin_station_redirect'   => 'https://evil.example/phish',
+        'qsd_admin_station_redirect'   => 'https://evil.example/phish',
     ], $onPage, $url);
 
     check_login_gate($redirect === $url, 'redirects to exactly the current request URL, unchanged, on success', $redirect);
@@ -150,8 +150,8 @@ echo "\n4) failed authentication redirects back with a generic error flag, never
 
     $redirect = $auth->handleLoginRequest('POST', [
         AdminStationAuth::NONCE_FIELD => 'valid-nonce',
-        'cz_username'                 => 'nath',
-        'cz_password'                 => 'wrong-password-value',
+        'qsd_username'                 => 'nath',
+        'qsd_password'                 => 'wrong-password-value',
     ], $onPage, $url);
 
     check_login_gate($redirect === $url . '?login_error=1', 'redirects to the same page with login_error=1', $redirect);
@@ -163,8 +163,8 @@ echo "\n4) failed authentication redirects back with a generic error flag, never
     $__nextSignonResult = new WP_Error('invalid_username', 'Unknown username.');
     $redirectUnknown = $auth->handleLoginRequest('POST', [
         AdminStationAuth::NONCE_FIELD => 'valid-nonce',
-        'cz_username'                 => 'ghost',
-        'cz_password'                 => 'x',
+        'qsd_username'                 => 'ghost',
+        'qsd_password'                 => 'x',
     ], $onPage, $url);
     check_login_gate(
         $redirectUnknown === $redirect,
@@ -181,8 +181,8 @@ echo "\n5) a stale login_error already on the current URL is stripped before a s
 
     $strippedError = $auth->handleLoginRequest('POST', [
         AdminStationAuth::NONCE_FIELD => 'valid-nonce',
-        'cz_username'                 => 'nath',
-        'cz_password'                 => 'x',
+        'qsd_username'                 => 'nath',
+        'qsd_password'                 => 'x',
     ], $onPage, $url . '?login_error=1');
     check_login_gate($strippedError === $url, 'a retry that succeeds redirects without the prior failure flag', $strippedError);
 }
@@ -215,7 +215,7 @@ echo "\n6) no retired Command Centre mechanism resurrected; redirect never falls
     $forbidden = [
         'AdminRouter',
         'admin-command-centre',
-        "'compuzign_admin'",
+        "'qsd_admin'",
         'admin_menu',
         'login_redirect',
         'dashboardRedirect',
@@ -245,7 +245,7 @@ echo "\n6) no retired Command Centre mechanism resurrected; redirect never falls
         'the Admin-Station-page predicate is source-grounded (checks the actual shortcode is present), not a hardcoded page slug',
     );
     check_login_gate(
-        !str_contains($authSource, 'cz_admin_station_redirect') && !str_contains($moduleSource, 'cz_admin_station_redirect'),
+        !str_contains($authSource, 'qsd_admin_station_redirect') && !str_contains($moduleSource, 'qsd_admin_station_redirect'),
         'no client-supplied redirect field exists anywhere in the form or its processing',
     );
     check_login_gate(

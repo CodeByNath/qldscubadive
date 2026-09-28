@@ -1,6 +1,6 @@
 <?php
 
-namespace CompuZign\Platform\Core;
+namespace QSD\Platform\Core;
 
 class TaxonomyRegistrar
 {
@@ -11,7 +11,7 @@ class TaxonomyRegistrar
 
     public function registerTaxonomies(): void
     {
-        register_taxonomy('cz_service_category', ['cz_service'], [
+        register_taxonomy('qsd_service_category', ['qsd_service'], [
             'labels'       => [
                 'name'              => 'Service Categories',
                 'singular_name'     => 'Service Category',
@@ -30,7 +30,7 @@ class TaxonomyRegistrar
             'rewrite'      => ['slug' => 'service-category'],
         ]);
 
-        register_taxonomy('cz_billing_cycle', ['cz_service'], [
+        register_taxonomy('qsd_billing_cycle', ['qsd_service'], [
             'labels'       => [
                 'name'          => 'Billing Cycles',
                 'singular_name' => 'Billing Cycle',

@@ -1,6 +1,6 @@
 <?php
 
-namespace CompuZign\Platform\Modules\Admin\Support;
+namespace QSD\Platform\Modules\Admin\Support;
 
 /**
  * StationLifecycle — the shared station lifecycle engine.

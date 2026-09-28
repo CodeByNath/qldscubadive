@@ -79,7 +79,7 @@ if (!function_exists('update_post_meta')) {
     function update_post_meta(int $id, string $key, mixed $value): bool
     {
         global $__wpPostMeta, $__wpRejectPlatformMetaWrites;
-        if ($key === 'cz_platform_id' && $__wpRejectPlatformMetaWrites) return false;
+        if ($key === 'qsd_platform_id' && $__wpRejectPlatformMetaWrites) return false;
         $__wpPostMeta[$id][$key] = $value;
         return true;
     }
@@ -103,7 +103,7 @@ if (!function_exists('wp_insert_post')) {
         $__wpPosts[$id]->post_status  = (string) ($args['post_status'] ?? 'publish');
         $__wpPosts[$id]->post_name    = 'svc-' . $id;
         foreach (($args['meta_input'] ?? []) as $key => $value) {
-            if ($key === 'cz_platform_id' && $__wpRejectPlatformMetaWrites) continue;
+            if ($key === 'qsd_platform_id' && $__wpRejectPlatformMetaWrites) continue;
             $__wpPostMeta[$id][(string) $key] = $value;
         }
         return $id;
@@ -181,7 +181,7 @@ if (!function_exists('rest_ensure_response')) {
 if (!class_exists('WP_Post')) {
     class WP_Post
     {
-        public string $post_type    = 'cz_service';
+        public string $post_type    = 'qsd_service';
         public string $post_excerpt = '';
         public string $post_content = '';
         public string $post_status  = 'publish';
@@ -209,10 +209,10 @@ if (!class_exists('WP_REST_Response')) {
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use CompuZign\Platform\Modules\Service\Http\ServiceController;
-use CompuZign\Platform\Modules\Service\Support\ServiceSchema;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
+use QSD\Platform\Modules\Service\Http\ServiceController;
+use QSD\Platform\Modules\Service\Support\ServiceSchema;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 function check_lifecycle(bool $condition, string $message): void
 {
@@ -241,7 +241,7 @@ function createTestService(ServiceController $controller, int $categoryTermId): 
 
 $rejectedCreate = $controller->createService(new WP_REST_Request([
     'title' => 'Client supplied identity',
-    'platform_id' => 'CZS2A7KZ',
+    'platform_id' => 'QSDS2A7KZ',
 ]));
 check_lifecycle($rejectedCreate->get_status() === 422, 'Service creation explicitly rejects a client-provided platform_id');
 check_lifecycle(count($__wpPosts) === 0, 'rejected client identity creates no native Service');
@@ -270,7 +270,7 @@ echo "Scenario A — disable/enable a published Service\n";
 $created = createTestService($controller, 501);
 $id = $created['service']['id'];
 $platformId = $created['service']['platform_id'];
-check_lifecycle($platformIdentifiers->validate(PlatformIdentifierPolicy::SERVICE, $platformId), 'Service creation returns a valid permanent CZS identifier');
+check_lifecycle($platformIdentifiers->validate(PlatformIdentifierPolicy::SERVICE, $platformId), 'Service creation returns a valid permanent QSDS identifier');
 check_lifecycle(get_post_meta($id, ServiceSchema::PLATFORM_ID_META, true) === $platformId, 'Service creation stores the same identifier in post meta');
 check_lifecycle($platformIdentifiers->lookupNative(PlatformIdentifierPolicy::SERVICE, $id)?->platformId() === $platformId, 'Service creation finalizes the reverse native binding');
 
@@ -294,7 +294,7 @@ $categoryBinding = $platformIdentifiers->assign(
 $wrongEntityDetail = $controller->fetchDetailByPlatformId(new WP_REST_Request(['platform_id' => $categoryBinding->platformId()]));
 check_lifecycle($wrongEntityDetail->get_status() === 404, 'Service Platform-ID route rejects a Category identifier');
 
-$missingDetail = $controller->fetchDetailByPlatformId(new WP_REST_Request(['platform_id' => 'CZSZZZZZ']));
+$missingDetail = $controller->fetchDetailByPlatformId(new WP_REST_Request(['platform_id' => 'QSDSZZZZZ']));
 check_lifecycle($missingDetail->get_status() === 404, 'Service Platform-ID route rejects a missing binding');
 
 $controller->updateInclusions(new WP_REST_Request(['id' => $id, 'inclusions' => [['label' => 'Daily snapshots']]]));
@@ -370,7 +370,7 @@ check_lifecycle($illegalEnable->get_data()['success'] === false, 'the rejected E
 
 $amendment = $controller->updateOverview(new WP_REST_Request([
     'id' => $id3,
-    'platform_id' => 'CZS2A7KZ',
+    'platform_id' => 'QSDS2A7KZ',
     'title' => 'Attempted amendment',
 ]));
 check_lifecycle($amendment->get_status() === 422, 'Service mutation explicitly rejects platform_id');

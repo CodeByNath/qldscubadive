@@ -8,8 +8,8 @@ Category owns numeric identity and Overview draft/lifecycle. Category carries no
 
 `Core\Plugin` supplies the shared `PlatformIdentifierStation` through
 `AdminModule` to the Category controller. Category owns both native
-`wp_insert_term()` flows and atomically claims `cz_platform_id`; the Station owns
-`CZC` reservation, binding, lookup, conflict, and tombstone. Station creation
+`wp_insert_term()` flows and atomically claims `qsd_platform_id`; the Station owns
+`QSDC` reservation, binding, lookup, conflict, and tombstone. Station creation
 still rejects duplicate names, while inline creation still returns the existing
 term and preserves or ensures its identity. Numeric IDs and routes are unchanged.
 The authenticated Platform-ID GET resolves only a bound Category and returns
@@ -17,12 +17,12 @@ the existing `CategoryMeta`/`categoryResponse` projection by native term ID.
 
 ## Shared drawer composition
 
-- [CategoryDrawerContent.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/entity-drawers/category/CategoryDrawerContent.tsx) assembles the drawer, modules, editor, dialogs, and footer.
-- [useCategoryDrawerController.ts](../../wp-content/plugins/compuzign-platform/resources/ts/entity-drawers/category/useCategoryDrawerController.ts) owns tab/edit/dirty/panel/dialog state and coordinates authoritative actions. It renders no JSX.
-- [category.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/entity-drawers/schema/bindings/category.tsx) defines Category Overview and Assigned Services shells. Overview reads `CZC` read-only directly beneath the Category's own Name, the same pairing Service and Package Family Overview read with.
-- [category.ts](../../wp-content/plugins/compuzign-platform/resources/ts/entity-drawers/schema/entities/category.ts) is the neutral manifest. Optional `platformIdOf` exposes additive identity while `idOf` stays numeric.
-- [CategoryOverviewEditor.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/entity-drawers/editors/CategoryOverviewEditor.tsx) edits name and description through the shared inline editor.
-- [CategoryDrawerHost.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/admin-station/stations/serviceCategory/CategoryDrawerHost.tsx) is the Admin Station adapter; it resolves a native numeric id plus assigned Services and mounts the shared composition inside the one drawer shell. Its stable `'new'` sentinel resolves to `category: null` — no fabricated CategoryStationItem — so the same composition opens on its ordinary Overview module with nothing to fetch. A complete Overview Save creates the persisted Pending Category and `useCategoryStation.ts` seeds that returned projection inside the mounted drawer; Publish later settles and activates that same id.
+- [CategoryDrawerContent.tsx](../../wp-content/plugins/qsd-platform/resources/ts/entity-drawers/category/CategoryDrawerContent.tsx) assembles the drawer, modules, editor, dialogs, and footer.
+- [useCategoryDrawerController.ts](../../wp-content/plugins/qsd-platform/resources/ts/entity-drawers/category/useCategoryDrawerController.ts) owns tab/edit/dirty/panel/dialog state and coordinates authoritative actions. It renders no JSX.
+- [category.tsx](../../wp-content/plugins/qsd-platform/resources/ts/entity-drawers/schema/bindings/category.tsx) defines Category Overview and Assigned Services shells. Overview reads `QSDC` read-only directly beneath the Category's own Name, the same pairing Service and Package Family Overview read with.
+- [category.ts](../../wp-content/plugins/qsd-platform/resources/ts/entity-drawers/schema/entities/category.ts) is the neutral manifest. Optional `platformIdOf` exposes additive identity while `idOf` stays numeric.
+- [CategoryOverviewEditor.tsx](../../wp-content/plugins/qsd-platform/resources/ts/entity-drawers/editors/CategoryOverviewEditor.tsx) edits name and description through the shared inline editor.
+- [CategoryDrawerHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/stations/serviceCategory/CategoryDrawerHost.tsx) is the Admin Station adapter; it resolves a native numeric id plus assigned Services and mounts the shared composition inside the one drawer shell. Its stable `'new'` sentinel resolves to `category: null` — no fabricated CategoryStationItem — so the same composition opens on its ordinary Overview module with nothing to fetch. A complete Overview Save creates the persisted Pending Category and `useCategoryStation.ts` seeds that returned projection inside the mounted drawer; Publish later settles and activates that same id.
 
 ## Ownership and host
 
@@ -38,10 +38,10 @@ currently unplaced.
 
 ## State and persistence
 
-- [useCategoryStation.ts](../../wp-content/plugins/compuzign-platform/resources/ts/hooks/useCategoryStation.ts) owns draft-preferred local state, returned-ID hand-off, module evaluation, Overview create/save/revert/settle/publish, explicit Disable/Enable, archive/trash/restore/delete, and targeted mutation notification.
-- [AdminCategoriesController.php](../../wp-content/plugins/compuzign-platform/src/Modules/Admin/Http/AdminCategoriesController.php) owns Category routes.
-- [CategoryMeta.php](../../wp-content/plugins/compuzign-platform/src/Modules/Admin/Support/CategoryMeta.php) owns stored shape/readiness and the scalar Platform-ID term-meta callbacks.
-- [admin.ts](../../wp-content/plugins/compuzign-platform/resources/ts/api/endpoints/admin.ts) owns typed endpoint calls and maps backend `platform_id` to application `platformId`.
+- [useCategoryStation.ts](../../wp-content/plugins/qsd-platform/resources/ts/hooks/useCategoryStation.ts) owns draft-preferred local state, returned-ID hand-off, module evaluation, Overview create/save/revert/settle/publish, explicit Disable/Enable, archive/trash/restore/delete, and targeted mutation notification.
+- [AdminCategoriesController.php](../../wp-content/plugins/qsd-platform/src/Modules/Admin/Http/AdminCategoriesController.php) owns Category routes.
+- [CategoryMeta.php](../../wp-content/plugins/qsd-platform/src/Modules/Admin/Support/CategoryMeta.php) owns stored shape/readiness and the scalar Platform-ID term-meta callbacks.
+- [admin.ts](../../wp-content/plugins/qsd-platform/resources/ts/api/endpoints/admin.ts) owns typed endpoint calls and maps backend `platform_id` to application `platformId`.
 
 ## Invariants
 

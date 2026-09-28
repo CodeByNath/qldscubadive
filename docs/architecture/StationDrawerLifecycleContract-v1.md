@@ -269,7 +269,7 @@ CreateStep/Locked-step composition) are historical evidence, not instructions:
 - `ServiceDrawerModuleArchitecture-v1.md`
 - `DrawerModuleSystem-v1.md`
 - `PlatformEntityOnboardingGuide-v1.md`
-- `CompuZignArchitectureADR-v1.md`
+- `QSDArchitectureADR-v1.md`
 - `S6-CategoryOnboardingBlueprint-v1.md`
 - `docs/project-history/016-service-lifecycle-mask.md`
 - `docs/project-history/PackageCategoryGroups-v1.md`

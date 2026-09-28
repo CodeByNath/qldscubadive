@@ -15,15 +15,15 @@ The drawer system separates coordination, hosting, rendering, and persistence:
 - **Owning Stations** register drawer adapters and own their compositions, validation, lifecycle, and saves.
 - **Drawer Kit** supplies entity-neutral schema renderers and interaction primitives; it owns no records.
 
-[drawerTypes.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/drawerTypes.ts) defines drawer contracts. [drawerTemplates.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/registry/drawerTemplates.ts) resolves templates. [AdminStationDrawer.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/admin-station/shell/drawer/AdminStationDrawer.tsx) hosts them and delegates identity, mode, close, footer, guard, and refresh. See [Admin Station Drawer](admin-station-drawer.md).
+[drawerTypes.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/drawerTypes.ts) defines drawer contracts. [drawerTemplates.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/drawerTemplates.ts) resolves templates. [AdminStationDrawer.tsx](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/shell/drawer/AdminStationDrawer.tsx) hosts them and delegates identity, mode, close, footer, guard, and refresh. See [Admin Station Drawer](admin-station-drawer.md).
 
 ## Shared Drawer Kit
 
-- [EntityDrawer.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/drawer-kit/EntityDrawer.tsx) renders placements, notifications, trailing content, and one edit session.
-- [entityDrawerHost.ts](../../wp-content/plugins/compuzign-platform/resources/ts/drawer-kit/entityDrawerHost.ts) defines the host-neutral close/footer/guard/mutation bridge.
-- [InlineEditorShell.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/drawer-kit/InlineEditorShell.tsx) owns Save/Cancel, dirty confirmation, validation, loading, and errors — a specialisation of `FocusedTaskShell.tsx`.
-- [EntityActionFooter.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/drawer-kit/EntityActionFooter.tsx) and [CanonicalEntityFooter.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/drawer-kit/CanonicalEntityFooter.tsx) provide footer grammar and lifecycle mapping.
-- [SupportedActionFooter.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/drawer-kit/SupportedActionFooter.tsx) renders owner-supplied action descriptors; Tier Group and Tier use it for their supported sets.
+- [EntityDrawer.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/EntityDrawer.tsx) renders placements, notifications, trailing content, and one edit session.
+- [entityDrawerHost.ts](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/entityDrawerHost.ts) defines the host-neutral close/footer/guard/mutation bridge.
+- [InlineEditorShell.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/InlineEditorShell.tsx) owns Save/Cancel, dirty confirmation, validation, loading, and errors — a specialisation of `FocusedTaskShell.tsx`.
+- [EntityActionFooter.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/EntityActionFooter.tsx) and [CanonicalEntityFooter.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/CanonicalEntityFooter.tsx) provide footer grammar and lifecycle mapping.
+- [SupportedActionFooter.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/SupportedActionFooter.tsx) renders owner-supplied action descriptors; Tier Group and Tier use it for their supported sets.
 - `ui/DrawerGroupTabs.tsx`, `DrawerGroupAccordion.tsx`, `drawerGroups.ts`, `ChildChipStrip.tsx`, `useScrollHide.ts`: additive multi-group content primitives ([contract §9–§12](../architecture/StationDrawerLifecycleContract-v1.md#9-drawer-group-presentation-tabs-accordion-child-navigation-and-focused-tasks)).
 - `schema/types.ts` and `schema/{elements,shells}` define neutral entity, binding, placement, action, and edit-session contracts.
 
@@ -71,10 +71,10 @@ contract's [conformance table](../architecture/StationDrawerLifecycleContract-v1
 
 ## Domain compositions and adapters
 
-- `package-station/drawer/{package-family,tier}/` and `drawer/{schema,editors}/` are Package-owned. Their registered adapters are [PackageFamilyDrawerContent.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/package-station/surface/packageFamily/PackageFamilyDrawerContent.tsx) and [TierDrawerHost.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/package-station/surface/tierSurface/TierDrawerHost.tsx). The Tier host strictly distinguishes whole-instance `tier-instance:{instance}`, occupant `tier-instance:{instance}:{occupant}`, and empty-slot `tier-slot:{instance}:{slot}` routes; all reuse the registered `tier` key.
-- `service-station/drawer/` is Service-owned; [ServiceDrawerHost.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/service-station/surface/ServiceDrawerHost.tsx) is its registered adapter.
-- `entity-drawers/category/` and `entity-drawers/schema/` remain Category residue hosted through Admin Station's [CategoryDrawerHost.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/admin-station/stations/serviceCategory/CategoryDrawerHost.tsx).
-- [drawerChrome.ts](../../wp-content/plugins/compuzign-platform/resources/ts/entity-drawers/shared/drawerChrome.ts) remains genuinely shared close/lifecycle/dialog coordination.
+- `package-station/drawer/{package-family,tier}/` and `drawer/{schema,editors}/` are Package-owned. Their registered adapters are [PackageFamilyDrawerContent.tsx](../../wp-content/plugins/qsd-platform/resources/ts/package-station/surface/packageFamily/PackageFamilyDrawerContent.tsx) and [TierDrawerHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/package-station/surface/tierSurface/TierDrawerHost.tsx). The Tier host strictly distinguishes whole-instance `tier-instance:{instance}`, occupant `tier-instance:{instance}:{occupant}`, and empty-slot `tier-slot:{instance}:{slot}` routes; all reuse the registered `tier` key.
+- `service-station/drawer/` is Service-owned; [ServiceDrawerHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/service-station/surface/ServiceDrawerHost.tsx) is its registered adapter.
+- `entity-drawers/category/` and `entity-drawers/schema/` remain Category residue hosted through Admin Station's [CategoryDrawerHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/stations/serviceCategory/CategoryDrawerHost.tsx).
+- [drawerChrome.ts](../../wp-content/plugins/qsd-platform/resources/ts/entity-drawers/shared/drawerChrome.ts) remains genuinely shared close/lifecycle/dialog coordination.
 
 Controllers render no JSX; presentation calls no endpoints. Native identities pass through Station Manager unchanged.
 

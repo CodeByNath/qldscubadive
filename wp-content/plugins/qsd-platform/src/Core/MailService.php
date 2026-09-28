@@ -1,14 +1,14 @@
 <?php
 
-namespace CompuZign\Platform\Core;
+namespace QSD\Platform\Core;
 
 class MailService
 {
     public function register(): void
     {
-        Health::register('mail', static fn() => defined('CZ_SMTP_HOST'));
+        Health::register('mail', static fn() => defined('QSD_SMTP_HOST'));
 
-        if (!defined('CZ_SMTP_HOST')) {
+        if (!defined('QSD_SMTP_HOST')) {
             return;
         }
 
@@ -24,18 +24,18 @@ class MailService
     public function configure(object $phpMailer): void
     {
         $phpMailer->isSMTP();
-        $phpMailer->Host     = CZ_SMTP_HOST;
+        $phpMailer->Host     = QSD_SMTP_HOST;
         $phpMailer->SMTPAuth = true;
-        $phpMailer->Port     = (int) CZ_SMTP_PORT;
-        $phpMailer->Username = CZ_SMTP_USER;
-        $phpMailer->Password = CZ_SMTP_PASS;
+        $phpMailer->Port     = (int) QSD_SMTP_PORT;
+        $phpMailer->Username = QSD_SMTP_USER;
+        $phpMailer->Password = QSD_SMTP_PASS;
 
         // Port 465 = implicit SSL (SMTPS). Everything else = STARTTLS.
-        $phpMailer->SMTPSecure = ((int) CZ_SMTP_PORT === 465) ? 'ssl' : 'tls';
+        $phpMailer->SMTPSecure = ((int) QSD_SMTP_PORT === 465) ? 'ssl' : 'tls';
 
-        if (defined('CZ_SMTP_FROM') && CZ_SMTP_FROM !== '') {
-            $phpMailer->From     = CZ_SMTP_FROM;
-            $phpMailer->FromName = defined('CZ_SMTP_FROM_NAME') ? CZ_SMTP_FROM_NAME : 'CompuZign';
+        if (defined('QSD_SMTP_FROM') && QSD_SMTP_FROM !== '') {
+            $phpMailer->From     = QSD_SMTP_FROM;
+            $phpMailer->FromName = defined('QSD_SMTP_FROM_NAME') ? QSD_SMTP_FROM_NAME : 'Queensland Scuba Diving';
         }
     }
 }

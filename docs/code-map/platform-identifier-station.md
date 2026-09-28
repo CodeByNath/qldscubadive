@@ -32,7 +32,7 @@ Manager and must never register there.
   `tests/platform-identifier-existing-assignment.php` — engine and backfill contracts.
 - `tests/request-durable-submission.php` — Request/`CZR` reserve/assign/
   rollback and the creation lock's CAS takeover.
-- `wp-content/plugins/compuzign-platform/scripts/platform-identity-schema-contract.ts`
+- `wp-content/plugins/qsd-platform/scripts/platform-identity-schema-contract.ts`
   — frontend identity schema, plus the vocabulary lock below.
 - `docs/platform-identifier-roadmap.md` — phased integration state.
 
@@ -50,22 +50,22 @@ a coined one hiding behind it. A bare `CZ` is not a claim.
 
 ## Registry contract
 
-Forward options are `cz_platform_identifier_v1_{platformId}`. Reverse options
-are `cz_platform_identifier_native_v1_{entityType}_{typed-reference-hash}`.
+Forward options are `qsd_platform_identifier_v1_{platformId}`. Reverse options
+are `qsd_platform_identifier_native_v1_{entityType}_{typed-reference-hash}`.
 Every option is non-autoloaded. Records carry version, Platform ID, entity
 type, native reference, `reserved|bound|retired|deleted` status, and
 timestamps. Reservations and tombstones are never deleted or reused.
 
-The shared scalar entity key is `cz_platform_id`; each owning domain
+The shared scalar entity key is `qsd_platform_id`; each owning domain
 controls its own persistence. `int|string` native references support
 WordPress-native and owner-defined stored identities.
 
 ## Current integration status
 
 `Core\Plugin` constructs one Station. Phase 2 injects it through `ServiceModule`;
-Service owns `cz_platform_id` post meta and `CZS` integration. Phase 3 injects
+Service owns `qsd_platform_id` post meta and `QSDS` integration. Phase 3 injects
 the same instance through `AdminModule`; Category owns atomic
-`cz_platform_id` term-meta claims, both `CZC` creation paths, projection,
+`qsd_platform_id` term-meta claims, both `QSDC` creation paths, projection,
 immutable request rejection, and guarded hard deletion. Phase 3A adds
 authenticated reads that resolve here, reject non-bound/conflicting/
 wrong-entity bindings, then call the owner's projection by native numeric
@@ -85,7 +85,7 @@ conflicting bindings stop assignment; valid IDs are preserved. The controller
 remains only until live allocation is verified.
 
 Package Phase 4 began with Package Families: `Core\Plugin` injects the
-shared Station through `SurfacePackagesModule`; Package owns `cz_platform_id`
+shared Station through `SurfacePackagesModule`; Package owns `qsd_platform_id`
 in its `category_groups[]` row and string `group_id`. Creation reserves
 `CZPG`, persists the Pending Family, binds native identity, projects
 output-only, rejects mutation, tombstones hard deletion. The same WP-CLI
@@ -105,7 +105,7 @@ Package adapters retain ownership and delegate registry work here. Tier
 Promotion (`CZTP`) is deferred.
 
 CRM-1A registers `request` (`CZR`). `RequestsController` reserves before
-`wp_insert_post()`, binds via `RequestRepository`'s scalar `cz_platform_id`
+`wp_insert_post()`, binds via `RequestRepository`'s scalar `qsd_platform_id`
 claim (mirroring `CategoryMeta`), rolling back both on failure. Native
 identity here isn't deterministic — concurrent same-ref submissions would
 insert two posts — so a creation lock (opaque-token compare-and-swap over

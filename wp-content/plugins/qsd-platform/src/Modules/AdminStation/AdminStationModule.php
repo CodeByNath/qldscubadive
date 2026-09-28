@@ -1,9 +1,9 @@
 <?php
 
-namespace CompuZign\Platform\Modules\AdminStation;
+namespace QSD\Platform\Modules\AdminStation;
 
-use CompuZign\Platform\Core\Health;
-use CompuZign\Platform\Core\PlatformAccess;
+use QSD\Platform\Core\Health;
+use QSD\Platform\Core\PlatformAccess;
 
 /**
  * The independent administration environment and sole admin frontend host.
@@ -14,8 +14,8 @@ use CompuZign\Platform\Core\PlatformAccess;
  */
 class AdminStationModule
 {
-    public const SHORTCODE = 'compuzign_admin_station';
-    public const MOUNT_ID  = 'compuzign-admin-station';
+    public const SHORTCODE = 'qsd_admin_station';
+    public const MOUNT_ID  = 'qsd-admin-station';
 
     public function register(): void
     {
@@ -27,8 +27,8 @@ class AdminStationModule
     {
         // CSS registered by AssetLoader; enqueue as a safety net for themes
         // that bypass wp_head timing.
-        if (wp_style_is('compuzign-admin-station', 'registered') && !wp_style_is('compuzign-admin-station', 'enqueued')) {
-            wp_enqueue_style('compuzign-admin-station');
+        if (wp_style_is('qsd-admin-station', 'registered') && !wp_style_is('qsd-admin-station', 'enqueued')) {
+            wp_enqueue_style('qsd-admin-station');
         }
 
         if (!is_user_logged_in()) {
@@ -39,11 +39,11 @@ class AdminStationModule
             return $this->renderAccessDenied();
         }
 
-        if (wp_script_is('compuzign-admin-station', 'registered')) {
-            wp_enqueue_script('compuzign-admin-station');
+        if (wp_script_is('qsd-admin-station', 'registered')) {
+            wp_enqueue_script('qsd-admin-station');
         }
 
-        $template = COMPUZIGN_APP_PATH . 'modules/admin-station/templates/admin-station.php';
+        $template = QSD_APP_PATH . 'modules/admin-station/templates/admin-station.php';
 
         ob_start();
         if (file_exists($template)) {
@@ -67,7 +67,7 @@ class AdminStationModule
         $hasError = !empty($_GET['login_error']);
         $nonce    = wp_create_nonce(AdminStationAuth::NONCE_ACTION);
 
-        $template = COMPUZIGN_APP_PATH . 'modules/admin-station/templates/login-gate.php';
+        $template = QSD_APP_PATH . 'modules/admin-station/templates/login-gate.php';
 
         ob_start();
         if (file_exists($template)) {
@@ -82,7 +82,7 @@ class AdminStationModule
      */
     private function renderAccessDenied(): string
     {
-        $template = COMPUZIGN_APP_PATH . 'modules/admin-station/templates/access-denied.php';
+        $template = QSD_APP_PATH . 'modules/admin-station/templates/access-denied.php';
 
         ob_start();
         if (file_exists($template)) {

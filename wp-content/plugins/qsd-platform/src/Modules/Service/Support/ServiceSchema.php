@@ -1,8 +1,8 @@
 <?php
 
-namespace CompuZign\Platform\Modules\Service\Support;
+namespace QSD\Platform\Modules\Service\Support;
 
-use CompuZign\Platform\Modules\CostBuilder\Support\MetaSchema;
+use QSD\Platform\Modules\CostBuilder\Support\MetaSchema;
 
 /**
  * ServiceSchema — the Service entity's shape: storage keys, module vocabulary,
@@ -23,7 +23,7 @@ use CompuZign\Platform\Modules\CostBuilder\Support\MetaSchema;
  * WHAT DOES NOT
  *   - Route *paths*. Those stay as literals in ServiceController so a URL
  *     remains greppable from the route registration itself.
- *   - cz_service_pricing. Cost Builder is its sole authority; the Service module
+ *   - qsd_service_pricing. Cost Builder is its sole authority; the Service module
  *     neither reads nor writes it. The MetaSchema import below is only for the
  *     shared platform_status vocabulary, which predates this module.
  *
@@ -34,15 +34,15 @@ use CompuZign\Platform\Modules\CostBuilder\Support\MetaSchema;
 final class ServiceSchema
 {
     // ── Storage ──────────────────────────────────────────────────────────────
-    public const POST_TYPE         = 'cz_service';
-    public const CATEGORY_TAXONOMY = 'cz_service_category';
-    public const META_KEY          = 'cz_service_meta';
-    public const META_INCLUSIONS   = 'cz_service_inclusions';
-    public const META_FAQS         = 'cz_service_faqs';
-    public const DRAFT_OVERVIEW    = 'cz_service_overview_draft';
-    public const DRAFT_INCLUSIONS  = 'cz_service_inclusions_draft';
-    public const DRAFT_FAQS        = 'cz_service_faqs_draft';
-    public const PLATFORM_ID_META  = 'cz_platform_id';
+    public const POST_TYPE         = 'qsd_service';
+    public const CATEGORY_TAXONOMY = 'qsd_service_category';
+    public const META_KEY          = 'qsd_service_meta';
+    public const META_INCLUSIONS   = 'qsd_service_inclusions';
+    public const META_FAQS         = 'qsd_service_faqs';
+    public const DRAFT_OVERVIEW    = 'qsd_service_overview_draft';
+    public const DRAFT_INCLUSIONS  = 'qsd_service_inclusions_draft';
+    public const DRAFT_FAQS        = 'qsd_service_faqs_draft';
+    public const PLATFORM_ID_META  = 'qsd_platform_id';
 
     // ── Module vocabulary ────────────────────────────────────────────────────
     /** Settle order is significant: overview settles before the pools. */

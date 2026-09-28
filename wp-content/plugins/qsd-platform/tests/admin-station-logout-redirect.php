@@ -80,8 +80,8 @@ class WP_Post
 require_once __DIR__ . '/../src/Modules/AdminStation/AdminStationModule.php';
 require_once __DIR__ . '/../src/Core/AssetLoader.php';
 
-use CompuZign\Platform\Core\AssetLoader;
-use CompuZign\Platform\Modules\AdminStation\AdminStationModule;
+use QSD\Platform\Core\AssetLoader;
+use QSD\Platform\Modules\AdminStation\AdminStationModule;
 
 $failures = [];
 function check_logout_redirect(bool $condition, string $label, mixed $detail = null): void
@@ -142,7 +142,7 @@ echo "\n3) off the Admin Station page — or when the permalink can't be resolve
 }
 
 // The 2026-09-15 live failure: wp_logout_url()'s HTML-encoded `&amp;` reached
-// window.CompuZignConfig verbatim, renaming `_wpnonce` to `amp;_wpnonce` and
+// window.QSDConfig verbatim, renaming `_wpnonce` to `amp;_wpnonce` and
 // `redirect_to` to `amp;redirect_to`. WordPress therefore saw neither, showed
 // its own "Do you really want to log out?" confirmation, and then landed on
 // wp-login.php. These assertions fail if that decode is ever removed.

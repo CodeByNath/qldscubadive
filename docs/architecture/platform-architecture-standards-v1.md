@@ -1,4 +1,4 @@
-# CompuZign Platform — Architecture Standards v1
+# QSD Platform — Architecture Standards v1
 
 **Status:** Current platform standard
 **Scope:** Stable backend, frontend, ownership, contract, and runtime constraints
@@ -7,7 +7,7 @@
 
 ## 1. Authority before pattern
 
-CompuZign is a relational, data-driven platform. Business truth belongs to its owning entity or domain; consumers receive shaped data and do not become authorities because they display or edit it.
+QSD is a relational, data-driven platform. Business truth belongs to its owning entity or domain; consumers receive shaped data and do not become authorities because they display or edit it.
 
 There is no mandatory one-size-fits-all repository/builder pipeline. Use the smallest cohesive path that preserves the real authority:
 
@@ -48,7 +48,7 @@ Registration is not ownership: centralized post-type or taxonomy registrars may 
 
 ## 4. REST and TypeScript contracts
 
-Routes live under the existing `/compuzign/v1/` namespace and are registered by controllers. Preserve capability checks, validation, response shapes, and compatibility paths.
+Routes live under the existing `/qsd/v1/` namespace and are registered by controllers. Preserve capability checks, validation, response shapes, and compatibility paths.
 
 Every consumed response and mutation payload must have an accurate TypeScript contract. Keep a contract with its owning frontend station or neutral API type module; do not duplicate shapes or re-export them from unrelated legacy barrels. `any`, inline response guesses, and identity coercion are contract failures.
 
@@ -95,7 +95,7 @@ The WordPress theme is a passive compatibility, lifecycle, and routing surface. 
 WordPress route → shell template → content/shortcode mount → platform runtime → module
 ```
 
-Runtime configuration flows through `window.CompuZignConfig`. Required CSS must be registered early enough for the page lifecycle; shortcode execution must not be assumed to place styles in an already-rendered `<head>`.
+Runtime configuration flows through `window.QSDConfig`. Required CSS must be registered early enough for the page lifecycle; shortcode execution must not be assumed to place styles in an already-rendered `<head>`.
 
 ## 8. Change standard
 

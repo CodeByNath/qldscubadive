@@ -2,13 +2,13 @@
 // at the endpoint boundary and never appears in writable application payloads.
 
 (globalThis as unknown as { window: Record<string, unknown> }).window = {
-  CompuZignConfig: {
+  QSDConfig: {
     apiRoot: 'https://cz-test.local/wp-json/',
     nonce: 'test-nonce',
   },
 };
 
-const PLATFORM_ID = 'CZC2A7KZ';
+const PLATFORM_ID = 'QSDC2A7KZ';
 const requests: Array<{ method: string; path: string; body: Record<string, unknown> }> = [];
 
 const stationCategory = () => ({
@@ -99,7 +99,7 @@ async function main(): Promise<void> {
   check(deleted.platformId === PLATFORM_ID, 'permanent deletion maps tombstoned identity');
 
   check(
-    requests.every(({ body }) => !('platform_id' in body) && !('platformId' in body) && !('cz_platform_id' in body)),
+    requests.every(({ body }) => !('platform_id' in body) && !('platformId' in body) && !('qsd_platform_id' in body)),
     'writable Category requests carry no Platform identity field',
   );
 

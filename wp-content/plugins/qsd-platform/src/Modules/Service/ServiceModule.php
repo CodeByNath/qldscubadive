@@ -1,14 +1,14 @@
 <?php
 
-namespace CompuZign\Platform\Modules\Service;
+namespace QSD\Platform\Modules\Service;
 
-use CompuZign\Platform\Modules\Service\Http\ServiceController;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
+use QSD\Platform\Modules\Service\Http\ServiceController;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 /**
  * Service module — backend only.
  *
- * The single backend owner of the cz_service entity. Holds the catalogue,
+ * The single backend owner of the qsd_service entity. Holds the catalogue,
  * detail, draft, settle/revert, lifecycle, and pool-creation handlers that
  * previously lived in Admin\Http\AdminServicesController, with route paths,
  * payloads, validation, permissions, and persistence unchanged.
@@ -18,9 +18,9 @@ use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
  * legitimately needs). Nothing outside may import ServiceController, its
  * private helpers, or its route registration.
  *
- * Deliberately narrow. cz_service persistence is WordPress post/meta, so there
+ * Deliberately narrow. qsd_service persistence is WordPress post/meta, so there
  * is no repository; the entity's storage keys and REST argument definitions
- * live in Support\ServiceSchema. cz_service_pricing is NOT owned here — Cost
+ * live in Support\ServiceSchema. qsd_service_pricing is NOT owned here — Cost
  * Builder remains its sole authority. Post type and taxonomy registration stay
  * with the shared Core registrars, which register every platform entity.
  *

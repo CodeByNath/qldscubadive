@@ -45,12 +45,12 @@ declare(strict_types=1);
 // ── WordPress stubs (registration-time only) ─────────────────────────────────
 
 /** @var array<int, array<string, mixed>> */
-$GLOBALS['cz_captured_routes'] = [];
+$GLOBALS['qsd_captured_routes'] = [];
 
 if (!function_exists('register_rest_route')) {
     function register_rest_route(string $namespace, string $route, array $args = [], bool $override = false): bool
     {
-        $GLOBALS['cz_captured_routes'][] = [
+        $GLOBALS['qsd_captured_routes'][] = [
             'namespace' => $namespace,
             'route'     => $route,
             'config'    => $args,
@@ -76,18 +76,18 @@ require_once __DIR__ . '/../vendor/autoload.php';
 // take constructor dependencies (the repositories they already used before the
 // move — construction here must mirror the module's real wiring).
 $controllers = [
-    static fn() => new \CompuZign\Platform\Modules\Service\Http\ServiceController(
-        new \CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation()
+    static fn() => new \QSD\Platform\Modules\Service\Http\ServiceController(
+        new \QSD\Platform\PlatformIdentifier\PlatformIdentifierStation()
     ),
-    static fn() => new \CompuZign\Platform\Modules\Admin\Http\AdminCategoriesController(
-        new \CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation()
+    static fn() => new \QSD\Platform\Modules\Admin\Http\AdminCategoriesController(
+        new \QSD\Platform\PlatformIdentifier\PlatformIdentifierStation()
     ),
-    static fn() => new \CompuZign\Platform\Modules\SurfacePackages\Http\PackageFamiliesController(),
-    static fn() => new \CompuZign\Platform\Modules\SurfacePackages\Http\PackageStationController(
-        new \CompuZign\Platform\Modules\SurfacePackages\Repositories\PackageRepository()
+    static fn() => new \QSD\Platform\Modules\SurfacePackages\Http\PackageFamiliesController(),
+    static fn() => new \QSD\Platform\Modules\SurfacePackages\Http\PackageStationController(
+        new \QSD\Platform\Modules\SurfacePackages\Repositories\PackageRepository()
     ),
-    static fn() => new \CompuZign\Platform\Modules\Promotions\Http\PromotionsController(
-        new \CompuZign\Platform\Modules\SurfacePackages\Repositories\PackageRepository()
+    static fn() => new \QSD\Platform\Modules\Promotions\Http\PromotionsController(
+        new \QSD\Platform\Modules\SurfacePackages\Repositories\PackageRepository()
     ),
 ];
 
@@ -162,7 +162,7 @@ foreach ($controllers as $makeController) {
 }
 
 $records = [];
-foreach ($GLOBALS['cz_captured_routes'] as $captured) {
+foreach ($GLOBALS['qsd_captured_routes'] as $captured) {
     foreach (normalizeEndpoints($captured['namespace'], $captured['route'], $captured['config']) as $record) {
         $records[] = $record;
     }

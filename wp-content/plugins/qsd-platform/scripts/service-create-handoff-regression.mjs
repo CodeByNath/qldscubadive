@@ -37,11 +37,11 @@ globalThis.Node = window.Node;
 globalThis.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
 globalThis.cancelAnimationFrame = (id) => clearTimeout(id);
 
-window.CompuZignConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' };
+window.QSDConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' };
 
 // ── Fetch mock — the only faked boundary ────────────────────────────────
 const CREATED_ID = 601;
-const PLATFORM_ID = 'CZS4M8PX';
+const PLATFORM_ID = 'QSDS4M8PX';
 const CATEGORY = { id: 1, name: 'Test Category', slug: 'test-category', description: '' };
 
 let createServiceCalls = 0;

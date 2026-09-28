@@ -1,5 +1,5 @@
 /*
- * Service Station — frontend contracts for the cz_service entity.
+ * Service Station — frontend contracts for the qsd_service entity.
  *
  * The authoritative definitions of every Service-owned API and application
  * type. api/types/admin.ts does not re-export or hold any Service definition —

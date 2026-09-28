@@ -32,6 +32,6 @@ registry.register({
   id: 'admin-station',
   component: AdminStation,
   conditions: [
-    { type: 'shortcode', mountId: 'compuzign-admin-station' },
+    { type: 'shortcode', mountId: 'qsd-admin-station' },
   ],
 });

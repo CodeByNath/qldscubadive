@@ -26,7 +26,7 @@ globalThis.HTMLElement = window.HTMLElement;
 globalThis.Node = window.Node;
 globalThis.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
 globalThis.cancelAnimationFrame = (id) => clearTimeout(id);
-window.CompuZignConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' };
+window.QSDConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' };
 
 let createCalls = 0;
 let overviewSaveCalls = 0;
@@ -63,7 +63,7 @@ globalThis.fetch = (url, init = {}) => {
     createCalls += 1;
     serverCategory = {
       id: CREATED_ID,
-      platform_id: 'CZC2A7KZ',
+      platform_id: 'QSDC2A7KZ',
       name: body.name,
       slug: 'regression-category',
       description: body.description ?? '',
@@ -311,11 +311,11 @@ check('republish settles', await settle());
 check('republish still creates no second Category', createCalls === 1, `createCalls=${createCalls}`);
 check('republish settles the saved draft and activates', settleCalls === 2 && activateCalls === 2, `settle=${settleCalls}, active=${activateCalls}`);
 check('server-side response retains the cleared Description', serverCategory.description === '', `description=${serverCategory.description}`);
-check('every mounted lifecycle response preserves the permanent Category identifier', serverCategory.platform_id === 'CZC2A7KZ', `platform_id=${serverCategory.platform_id}`);
+check('every mounted lifecycle response preserves the permanent Category identifier', serverCategory.platform_id === 'QSDC2A7KZ', `platform_id=${serverCategory.platform_id}`);
 // The admin reads that identifier where it belongs: under the Category's own
 // name in Overview, read-only — the same pairing Service Overview reads with.
 check('Overview reads the permanent Category identifier under its name',
-  overviewModule()?.textContent.includes('CZC2A7KZ'),
+  overviewModule()?.textContent.includes('QSDC2A7KZ'),
   overviewModule()?.textContent.slice(0, 200));
 
 if (failures.length > 0) {

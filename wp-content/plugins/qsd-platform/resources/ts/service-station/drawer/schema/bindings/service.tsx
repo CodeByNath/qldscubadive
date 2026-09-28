@@ -57,7 +57,7 @@ export interface ServiceOverviewShellData {
   // The Service's own name. Stored as the post `title`; called "Name"
   // everywhere an admin reads or edits it.
   title:    string;
-  /** Permanent `CZS`. Blank only while the Service is still the unsaved
+  /** Permanent `QSDS`. Blank only while the Service is still the unsaved
    *  pending draft — the reservation happens at create. */
   platformId: string;
   category: string;   // resolved display name, incl. 'Not selected'

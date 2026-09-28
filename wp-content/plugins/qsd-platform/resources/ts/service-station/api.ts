@@ -1,5 +1,5 @@
 /*
- * Service Station — the endpoint functions for the cz_service entity.
+ * Service Station — the endpoint functions for the qsd_service entity.
  *
  * The authoritative implementations of the Service-owned endpoint calls.
  * api/endpoints/admin.ts holds no Service implementation and does not re-export

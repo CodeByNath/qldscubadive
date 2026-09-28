@@ -27,7 +27,7 @@ function update_term_meta(int $id, string $key, mixed $value): bool {
 }
 function add_term_meta(int $id, string $key, mixed $value, bool $unique = false): int|false {
     global $__termMeta, $__beforePlatformClaim;
-    if ($key === 'cz_platform_id' && is_callable($__beforePlatformClaim)) {
+    if ($key === 'qsd_platform_id' && is_callable($__beforePlatformClaim)) {
         $hook = $__beforePlatformClaim;
         $__beforePlatformClaim = null;
         $hook($id);
@@ -122,10 +122,10 @@ class WP_REST_Response {
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use CompuZign\Platform\Modules\Admin\Http\AdminCategoriesController;
-use CompuZign\Platform\Modules\Admin\Support\CategoryMeta;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
+use QSD\Platform\Modules\Admin\Http\AdminCategoriesController;
+use QSD\Platform\Modules\Admin\Support\CategoryMeta;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 function check_inline(bool $condition, string $message): void
 {
@@ -157,7 +157,7 @@ $termId = $created['category']['id'];
 $platformId = $created['category']['platform_id'];
 
 check_inline($created['success'] === true && $created['existing'] === false, 'inline creation creates one new Category');
-check_inline($station->validate(PlatformIdentifierPolicy::CATEGORY, $platformId), 'inline creation returns a valid CZC identifier');
+check_inline($station->validate(PlatformIdentifierPolicy::CATEGORY, $platformId), 'inline creation returns a valid QSDC identifier');
 check_inline(CategoryMeta::platformId($termId) === $platformId, 'inline creation stores its identifier in authoritative term meta');
 check_inline($station->lookupNative(PlatformIdentifierPolicy::CATEGORY, $termId)?->platformId() === $platformId, 'inline creation finalizes the native binding');
 
@@ -170,9 +170,9 @@ check_inline(retired_count() === 1, 'the unused duplicate reservation is permane
 
 $rejectedUpdate = $controller->updateServiceCategory(new WP_REST_Request([
     'id' => $termId,
-    'cz_platform_id' => 'CZC2A7KZ',
+    'qsd_platform_id' => 'QSDC2A7KZ',
 ]));
-check_inline($rejectedUpdate->get_status() === 422, 'inline update explicitly rejects cz_platform_id');
+check_inline($rejectedUpdate->get_status() === 422, 'inline update explicitly rejects qsd_platform_id');
 check_inline(CategoryMeta::platformId($termId) === $platformId, 'inline amendment rejection leaves identity unchanged');
 
 echo "\nInline native-term duplicate race\n";

@@ -2,7 +2,7 @@
 
 The station-agnostic Home template hosted in the Admin Station Body. Everything it renders arrives through a contract. Live surfaces are supplied by the Body; the Home shell itself holds no station business state and imports no station module.
 
-Root: `wp-content/plugins/compuzign-platform/resources/ts/admin-station/home/`
+Root: `wp-content/plugins/qsd-platform/resources/ts/admin-station/home/`
 
 ## Contract and composition
 

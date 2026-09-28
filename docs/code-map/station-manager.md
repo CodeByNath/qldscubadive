@@ -2,20 +2,20 @@
 
 Station Manager is the coordinator for the peer Station frontend. It owns registration contracts, resolvers, ordering, boot/finalize, runtime surface composition, record-identity transport, and retained collections. It owns no UI primitive, template implementation, domain data, persistence, lifecycle, pricing, or drawer editing logic.
 
-Root: `wp-content/plugins/compuzign-platform/resources/ts/station-manager/`
+Root: `wp-content/plugins/qsd-platform/resources/ts/station-manager/`
 
 ## Registration API
 
-- [navigation.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/registry/navigation.ts) registers navigation and resolves order-sorted header/menu rows.
-- [destinations.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/registry/destinations.ts) registers destination projections and resolves activation keys.
-- [surfaceBindings.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/registry/surfaceBindings.ts) registers presentation bindings, resolves stable order-sorted placement rows, and holds the Admin-authored default Home value.
-- [dataSources.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/registry/dataSources.ts), [templateKits.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/registry/templateKits.ts), and [drawerTemplates.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/registry/drawerTemplates.ts) register and resolve read hooks, presentation contracts, and owning-Station drawer contracts.
-- [StationSurfaceHost.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/StationSurfaceHost.tsx) resolves one binding into its source hook and kit, then transports native-id intents and the originating wall's refresh handle.
-- [drawerTypes.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/drawerTypes.ts), [recordIdentity.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/recordIdentity.ts), and [useRetainedCollection.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/useRetainedCollection.ts) are shared coordinator contracts/infrastructure.
+- [navigation.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/navigation.ts) registers navigation and resolves order-sorted header/menu rows.
+- [destinations.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/destinations.ts) registers destination projections and resolves activation keys.
+- [surfaceBindings.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/surfaceBindings.ts) registers presentation bindings, resolves stable order-sorted placement rows, and holds the Admin-authored default Home value.
+- [dataSources.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/dataSources.ts), [templateKits.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/templateKits.ts), and [drawerTemplates.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/drawerTemplates.ts) register and resolve read hooks, presentation contracts, and owning-Station drawer contracts.
+- [StationSurfaceHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/StationSurfaceHost.tsx) resolves one binding into its source hook and kit, then transports native-id intents and the originating wall's refresh handle.
+- [drawerTypes.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/drawerTypes.ts), [recordIdentity.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/recordIdentity.ts), and [useRetainedCollection.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/useRetainedCollection.ts) are shared coordinator contracts/infrastructure.
 
 ## Exact boot order
 
-[modules/admin-station.ts](../../wp-content/plugins/compuzign-platform/resources/ts/modules/admin-station.ts) synchronously calls:
+[modules/admin-station.ts](../../wp-content/plugins/qsd-platform/resources/ts/modules/admin-station.ts) synchronously calls:
 
 ```text
 registerServiceStation()
@@ -26,7 +26,7 @@ registerServiceStation()
 → runtime registry.register(AdminStation)
 ```
 
-[boot.ts](../../wp-content/plugins/compuzign-platform/resources/ts/station-manager/registry/boot.ts) locks navigation, destinations, bindings, sources, kits, and drawers; builds indexes; asserts every binding source/kit and navigation destination resolves; then enables every public resolver. A second finalize throws.
+[boot.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/boot.ts) locks navigation, destinations, bindings, sources, kits, and drawers; builds indexes; asserts every binding source/kit and navigation destination resolves; then enables every public resolver. A second finalize throws.
 
 ## Invariants
 

@@ -4,9 +4,9 @@
 
 One generic tab system for lanes presented inside a station wall. Admin Station owns it as shell presentation; consuming it transfers no domain authority, and a consuming station owns only its own lane definitions and panel content.
 
-Root: [StationTabSet.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/admin-station/presentation/StationTabSet.tsx)
+Root: [StationTabSet.tsx](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/presentation/StationTabSet.tsx)
 
-It is not the station-group region. [AdminStationGroups.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/admin-station/home/AdminStationGroups.tsx) remains the station-level tabs described in [Admin Station Home Shell](admin-station-home-shell.md); this primitive is for lanes within one wall.
+It is not the station-group region. [AdminStationGroups.tsx](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/home/AdminStationGroups.tsx) remains the station-level tabs described in [Admin Station Home Shell](admin-station-home-shell.md); this primitive is for lanes within one wall.
 
 ## What it owns
 
@@ -21,8 +21,8 @@ It imports only Preact. It names no station, entity, drawer route, data source, 
 
 ## Consumers
 
-- **Package Home** — [TierTabSet.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/package-station/presentation/package-tier-workspace/TierTabSet.tsx) is the Package-owned skin over the primitive, now scoped to the lower-deck Details/Connections/Settings lanes only. The compact Stations/Tools selector cards and their nested tabs are retired: Connections and Settings each render their own sections through the separate `TierAccordionSection.tsx` primitive instead (a real button with `aria-expanded`/`aria-controls`, not built on `StationTabSet`). The Tier lower deck, its context bar, Connections, and Settings stay Package-owned; see [Tiers](tiers.md).
-- **Service Home** — [ServiceLowerDeck.tsx](../../wp-content/plugins/compuzign-platform/resources/ts/service-station/presentation/ServiceLowerDeck.tsx) is Service-owned composition. `Details` holds the existing Service Catalogue, handed the template-kit props unchanged; `Connections` renders Service's own read-only Category-connections lane and `Settings` renders Service's own two creation launchers (Create Service, Create Category). See [Service Catalogue](service-catalogue.md).
+- **Package Home** — [TierTabSet.tsx](../../wp-content/plugins/qsd-platform/resources/ts/package-station/presentation/package-tier-workspace/TierTabSet.tsx) is the Package-owned skin over the primitive, now scoped to the lower-deck Details/Connections/Settings lanes only. The compact Stations/Tools selector cards and their nested tabs are retired: Connections and Settings each render their own sections through the separate `TierAccordionSection.tsx` primitive instead (a real button with `aria-expanded`/`aria-controls`, not built on `StationTabSet`). The Tier lower deck, its context bar, Connections, and Settings stay Package-owned; see [Tiers](tiers.md).
+- **Service Home** — [ServiceLowerDeck.tsx](../../wp-content/plugins/qsd-platform/resources/ts/service-station/presentation/ServiceLowerDeck.tsx) is Service-owned composition. `Details` holds the existing Service Catalogue, handed the template-kit props unchanged; `Connections` renders Service's own read-only Category-connections lane and `Settings` renders Service's own two creation launchers (Create Service, Create Category). See [Service Catalogue](service-catalogue.md).
 
 Neither station's lane content, deck layout, rows, or models are shared. Only the tab behaviour is.
 

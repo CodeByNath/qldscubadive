@@ -1,4 +1,4 @@
-# CompuZign Platform Plugin
+# QSD Platform Plugin
 
 Authoritative implementation lives under `resources/`, `src/`, `scripts/`, and `tests/`.
 

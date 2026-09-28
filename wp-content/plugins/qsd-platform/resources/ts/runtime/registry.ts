@@ -26,7 +26,7 @@ class ModuleRegistry {
 
   register(definition: ModuleDefinition): void {
     if (this.registered.has(definition.id)) {
-      console.warn(`[CompuZign] Module "${definition.id}" is already registered. Skipping.`);
+      console.warn(`[QSD] Module "${definition.id}" is already registered. Skipping.`);
       return;
     }
 

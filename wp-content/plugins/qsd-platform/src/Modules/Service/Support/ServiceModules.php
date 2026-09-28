@@ -1,6 +1,6 @@
 <?php
 
-namespace CompuZign\Platform\Modules\Service\Support;
+namespace QSD\Platform\Modules\Service\Support;
 
 /**
  * Service module lifecycle rules — the domain logic for the Service drawer's
@@ -11,7 +11,7 @@ namespace CompuZign\Platform\Modules\Service\Support;
  * Extracted verbatim from ServiceController so the HTTP layer orchestrates
  * requests while these rules live beside the schema (ServiceSchema) and pool
  * write path (ServicePools) they operate on. Behaviour is unchanged: every
- * method reads/writes cz_service_* meta and the category taxonomy exactly as
+ * method reads/writes qsd_service_* meta and the category taxonomy exactly as
  * before. Static, like ServicePools — these are stateless rules keyed by a
  * service id, holding no controller state.
  *

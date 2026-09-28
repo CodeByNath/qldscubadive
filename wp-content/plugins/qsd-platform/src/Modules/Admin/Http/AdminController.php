@@ -1,8 +1,8 @@
 <?php
 
-namespace CompuZign\Platform\Modules\Admin\Http;
+namespace QSD\Platform\Modules\Admin\Http;
 
-use CompuZign\Platform\Core\Health;
+use QSD\Platform\Core\Health;
 
 class AdminController
 {
@@ -13,7 +13,7 @@ class AdminController
 
     public function registerRoutes(): void
     {
-        register_rest_route('compuzign/v1', '/admin/overview', [
+        register_rest_route('qsd/v1', '/admin/overview', [
             'methods'             => 'GET',
             'callback'            => [$this, 'getOverview'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -23,18 +23,18 @@ class AdminController
 
     public function getOverview(\WP_REST_Request $request): \WP_REST_Response
     {
-        $counts = wp_count_posts('cz_service');
+        $counts = wp_count_posts('qsd_service');
 
         return rest_ensure_response([
             'services_published' => (int) ($counts->publish ?? 0),
             'services_draft'     => (int) ($counts->draft ?? 0),
             'health'             => Health::run(),
-            'platform_version'   => defined('COMPUZIGN_PLUGIN_VERSION') ? COMPUZIGN_PLUGIN_VERSION : null,
+            'platform_version'   => defined('QSD_PLUGIN_VERSION') ? QSD_PLUGIN_VERSION : null,
         ]);
     }
 
     public function requireAdmin(): bool
     {
-        return current_user_can(\CompuZign\Platform\Core\PlatformAccess::CAP);
+        return current_user_can(\QSD\Platform\Core\PlatformAccess::CAP);
     }
 }

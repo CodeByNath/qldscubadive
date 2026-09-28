@@ -2,7 +2,7 @@
 
 Surface binding is the Station Manager coordination seam that maps a station placement to a registered read source, template kit, drawer contract, and action intents. Admin Station authors the display policy; domain Stations own and register the capabilities named by that policy.
 
-Roots: `wp-content/plugins/compuzign-platform/resources/ts/station-manager/` and `resources/ts/admin-station/register.ts`.
+Roots: `wp-content/plugins/qsd-platform/resources/ts/station-manager/` and `resources/ts/admin-station/register.ts`.
 
 ## Registration and policy
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace CompuZign\Platform\Core;
+namespace QSD\Platform\Core;
 
 class PostTypeRegistrar
 {
@@ -11,7 +11,7 @@ class PostTypeRegistrar
 
     public function registerPostTypes(): void
     {
-        register_post_type('cz_surface_package', [
+        register_post_type('qsd_surface_package', [
             'labels'             => [
                 'name'               => 'Surface Packages',
                 'singular_name'      => 'Surface Package',
@@ -34,7 +34,7 @@ class PostTypeRegistrar
             'supports'           => ['title'],
         ]);
 
-        register_post_type('cz_request', [
+        register_post_type('qsd_request', [
             'labels'             => [
                 'name'               => 'Requests',
                 'singular_name'      => 'Request',
@@ -57,7 +57,7 @@ class PostTypeRegistrar
             'supports'           => ['title'],
         ]);
 
-        register_post_type('cz_service', [
+        register_post_type('qsd_service', [
             'labels'       => [
                 'name'               => 'Services',
                 'singular_name'      => 'Service',

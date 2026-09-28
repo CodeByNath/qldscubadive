@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace CompuZign\Platform\PlatformIdentifier;
+namespace QSD\Platform\PlatformIdentifier;
 
 /**
  * PlatformIdentifierStation — permanent Platform identity authority.
@@ -20,15 +20,15 @@ namespace CompuZign\Platform\PlatformIdentifier;
 final class PlatformIdentifierStation
 {
     public const REGISTRY_VERSION = 1;
-    public const META_KEY = 'cz_platform_id';
+    public const META_KEY = 'qsd_platform_id';
 
     public const STATUS_RESERVED = 'reserved';
     public const STATUS_BOUND    = 'bound';
     public const STATUS_RETIRED  = 'retired';
     public const STATUS_DELETED  = 'deleted';
 
-    private const FORWARD_PREFIX = 'cz_platform_identifier_v1_';
-    private const REVERSE_PREFIX = 'cz_platform_identifier_native_v1_';
+    private const FORWARD_PREFIX = 'qsd_platform_identifier_v1_';
+    private const REVERSE_PREFIX = 'qsd_platform_identifier_native_v1_';
     private const MAX_RESERVATION_ATTEMPTS = 128;
 
     private \Closure $randomInteger;

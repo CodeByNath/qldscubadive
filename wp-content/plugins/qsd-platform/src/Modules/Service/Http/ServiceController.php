@@ -3,7 +3,7 @@
 /*
  * FILE INDEX
  *
- * SERVICE_ROUTES           The cz_service REST route registrations
+ * SERVICE_ROUTES           The qsd_service REST route registrations
  * CATALOGUE_HANDLERS       List, create, detail
  * DRAFT_HANDLERS           Overview/inclusions/faqs draft saves
  * SETTLE_HANDLERS          Per-module settle, bulk settle, revert
@@ -21,13 +21,13 @@
  * Search: SECTION: SERVICE_ROUTES ... SECTION: MODULE_HELPERS
  *
  * OWNERSHIP
- * This is the single backend owner of the cz_service entity: its lifecycle, its
- * cz_service_* meta, its drafts, its inclusion/FAQ pools, and its category
+ * This is the single backend owner of the qsd_service entity: its lifecycle, its
+ * qsd_service_* meta, its drafts, its inclusion/FAQ pools, and its category
  * taxonomy relationships. Route paths, payloads, and validation are unchanged
  * from AdminServicesController, which this replaces.
  *
  * NOT OWNED HERE
- *   - cz_service_pricing — Cost Builder is the sole authority. The MetaSchema
+ *   - qsd_service_pricing — Cost Builder is the sole authority. The MetaSchema
  *     import is only the shared platform_status vocabulary, not pricing.
  *   - The Package Station and Promotions route families, which are nested under
  *     /admin/services/{id}/package-station/* as compatibility contracts but are
@@ -39,20 +39,20 @@
  * pool write path is Support\ServicePools, the module's one public contract.
  */
 
-namespace CompuZign\Platform\Modules\Service\Http;
+namespace QSD\Platform\Modules\Service\Http;
 
-use CompuZign\Platform\Modules\Admin\Support\CategoryMeta;
-use CompuZign\Platform\Modules\Admin\Support\PoolReferences;
-use CompuZign\Platform\Modules\Admin\Support\StationLifecycle;
-use CompuZign\Platform\Modules\CostBuilder\Support\MetaSchema;
-use CompuZign\Platform\Modules\Service\Support\ServiceModules;
-use CompuZign\Platform\Modules\Service\Support\ServicePools;
-use CompuZign\Platform\Modules\Service\Support\ServiceSchema;
-use CompuZign\Platform\Modules\SurfacePackages\Repositories\PackageRepository;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierConflict;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierReservation;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
+use QSD\Platform\Modules\Admin\Support\CategoryMeta;
+use QSD\Platform\Modules\Admin\Support\PoolReferences;
+use QSD\Platform\Modules\Admin\Support\StationLifecycle;
+use QSD\Platform\Modules\CostBuilder\Support\MetaSchema;
+use QSD\Platform\Modules\Service\Support\ServiceModules;
+use QSD\Platform\Modules\Service\Support\ServicePools;
+use QSD\Platform\Modules\Service\Support\ServiceSchema;
+use QSD\Platform\Modules\SurfacePackages\Repositories\PackageRepository;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierConflict;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierReservation;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 class ServiceController
 {
@@ -81,7 +81,7 @@ class ServiceController
         // SECTION: SERVICE_ROUTES
         // ===================================================================
         // ── Station catalog list (admin only) ────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/services', [
+        register_rest_route('qsd/v1', '/admin/services', [
             'methods'             => 'GET',
             'callback'            => [$this, 'listServices'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -89,7 +89,7 @@ class ServiceController
         ]);
 
         // ── Create ────────────────────────────────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/services', [
+        register_rest_route('qsd/v1', '/admin/services', [
             'methods'             => 'POST',
             'callback'            => [$this, 'createService'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -97,7 +97,7 @@ class ServiceController
         ]);
 
         // ── Admin detail (drawer open) ────────────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)', [
             'methods'             => 'GET',
             'callback'            => [$this, 'fetchDetail'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -105,7 +105,7 @@ class ServiceController
         ]);
 
         // ── Admin detail by permanent Platform identity ──────────────────────
-        register_rest_route('compuzign/v1', '/admin/services/(?P<platform_id>CZ[A-Z0-9]+)', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<platform_id>QSD[A-Z0-9]+)', [
             'methods'             => 'GET',
             'callback'            => [$this, 'fetchDetailByPlatformId'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -115,21 +115,21 @@ class ServiceController
         ]);
 
         // ── Draft saves ───────────────────────────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/overview', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/overview', [
             'methods'             => 'POST',
             'callback'            => [$this, 'updateOverview'],
             'permission_callback' => [$this, 'requireAdmin'],
             'args'                => ServiceSchema::updateOverviewArgs(),
         ]);
 
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/inclusions', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/inclusions', [
             'methods'             => 'POST',
             'callback'            => [$this, 'updateInclusions'],
             'permission_callback' => [$this, 'requireAdmin'],
             'args'                => ServiceSchema::updateInclusionsArgs(),
         ]);
 
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/faqs', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/faqs', [
             'methods'             => 'POST',
             'callback'            => [$this, 'updateFaqs'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -137,7 +137,7 @@ class ServiceController
         ]);
 
         // ── Per-module settle (atomic primary) ────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/(?P<module>overview|inclusions|faqs)/settle', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/(?P<module>overview|inclusions|faqs)/settle', [
             'methods'             => 'POST',
             'callback'            => [$this, 'settleModuleRoute'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -145,7 +145,7 @@ class ServiceController
         ]);
 
         // ── Bulk settle (convenience — calls per-module for each draft) ───────
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/settle', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/settle', [
             'methods'             => 'POST',
             'callback'            => [$this, 'settleAll'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -153,7 +153,7 @@ class ServiceController
         ]);
 
         // ── Per-module revert ─────────────────────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/(?P<module>overview|inclusions|faqs)/revert', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/(?P<module>overview|inclusions|faqs)/revert', [
             'methods'             => 'POST',
             'callback'            => [$this, 'revertModule'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -161,7 +161,7 @@ class ServiceController
         ]);
 
         // ── Restore (server-driven — resolves previous_platform_status) ─────────
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/restore', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/restore', [
             'methods'             => 'POST',
             'callback'            => [$this, 'restoreService'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -169,7 +169,7 @@ class ServiceController
         ]);
 
         // ── Permanent delete (only when platform_status = trashed) ────────────
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)', [
             'methods'             => 'DELETE',
             'callback'            => [$this, 'permanentDeleteService'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -177,7 +177,7 @@ class ServiceController
         ]);
 
         // ── Platform status ───────────────────────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/status', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/status', [
             'methods'             => 'POST',
             'callback'            => [$this, 'updateStatus'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -188,14 +188,14 @@ class ServiceController
         // pool; Tier only ever stores a reference (id) into it. These write straight
         // to the canonical pool (no draft indirection) so a caller gets a real id back
         // to attach to a tier's module draft in a separate, subsequent save.
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/inclusion-pool/items', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/inclusion-pool/items', [
             'methods'             => 'POST',
             'callback'            => [$this, 'createInclusionPoolItem'],
             'permission_callback' => [$this, 'requireAdmin'],
             'args'                => ServiceSchema::identity(),
         ]);
 
-        register_rest_route('compuzign/v1', '/admin/services/(?P<id>\d+)/faq-pool/items', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/faq-pool/items', [
             'methods'             => 'POST',
             'callback'            => [$this, 'createFaqPoolItem'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -243,7 +243,7 @@ class ServiceController
                 'id'              => (int) $t->term_id,
                 'name'            => html_entity_decode($t->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'slug'            => $t->slug,
-                'description'     => get_term_meta((int) $t->term_id, 'cz_category_description', true) ?: '',
+                'description'     => get_term_meta((int) $t->term_id, 'qsd_category_description', true) ?: '',
                 'platform_status' => $categoryStatus,
             ];
         }
@@ -282,7 +282,7 @@ class ServiceController
                     'id'          => (int) $t->term_id,
                     'name'        => html_entity_decode($t->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                     'slug'        => $t->slug,
-                    'description' => get_term_meta((int) $t->term_id, 'cz_category_description', true) ?: '',
+                    'description' => get_term_meta((int) $t->term_id, 'qsd_category_description', true) ?: '',
                 ],
                 array_filter(
                     $postTerms,
@@ -292,8 +292,8 @@ class ServiceController
 
             // Pool sizes for the Package Manager Services table — counts only;
             // the Service-owned pool content itself never leaves the Service.
-            $rawInclusions = get_post_meta($post->ID, 'cz_service_inclusions', true);
-            $rawFaqs       = get_post_meta($post->ID, 'cz_service_faqs', true);
+            $rawInclusions = get_post_meta($post->ID, 'qsd_service_inclusions', true);
+            $rawFaqs       = get_post_meta($post->ID, 'qsd_service_faqs', true);
 
             $stations[] = [
                 'id'                       => $post->ID,
@@ -424,7 +424,7 @@ class ServiceController
             'id'          => (int) $t->term_id,
             'name'        => html_entity_decode($t->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'slug'        => $t->slug,
-            'description' => get_term_meta((int) $t->term_id, 'cz_category_description', true) ?: '',
+            'description' => get_term_meta((int) $t->term_id, 'qsd_category_description', true) ?: '',
         ], is_array($assignedTerms) ? $assignedTerms : []);
 
         return rest_ensure_response([
@@ -575,7 +575,7 @@ class ServiceController
 
         $normalized = array_values($seen);
 
-        // Write to draft — canonical cz_service_inclusions untouched.
+        // Write to draft — canonical qsd_service_inclusions untouched.
         update_post_meta($id, ServiceSchema::DRAFT_INCLUSIONS, $normalized);
         $moduleStatus = ServiceModules::markModuleDraft($id, 'inclusions');
 
@@ -613,7 +613,7 @@ class ServiceController
 
         $normalized = array_values($seen);
 
-        // Write to draft — canonical cz_service_faqs untouched.
+        // Write to draft — canonical qsd_service_faqs untouched.
         update_post_meta($id, ServiceSchema::DRAFT_FAQS, $normalized);
         $moduleStatus = ServiceModules::markModuleDraft($id, 'faqs');
 
@@ -826,7 +826,7 @@ class ServiceController
             $meta['previous_platform_status'] = $change['previous_status'];
         }
 
-        // Rule 1: never write post_status — CompuZign owns lifecycle via platform_status.
+        // Rule 1: never write post_status — QSD owns lifecycle via platform_status.
         $meta['platform_status'] = $change['status'];
 
         // On activation: drafts stay pending; modules without drafts resolved from canonical.
@@ -1208,7 +1208,7 @@ class ServiceController
     // ===================================================================
     public function requireAdmin(): bool
     {
-        return current_user_can(\CompuZign\Platform\Core\PlatformAccess::CAP);
+        return current_user_can(\QSD\Platform\Core\PlatformAccess::CAP);
     }
 
     // ===================================================================

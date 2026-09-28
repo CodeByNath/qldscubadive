@@ -1,4 +1,4 @@
-# CompuZign AI Index
+# QSD AI Index
 
 ## Read order
 

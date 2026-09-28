@@ -16,21 +16,21 @@
  *         SECTION: CATEGORY_HELPERS
  */
 
-namespace CompuZign\Platform\Modules\Admin\Http;
+namespace QSD\Platform\Modules\Admin\Http;
 
-use CompuZign\Platform\Modules\Admin\Support\CategoryMeta;
-use CompuZign\Platform\Modules\Admin\Support\StationLifecycle;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierBinding;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierConflict;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierReservation;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
+use QSD\Platform\Modules\Admin\Support\CategoryMeta;
+use QSD\Platform\Modules\Admin\Support\StationLifecycle;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierBinding;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierConflict;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierReservation;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 /**
  * AdminCategoriesController — the Category station's REST family (S6 Phase B).
  *
- * Mirrors the Service station's route grammar under compuzign/v1. All term-meta
- * access goes through CategoryMeta (the sole reader/writer of cz_category_meta);
+ * Mirrors the Service station's route grammar under qsd/v1. All term-meta
+ * access goes through CategoryMeta (the sole reader/writer of qsd_category_meta);
  * every status write is a StationLifecycle-computed transition.
  *
  * The inline convenience routes (/admin/service-categories) now live here too,
@@ -61,7 +61,7 @@ class AdminCategoriesController
         // SECTION: CATEGORY_ROUTES
         // ===================================================================
         // ── Station list (admin only) ─────────────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/categories', [
+        register_rest_route('qsd/v1', '/admin/categories', [
             'methods'             => 'GET',
             'callback'            => [$this, 'listCategories'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -75,7 +75,7 @@ class AdminCategoriesController
         ]);
 
         // ── Station detail by permanent Platform identity ────────────────────
-        register_rest_route('compuzign/v1', '/admin/categories/(?P<platform_id>CZ[A-Z0-9]+)', [
+        register_rest_route('qsd/v1', '/admin/categories/(?P<platform_id>QSD[A-Z0-9]+)', [
             'methods'             => 'GET',
             'callback'            => [$this, 'fetchCategoryByPlatformId'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -85,7 +85,7 @@ class AdminCategoriesController
         ]);
 
         // ── Station create (born unmasked Pending) ────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/categories', [
+        register_rest_route('qsd/v1', '/admin/categories', [
             'methods'             => 'POST',
             'callback'            => [$this, 'createCategory'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -98,7 +98,7 @@ class AdminCategoriesController
         ]);
 
         // ── Overview draft save ───────────────────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/overview', [
+        register_rest_route('qsd/v1', '/admin/categories/(?P<id>\d+)/overview', [
             'methods'             => 'PUT',
             'callback'            => [$this, 'saveOverview'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -112,7 +112,7 @@ class AdminCategoriesController
         ]);
 
         // ── Overview settle (commit draft → term) ─────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/overview/settle', [
+        register_rest_route('qsd/v1', '/admin/categories/(?P<id>\d+)/overview/settle', [
             'methods'             => 'POST',
             'callback'            => [$this, 'settleOverview'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -122,7 +122,7 @@ class AdminCategoriesController
         ]);
 
         // ── Overview revert (discard draft) ───────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/overview/revert', [
+        register_rest_route('qsd/v1', '/admin/categories/(?P<id>\d+)/overview/revert', [
             'methods'             => 'POST',
             'callback'            => [$this, 'revertOverview'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -132,7 +132,7 @@ class AdminCategoriesController
         ]);
 
         // ── Platform status (engine transition) ───────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/status', [
+        register_rest_route('qsd/v1', '/admin/categories/(?P<id>\d+)/status', [
             'methods'             => 'PATCH',
             'callback'            => [$this, 'updateStatus'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -152,7 +152,7 @@ class AdminCategoriesController
         ]);
 
         // ── Restore (server-driven — resolves previous_platform_status) ───────
-        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/restore', [
+        register_rest_route('qsd/v1', '/admin/categories/(?P<id>\d+)/restore', [
             'methods'             => 'POST',
             'callback'            => [$this, 'restoreCategory'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -162,7 +162,7 @@ class AdminCategoriesController
         ]);
 
         // ── Permanent delete (trashed only + D6 guard) ────────────────────────
-        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)', [
+        register_rest_route('qsd/v1', '/admin/categories/(?P<id>\d+)', [
             'methods'             => 'DELETE',
             'callback'            => [$this, 'permanentDeleteCategory'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -172,7 +172,7 @@ class AdminCategoriesController
         ]);
 
         // ── Inline service category creation ─────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/service-categories', [
+        register_rest_route('qsd/v1', '/admin/service-categories', [
             'methods'             => 'POST',
             'callback'            => [$this, 'createServiceCategory'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -180,7 +180,7 @@ class AdminCategoriesController
 
         // ── Inline service category update ────────────────────────────────────
         // ── Inline service category update ────────────────────────────────────
-        register_rest_route('compuzign/v1', '/admin/service-categories/(?P<id>\d+)', [
+        register_rest_route('qsd/v1', '/admin/service-categories/(?P<id>\d+)', [
             'methods'             => 'POST',
             'callback'            => [$this, 'updateServiceCategory'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -378,7 +378,7 @@ class AdminCategoriesController
 
     /**
      * Commit the draft to the term (name via wp_update_term, description via
-     * the CompuZign term meta), clear the draft, and re-derive module status.
+     * the QSD term meta), clear the draft, and re-derive module status.
      * With no draft pending this degrades to a pure re-derivation.
      */
     public function settleOverview(\WP_REST_Request $request): \WP_REST_Response
@@ -533,7 +533,7 @@ class AdminCategoriesController
             ], 409);
         }
 
-        // Removes the term row and all its term meta (cz_category_meta included).
+        // Removes the term row and all its term meta (qsd_category_meta included).
         $deleted = wp_delete_term($termId, CategoryMeta::TAXONOMY);
         if (is_wp_error($deleted) || $deleted === false) {
             $message = is_wp_error($deleted) ? $deleted->get_error_message() : 'Category could not be permanently deleted.';
@@ -588,7 +588,7 @@ class AdminCategoriesController
             ], 500);
         }
 
-        // Description is stored as CompuZign-owned term meta, not the native WP term description.
+        // Description is stored as QSD-owned term meta, not the native WP term description.
         $result = wp_insert_term($name, CategoryMeta::TAXONOMY);
 
         if (is_wp_error($result)) {
@@ -800,7 +800,7 @@ class AdminCategoriesController
     // ===================================================================
     public function requireAdmin(): bool
     {
-        return current_user_can(\CompuZign\Platform\Core\PlatformAccess::CAP);
+        return current_user_can(\QSD\Platform\Core\PlatformAccess::CAP);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

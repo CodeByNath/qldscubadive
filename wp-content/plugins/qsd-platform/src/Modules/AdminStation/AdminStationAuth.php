@@ -1,6 +1,6 @@
 <?php
 
-namespace CompuZign\Platform\Modules\AdminStation;
+namespace QSD\Platform\Modules\AdminStation;
 
 /**
  * Processes the branded Admin Station login form's POST submission.
@@ -29,8 +29,8 @@ namespace CompuZign\Platform\Modules\AdminStation;
  */
 class AdminStationAuth
 {
-    public const NONCE_ACTION = 'cz_admin_station_login';
-    public const NONCE_FIELD  = 'cz_admin_station_login_nonce';
+    public const NONCE_ACTION = 'qsd_admin_station_login';
+    public const NONCE_FIELD  = 'qsd_admin_station_login_nonce';
 
     public function register(): void
     {
@@ -88,8 +88,8 @@ class AdminStationAuth
         $redirectTo = remove_query_arg('login_error', $currentUrl);
 
         $user = wp_signon([
-            'user_login'    => sanitize_user(wp_unslash((string) ($post['cz_username'] ?? ''))),
-            'user_password' => wp_unslash((string) ($post['cz_password'] ?? '')),
+            'user_login'    => sanitize_user(wp_unslash((string) ($post['qsd_username'] ?? ''))),
+            'user_password' => wp_unslash((string) ($post['qsd_password'] ?? '')),
             'remember'      => false,
         ], is_ssl());
 

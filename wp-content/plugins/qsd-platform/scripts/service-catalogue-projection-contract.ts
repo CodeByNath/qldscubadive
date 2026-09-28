@@ -35,7 +35,7 @@ check(packageFamilies.map((family) => family.id).join(',') === 'pcg_kairos,pcg_a
 
 const service: ServiceCatalogueItem = {
   id: 42,
-  platformId: 'CZS2A7KZ',
+  platformId: 'QSDS2A7KZ',
   name: 'Virtual Machines',
   slug: 'virtual-machines',
   description: 'Managed compute.',

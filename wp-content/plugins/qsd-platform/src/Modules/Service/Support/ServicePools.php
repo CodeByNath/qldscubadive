@@ -1,12 +1,12 @@
 <?php
 
-namespace CompuZign\Platform\Modules\Service\Support;
+namespace QSD\Platform\Modules\Service\Support;
 
 /**
  * ServicePools — the write path for the Service-owned inclusion/FAQ pools.
  *
  * Features (inclusions) and FAQs are owned exclusively by the Service pools
- * (cz_service_inclusions / cz_service_faqs). Two callers add to them:
+ * (qsd_service_inclusions / qsd_service_faqs). Two callers add to them:
  *
  *   1. Service's own pool endpoints (/inclusion-pool/items, /faq-pool/items) —
  *      immediate canonical creation, no draft indirection.
@@ -26,7 +26,7 @@ namespace CompuZign\Platform\Modules\Service\Support;
  * This is the Service module's one public support contract. Package Station
  * imports it directly, which is the intended direction: Package Station writes
  * references into pools that the Service owns, so it must go through the
- * Service's write path rather than touching cz_service_* meta itself. Nothing
+ * Service's write path rather than touching qsd_service_* meta itself. Nothing
  * outside the module may import ServiceController or its internals.
  *
  * The meta key constants below intentionally duplicate ServiceSchema's: this
@@ -35,8 +35,8 @@ namespace CompuZign\Platform\Modules\Service\Support;
  */
 final class ServicePools
 {
-    public const META_INCLUSIONS = 'cz_service_inclusions';
-    public const META_FAQS       = 'cz_service_faqs';
+    public const META_INCLUSIONS = 'qsd_service_inclusions';
+    public const META_FAQS       = 'qsd_service_faqs';
 
     /** @return array<int, array{id: string, label: string}> */
     public static function addInclusions(int $serviceId, array $items): array
@@ -59,7 +59,7 @@ final class ServicePools
         if (!empty($added)) {
             $raw['inclusions'] = $pool;
             if (!isset($raw['tier_inclusions']) || !is_array($raw['tier_inclusions'])) {
-                $raw['tier_inclusions'] = array_fill_keys(\CompuZign\Platform\Modules\SurfacePackages\Support\PackageSchema::ALLOWED_TIERS, []);
+                $raw['tier_inclusions'] = array_fill_keys(\QSD\Platform\Modules\SurfacePackages\Support\PackageSchema::ALLOWED_TIERS, []);
             }
             update_post_meta($serviceId, self::META_INCLUSIONS, $raw);
         }

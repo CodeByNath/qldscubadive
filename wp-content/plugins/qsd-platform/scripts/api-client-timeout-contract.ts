@@ -57,7 +57,7 @@ function fireRequestTimeout(): void {
   fn();
 }
 
-(globalThis as any).window = { CompuZignConfig: { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' } };
+(globalThis as any).window = { QSDConfig: { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-nonce' } };
 
 function jsonResponse(body: unknown) {
   return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body), text: () => Promise.resolve(JSON.stringify(body)) } as Response);
@@ -71,7 +71,7 @@ function check(label: string, cond: unknown, detail?: unknown): void {
 
 async function main(): Promise<void> {
   // Imported dynamically, after the window shim and fake timer are in place —
-  // client.ts reads window.CompuZignConfig lazily (per call), but keeping
+  // client.ts reads window.QSDConfig lazily (per call), but keeping
   // setup strictly before the module executes avoids relying on that.
   const { apiClient, ApiTimeoutError } = await import('../resources/ts/api/client');
 

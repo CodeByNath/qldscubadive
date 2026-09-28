@@ -2,7 +2,7 @@
 
 Admin Station owns the reusable presentation tools rendered inside its host: the generic card-wall kit, Service Category carousel, status disclosure, metrics, split actions, and section shell. Service Station and Package Station own their domain-specific sources and kits and may consume these Admin capabilities.
 
-Root: `wp-content/plugins/compuzign-platform/resources/ts/admin-station/presentation/`
+Root: `wp-content/plugins/qsd-platform/resources/ts/admin-station/presentation/`
 
 ## Admin-owned capabilities
 

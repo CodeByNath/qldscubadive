@@ -28,7 +28,7 @@ function update_term_meta(int $id, string $key, mixed $value): bool {
 }
 function add_term_meta(int $id, string $key, mixed $value, bool $unique = false): int|false {
     global $__categoryMeta, $__rejectPlatformMetaClaims;
-    if ($key === 'cz_platform_id' && $__rejectPlatformMetaClaims) return false;
+    if ($key === 'qsd_platform_id' && $__rejectPlatformMetaClaims) return false;
     if ($unique && array_key_exists($key, $__categoryMeta[$id] ?? [])) return false;
     $__categoryMeta[$id][$key] = $value;
     return 1;
@@ -108,10 +108,10 @@ class WP_REST_Response {
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use CompuZign\Platform\Modules\Admin\Http\AdminCategoriesController;
-use CompuZign\Platform\Modules\Admin\Support\CategoryMeta;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
+use QSD\Platform\Modules\Admin\Http\AdminCategoriesController;
+use QSD\Platform\Modules\Admin\Support\CategoryMeta;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 function check_category(bool $condition, string $message): void
 {
@@ -127,7 +127,7 @@ $controller = new AdminCategoriesController($platformIdentifiers);
 
 $rejectedCreate = $controller->createCategory(new WP_REST_Request([
     'name' => 'Client identity',
-    'platform_id' => 'CZC2A7KZ',
+    'platform_id' => 'QSDC2A7KZ',
 ]));
 check_category($rejectedCreate->get_status() === 422, 'Category creation explicitly rejects a client-provided platform_id');
 check_category($__categoryTerms === [], 'rejected client identity creates no native Category');
@@ -149,7 +149,7 @@ $created = $controller->createCategory(new WP_REST_Request([
 $id = $created['category']['id'];
 $platformId = $created['category']['platform_id'];
 
-check_category($platformIdentifiers->validate(PlatformIdentifierPolicy::CATEGORY, $platformId), 'Overview creation returns a valid permanent CZC identifier');
+check_category($platformIdentifiers->validate(PlatformIdentifierPolicy::CATEGORY, $platformId), 'Overview creation returns a valid permanent QSDC identifier');
 check_category(CategoryMeta::platformId($id) === $platformId, 'Category creation stores the same identifier in term meta');
 check_category($platformIdentifiers->lookupNative(PlatformIdentifierPolicy::CATEGORY, $id)?->platformId() === $platformId, 'Category creation finalizes the reverse native binding');
 
@@ -173,7 +173,7 @@ $serviceBinding = $platformIdentifiers->assign(
 $wrongEntityDetail = $controller->fetchCategoryByPlatformId(new WP_REST_Request(['platform_id' => $serviceBinding->platformId()]));
 check_category($wrongEntityDetail->get_status() === 404, 'Category Platform-ID route rejects a Service identifier');
 
-$missingDetail = $controller->fetchCategoryByPlatformId(new WP_REST_Request(['platform_id' => 'CZCZZZZZ']));
+$missingDetail = $controller->fetchCategoryByPlatformId(new WP_REST_Request(['platform_id' => 'QSDCZZZZZ']));
 check_category($missingDetail->get_status() === 404, 'Category Platform-ID route rejects a missing binding');
 
 check_category($created['category']['platform_status'] === 'disabled', 'Overview creation uses raw disabled/Pending storage');
@@ -213,7 +213,7 @@ check_category($restored['category']['previous_platform_status'] === '', 'Restor
 echo "\nCategory identity immutability and deletion\n";
 $amendment = $controller->saveOverview(new WP_REST_Request([
     'id' => $id,
-    'platformId' => 'CZC2A7KZ',
+    'platformId' => 'QSDC2A7KZ',
     'name' => 'Attempted amendment',
 ]));
 check_category($amendment->get_status() === 422, 'Category mutation explicitly rejects platformId');

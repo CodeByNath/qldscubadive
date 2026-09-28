@@ -9,7 +9,7 @@
 
 ## The Law
 
-All spatial values in the CompuZign design system must resolve to exact multiples of the rhythm unit.
+All spatial values in the QSD design system must resolve to exact multiples of the rhythm unit.
 
 ```
 --cz-rhythm: 4px
@@ -229,7 +229,7 @@ These are the next formalizations after Phase 1 freeze lifts:
 
 Atomic Engine is owned by the platform plugin.
 
-The WordPress theme shell (`compuzign-shell`) does not own any part of the visual system. It does not define tokens, load Atomic Engine files, or override design system rules. The shell is visually passive — it provides document structure and lifecycle hooks only.
+The WordPress theme shell (`qsd-shell`) does not own any part of the visual system. It does not define tokens, load Atomic Engine files, or override design system rules. The shell is visually passive — it provides document structure and lifecycle hooks only.
 
 All Atomic Engine CSS loads through the plugin's `AssetLoader` via `wp_enqueue_scripts`. The shell's `wp_head()` call is the delivery mechanism; the shell is not the source.
 

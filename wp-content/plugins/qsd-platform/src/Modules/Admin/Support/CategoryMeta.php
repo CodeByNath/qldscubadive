@@ -1,12 +1,12 @@
 <?php
 
-namespace CompuZign\Platform\Modules\Admin\Support;
+namespace QSD\Platform\Modules\Admin\Support;
 
 /**
  * CategoryMeta — the Category station's term-meta model (S6 Phase A).
  *
- * Owns the consolidated `cz_category_meta` envelope on `cz_service_category`
- * terms — the Category mirror of the service's `cz_service_meta`, adapted to
+ * Owns the consolidated `qsd_category_meta` envelope on `qsd_service_category`
+ * terms — the Category mirror of the service's `qsd_service_meta`, adapted to
  * one owned module (`overview`):
  *
  *   platform_status           active | disabled | archived | trashed
@@ -16,7 +16,7 @@ namespace CompuZign\Platform\Modules\Admin\Support;
  *
  * Rules this class enforces:
  *
- *   - It is the ONLY reader/writer of `cz_category_meta`. Controllers and
+ *   - It is the ONLY reader/writer of `qsd_category_meta`. Controllers and
  *     projections go through it; raw get_term_meta reads elsewhere would fork
  *     the lazy defaults.
  *   - Lazy defaults (D2): a term with no station meta reads as
@@ -26,25 +26,25 @@ namespace CompuZign\Platform\Modules\Admin\Support;
  *   - Transitions are computed by StationLifecycle (canonical participation,
  *     same as Service). This class never decides a transition — it persists
  *     engine results only.
- *   - Permanent identity is separate scalar `cz_platform_id` term meta. This
+ *   - Permanent identity is separate scalar `qsd_platform_id` term meta. This
  *     owner exposes an atomic write-once claim and exact scalar read callback;
  *     the Platform Identifier Station owns the registry around those callbacks.
  *   - WordPress owns the term itself: name/slug/relationships are never
- *     written here. The settled description lives in the CompuZign-owned
- *     `cz_category_description` term meta (the inline category flows'
+ *     written here. The settled description lives in the QSD-owned
+ *     `qsd_category_description` term meta (the inline category flows'
  *     existing key), read here for projection/derivation only.
- *   - Delete guard (D6): permanent delete is blocked while any cz_service
+ *   - Delete guard (D6): permanent delete is blocked while any qsd_service
  *     post — in any status — is assigned to the term. The count predicate
  *     lives here; status legality (trashed-only) stays with
  *     StationLifecycle::canDelete.
  */
 final class CategoryMeta
 {
-    public const META_KEY          = 'cz_category_meta';
-    public const PLATFORM_ID_META  = 'cz_platform_id';
-    public const TAXONOMY          = 'cz_service_category';
-    public const DESCRIPTION_META  = 'cz_category_description';
-    public const SERVICE_POST_TYPE = 'cz_service';
+    public const META_KEY          = 'qsd_category_meta';
+    public const PLATFORM_ID_META  = 'qsd_platform_id';
+    public const TAXONOMY          = 'qsd_service_category';
+    public const DESCRIPTION_META  = 'qsd_category_description';
+    public const SERVICE_POST_TYPE = 'qsd_service';
 
     /**
      * station_role distinguishes the two stations sharing this taxonomy
@@ -294,8 +294,8 @@ final class CategoryMeta
     // ── Delete guard (D6) ─────────────────────────────────────────────────────
 
     /**
-     * Count of cz_service posts assigned to the term — any status (platform
-     * lifecycle lives in cz_service_meta, so no status filter applies; a
+     * Count of qsd_service posts assigned to the term — any status (platform
+     * lifecycle lives in qsd_service_meta, so no status filter applies; a
      * binned service still blocks the delete). Non-zero blocks permanent
      * delete: wp_delete_term would silently sever the relationships, so
      * detachment must be an explicit prior step.

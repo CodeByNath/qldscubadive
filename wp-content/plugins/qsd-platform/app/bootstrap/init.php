@@ -1,9 +1,9 @@
 <?php
 
-if (!defined('COMPUZIGN_PLUGIN_PATH')) {
+if (!defined('QSD_PLUGIN_PATH')) {
     return;
 }
 
-use CompuZign\Platform\Core\Plugin;
+use QSD\Platform\Core\Plugin;
 
 Plugin::boot();

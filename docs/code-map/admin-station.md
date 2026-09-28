@@ -1,8 +1,8 @@
 # Admin Station
 
-Admin Station is the presentation and control Station mounted by `[compuzign_admin_station]`. It owns the visible administration shell, presentation tools, and display policy. It is also the thin host through which Station Manager composes capabilities registered by Service Station and Package Station; hosting does not transfer domain or persistence authority.
+Admin Station is the presentation and control Station mounted by `[qsd_admin_station]`. It owns the visible administration shell, presentation tools, and display policy. It is also the thin host through which Station Manager composes capabilities registered by Service Station and Package Station; hosting does not transfer domain or persistence authority.
 
-Frontend root: `wp-content/plugins/compuzign-platform/resources/ts/admin-station/`
+Frontend root: `wp-content/plugins/qsd-platform/resources/ts/admin-station/`
 
 ## Ownership
 

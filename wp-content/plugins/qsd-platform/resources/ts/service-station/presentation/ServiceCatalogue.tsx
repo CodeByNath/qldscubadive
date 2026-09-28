@@ -258,7 +258,7 @@ export function ServiceCatalogue({ items, loading, error, onIntent }: TemplateKi
                       <strong>{service.name}</strong>
                       {/* The row's permanent identity, bare — the ID reads as
                           what it is, so it is never labelled. Blank until the
-                          Service is published and CZS is assigned. */}
+                          Service is published and QSDS is assigned. */}
                       <span>{service.platformId}</span>
                     </span>
                   </span>

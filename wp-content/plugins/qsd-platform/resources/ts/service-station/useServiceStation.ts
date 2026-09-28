@@ -330,7 +330,7 @@ export function useServiceStation(
   // ── Derived: module data (draft-preferred) ─────────────────────────────────
   // Read priority: draft → authoritative settled pool (adminDetail) → passed-in
   // CostBuilder service → empty. adminDetail.inclusions/faqs is the canonical
-  // service-owned pool (cz_service_inclusions / cz_service_faqs) returned by the
+  // service-owned pool (qsd_service_inclusions / qsd_service_faqs) returned by the
   // drawer's own fetch; the passed-in ServiceItem can be stale/empty for migrated
   // services, so it must not shadow the settled pool. A pending Service has no
   // pool yet — both stay empty until creation.

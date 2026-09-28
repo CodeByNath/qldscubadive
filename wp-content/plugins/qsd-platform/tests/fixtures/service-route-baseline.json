@@ -2,7 +2,7 @@
     "contract": "service-route-baseline.v1",
     "routes": [
         {
-            "route": "compuzign/v1/admin/categories",
+            "route": "qsd/v1/admin/categories",
             "methods": "GET",
             "callback": "listCategories",
             "permission_callback": "requireAdmin",
@@ -18,7 +18,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/categories",
+            "route": "qsd/v1/admin/categories",
             "methods": "POST",
             "callback": "createCategory",
             "permission_callback": "requireAdmin",
@@ -36,7 +36,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/categories/(?P<id>\\d+)",
+            "route": "qsd/v1/admin/categories/(?P<id>\\d+)",
             "methods": "DELETE",
             "callback": "permanentDeleteCategory",
             "permission_callback": "requireAdmin",
@@ -48,7 +48,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/categories/(?P<id>\\d+)/overview",
+            "route": "qsd/v1/admin/categories/(?P<id>\\d+)/overview",
             "methods": "PUT",
             "callback": "saveOverview",
             "permission_callback": "requireAdmin",
@@ -70,7 +70,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/categories/(?P<id>\\d+)/overview/revert",
+            "route": "qsd/v1/admin/categories/(?P<id>\\d+)/overview/revert",
             "methods": "POST",
             "callback": "revertOverview",
             "permission_callback": "requireAdmin",
@@ -82,7 +82,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/categories/(?P<id>\\d+)/overview/settle",
+            "route": "qsd/v1/admin/categories/(?P<id>\\d+)/overview/settle",
             "methods": "POST",
             "callback": "settleOverview",
             "permission_callback": "requireAdmin",
@@ -94,7 +94,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/categories/(?P<id>\\d+)/restore",
+            "route": "qsd/v1/admin/categories/(?P<id>\\d+)/restore",
             "methods": "POST",
             "callback": "restoreCategory",
             "permission_callback": "requireAdmin",
@@ -106,7 +106,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/categories/(?P<id>\\d+)/status",
+            "route": "qsd/v1/admin/categories/(?P<id>\\d+)/status",
             "methods": "PATCH",
             "callback": "updateStatus",
             "permission_callback": "requireAdmin",
@@ -136,7 +136,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/categories/(?P<platform_id>CZ[A-Z0-9]+)",
+            "route": "qsd/v1/admin/categories/(?P<platform_id>QSD[A-Z0-9]+)",
             "methods": "GET",
             "callback": "fetchCategoryByPlatformId",
             "permission_callback": "requireAdmin",
@@ -148,7 +148,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-category-groups",
+            "route": "qsd/v1/admin/package-category-groups",
             "methods": "GET",
             "callback": "listGroups",
             "permission_callback": "requireAdmin",
@@ -164,7 +164,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-category-groups",
+            "route": "qsd/v1/admin/package-category-groups",
             "methods": "POST",
             "callback": "createGroup",
             "permission_callback": "requireAdmin",
@@ -182,7 +182,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)",
+            "route": "qsd/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)",
             "methods": "DELETE",
             "callback": "permanentDeleteGroup",
             "permission_callback": "requireAdmin",
@@ -194,7 +194,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/overview",
+            "route": "qsd/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/overview",
             "methods": "PUT",
             "callback": "saveOverview",
             "permission_callback": "requireAdmin",
@@ -216,7 +216,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/overview/revert",
+            "route": "qsd/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/overview/revert",
             "methods": "POST",
             "callback": "revertOverview",
             "permission_callback": "requireAdmin",
@@ -228,7 +228,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/overview/settle",
+            "route": "qsd/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/overview/settle",
             "methods": "POST",
             "callback": "settleOverview",
             "permission_callback": "requireAdmin",
@@ -240,7 +240,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/restore",
+            "route": "qsd/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/restore",
             "methods": "POST",
             "callback": "restoreGroup",
             "permission_callback": "requireAdmin",
@@ -252,7 +252,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/status",
+            "route": "qsd/v1/admin/package-category-groups/(?P<gid>[a-z0-9_]+)/status",
             "methods": "PATCH",
             "callback": "updateStatus",
             "permission_callback": "requireAdmin",
@@ -282,7 +282,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-families/(?P<platform_id>CZ[A-Z0-9]+)",
+            "route": "qsd/v1/admin/package-families/(?P<platform_id>QSD[A-Z0-9]+)",
             "methods": "GET",
             "callback": "fetchGroupByPlatformId",
             "permission_callback": "requireAdmin",
@@ -294,14 +294,14 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-station/tier-assignments",
+            "route": "qsd/v1/admin/package-station/tier-assignments",
             "methods": "GET",
             "callback": "listTierAssignments",
             "permission_callback": "requireAdmin",
             "args": []
         },
         {
-            "route": "compuzign/v1/admin/package-station/tier-assignments",
+            "route": "qsd/v1/admin/package-station/tier-assignments",
             "methods": "POST",
             "callback": "createTierAssignment",
             "permission_callback": "requireAdmin",
@@ -321,7 +321,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-station/tier-assignments/(?P<assignment>[a-z0-9_]+)",
+            "route": "qsd/v1/admin/package-station/tier-assignments/(?P<assignment>[a-z0-9_]+)",
             "methods": "DELETE",
             "callback": "deleteTierAssignment",
             "permission_callback": "requireAdmin",
@@ -333,14 +333,14 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-station/tier-instances",
+            "route": "qsd/v1/admin/package-station/tier-instances",
             "methods": "GET",
             "callback": "listTierInstances",
             "permission_callback": "requireAdmin",
             "args": []
         },
         {
-            "route": "compuzign/v1/admin/package-station/tier-instances",
+            "route": "qsd/v1/admin/package-station/tier-instances",
             "methods": "POST",
             "callback": "createTierInstance",
             "permission_callback": "requireAdmin",
@@ -352,7 +352,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-station/tier-instances/(?P<instance>[a-z0-9_]+)",
+            "route": "qsd/v1/admin/package-station/tier-instances/(?P<instance>[a-z0-9_]+)",
             "methods": "DELETE",
             "callback": "deleteTierInstance",
             "permission_callback": "requireAdmin",
@@ -364,7 +364,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/package-station/tier-instances/(?P<instance>[a-z0-9_]+)",
+            "route": "qsd/v1/admin/package-station/tier-instances/(?P<instance>[a-z0-9_]+)",
             "methods": "PATCH",
             "callback": "updateTierInstance",
             "permission_callback": "requireAdmin",
@@ -376,7 +376,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/rate-sheet-groups/(?P<platform_id>CZPRCG[A-Z0-9]+)",
+            "route": "qsd/v1/admin/rate-sheet-groups/(?P<platform_id>CZPRCG[A-Z0-9]+)",
             "methods": "GET",
             "callback": "fetchRateSheetGroupByPlatformId",
             "permission_callback": "requireAdmin",
@@ -388,7 +388,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/rate-sheet-items/(?P<platform_id>CZPRCI[A-Z0-9]+)",
+            "route": "qsd/v1/admin/rate-sheet-items/(?P<platform_id>CZPRCI[A-Z0-9]+)",
             "methods": "GET",
             "callback": "fetchRateSheetItemByPlatformId",
             "permission_callback": "requireAdmin",
@@ -400,7 +400,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/rate-sheets/(?P<platform_id>CZPRC[A-Z0-9]+)",
+            "route": "qsd/v1/admin/rate-sheets/(?P<platform_id>CZPRC[A-Z0-9]+)",
             "methods": "GET",
             "callback": "fetchRateSheetByPlatformId",
             "permission_callback": "requireAdmin",
@@ -412,14 +412,14 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/service-categories",
+            "route": "qsd/v1/admin/service-categories",
             "methods": "POST",
             "callback": "createServiceCategory",
             "permission_callback": "requireAdmin",
             "args": []
         },
         {
-            "route": "compuzign/v1/admin/service-categories/(?P<id>\\d+)",
+            "route": "qsd/v1/admin/service-categories/(?P<id>\\d+)",
             "methods": "POST",
             "callback": "updateServiceCategory",
             "permission_callback": "requireAdmin",
@@ -431,7 +431,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services",
+            "route": "qsd/v1/admin/services",
             "methods": "GET",
             "callback": "listServices",
             "permission_callback": "requireAdmin",
@@ -447,7 +447,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services",
+            "route": "qsd/v1/admin/services",
             "methods": "POST",
             "callback": "createService",
             "permission_callback": "requireAdmin",
@@ -477,7 +477,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)",
             "methods": "DELETE",
             "callback": "permanentDeleteService",
             "permission_callback": "requireAdmin",
@@ -489,7 +489,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)",
             "methods": "GET",
             "callback": "fetchDetail",
             "permission_callback": "requireAdmin",
@@ -501,7 +501,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/(?P<module>overview|inclusions|faqs)/revert",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/(?P<module>overview|inclusions|faqs)/revert",
             "methods": "POST",
             "callback": "revertModule",
             "permission_callback": "requireAdmin",
@@ -517,7 +517,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/(?P<module>overview|inclusions|faqs)/settle",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/(?P<module>overview|inclusions|faqs)/settle",
             "methods": "POST",
             "callback": "settleModuleRoute",
             "permission_callback": "requireAdmin",
@@ -533,7 +533,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/faq-pool/items",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/faq-pool/items",
             "methods": "POST",
             "callback": "createFaqPoolItem",
             "permission_callback": "requireAdmin",
@@ -545,7 +545,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/faqs",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/faqs",
             "methods": "POST",
             "callback": "updateFaqs",
             "permission_callback": "requireAdmin",
@@ -564,7 +564,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/inclusion-pool/items",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/inclusion-pool/items",
             "methods": "POST",
             "callback": "createInclusionPoolItem",
             "permission_callback": "requireAdmin",
@@ -576,7 +576,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/inclusions",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/inclusions",
             "methods": "POST",
             "callback": "updateInclusions",
             "permission_callback": "requireAdmin",
@@ -595,7 +595,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/overview",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/overview",
             "methods": "POST",
             "callback": "updateOverview",
             "permission_callback": "requireAdmin",
@@ -629,7 +629,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/manager",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/manager",
             "methods": "GET",
             "callback": "getPackageStationManager",
             "permission_callback": "requireAdmin",
@@ -641,7 +641,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/manager",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/manager",
             "methods": "POST",
             "callback": "savePackageStationManager",
             "permission_callback": "requireAdmin",
@@ -653,7 +653,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions",
             "methods": "GET",
             "callback": "getPromotionStation",
             "permission_callback": "requireAdmin",
@@ -665,7 +665,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions",
             "methods": "POST",
             "callback": "createServicePromotion",
             "permission_callback": "requireAdmin",
@@ -677,7 +677,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)",
             "methods": "DELETE",
             "callback": "permanentDeletePromotion",
             "permission_callback": "requireAdmin",
@@ -693,7 +693,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/archive",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/archive",
             "methods": "POST",
             "callback": "archiveServicePromotion",
             "permission_callback": "requireAdmin",
@@ -709,7 +709,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/modules/(?P<module>overview|features|faqs)",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/modules/(?P<module>overview|features|faqs)",
             "methods": "POST",
             "callback": "savePromotionModule",
             "permission_callback": "requireAdmin",
@@ -729,7 +729,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/modules/(?P<module>overview|features|faqs)/revert",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/modules/(?P<module>overview|features|faqs)/revert",
             "methods": "POST",
             "callback": "revertPromotionModule",
             "permission_callback": "requireAdmin",
@@ -749,7 +749,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/publish",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/publish",
             "methods": "POST",
             "callback": "publishPromotion",
             "permission_callback": "requireAdmin",
@@ -765,7 +765,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/restore",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/restore",
             "methods": "POST",
             "callback": "restorePromotion",
             "permission_callback": "requireAdmin",
@@ -781,7 +781,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/settle",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/settle",
             "methods": "POST",
             "callback": "settlePromotion",
             "permission_callback": "requireAdmin",
@@ -797,7 +797,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/toggle",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/toggle",
             "methods": "POST",
             "callback": "togglePromotion",
             "permission_callback": "requireAdmin",
@@ -813,7 +813,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/trash",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/promotions/(?P<promo>[a-z0-9_]+)/trash",
             "methods": "POST",
             "callback": "trashPromotion",
             "permission_callback": "requireAdmin",
@@ -829,7 +829,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/bin/(?P<bin>[a-z0-9_]+)",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/bin/(?P<bin>[a-z0-9_]+)",
             "methods": "DELETE",
             "callback": "deletePackageStationBinEntry",
             "permission_callback": "requireAdmin",
@@ -849,7 +849,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/bin/(?P<bin>[a-z0-9_]+)/restore",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/bin/(?P<bin>[a-z0-9_]+)/restore",
             "methods": "POST",
             "callback": "restorePackageStationBinEntry",
             "permission_callback": "requireAdmin",
@@ -869,7 +869,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/bin/(?P<bin>[a-z0-9_]+)/trash",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/bin/(?P<bin>[a-z0-9_]+)/trash",
             "methods": "POST",
             "callback": "trashPackageStationBinEntry",
             "permission_callback": "requireAdmin",
@@ -889,7 +889,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/popular",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/popular",
             "methods": "POST",
             "callback": "setPackageStationPopular",
             "permission_callback": "requireAdmin",
@@ -905,7 +905,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/read",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/read",
             "methods": "GET",
             "callback": "getPackageStation",
             "permission_callback": "requireAdmin",
@@ -921,7 +921,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)",
             "methods": "POST",
             "callback": "savePackageStationTier",
             "permission_callback": "requireAdmin",
@@ -941,7 +941,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/archive",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/archive",
             "methods": "POST",
             "callback": "archivePackageStationTierOccupant",
             "permission_callback": "requireAdmin",
@@ -961,7 +961,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/default-edition",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/default-edition",
             "methods": "POST",
             "callback": "setTierEditionDefault",
             "permission_callback": "requireAdmin",
@@ -981,7 +981,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions",
             "methods": "POST",
             "callback": "createTierEdition",
             "permission_callback": "requireAdmin",
@@ -1001,7 +1001,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)",
             "methods": "DELETE",
             "callback": "deleteTierEditionEndpoint",
             "permission_callback": "requireAdmin",
@@ -1025,7 +1025,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/modules/(?P<module>[a-z]+)",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/modules/(?P<module>[a-z]+)",
             "methods": "POST",
             "callback": "saveTierEditionModule",
             "permission_callback": "requireAdmin",
@@ -1053,7 +1053,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/modules/(?P<module>[a-z]+)/revert",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/modules/(?P<module>[a-z]+)/revert",
             "methods": "POST",
             "callback": "revertTierEditionModule",
             "permission_callback": "requireAdmin",
@@ -1081,7 +1081,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/modules/(?P<module>[a-z]+)/settle",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/modules/(?P<module>[a-z]+)/settle",
             "methods": "POST",
             "callback": "settleTierEditionModule",
             "permission_callback": "requireAdmin",
@@ -1109,7 +1109,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/restore",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/restore",
             "methods": "POST",
             "callback": "restoreTierEditionEndpoint",
             "permission_callback": "requireAdmin",
@@ -1133,7 +1133,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/status",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/editions/(?P<edition>edt_[a-z0-9]+)/status",
             "methods": "PATCH",
             "callback": "updateTierEditionStatus",
             "permission_callback": "requireAdmin",
@@ -1175,7 +1175,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/enabled",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/enabled",
             "methods": "POST",
             "callback": "setPackageStationTierEnabled",
             "permission_callback": "requireAdmin",
@@ -1195,7 +1195,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/modules/(?P<module>[a-z]+)",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/modules/(?P<module>[a-z]+)",
             "methods": "POST",
             "callback": "savePackageStationTierModule",
             "permission_callback": "requireAdmin",
@@ -1219,7 +1219,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/modules/(?P<module>overview|features|faqs)/revert",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/modules/(?P<module>overview|features|faqs)/revert",
             "methods": "POST",
             "callback": "revertPackageStationTierModule",
             "permission_callback": "requireAdmin",
@@ -1243,7 +1243,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/settle",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/package-station/tier-instances/(?P<instance>[a-z0-9_]+)/tiers/(?P<tier>[a-z]+)/settle",
             "methods": "POST",
             "callback": "settlePackageStationTier",
             "permission_callback": "requireAdmin",
@@ -1263,7 +1263,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/restore",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/restore",
             "methods": "POST",
             "callback": "restoreService",
             "permission_callback": "requireAdmin",
@@ -1275,7 +1275,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/settle",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/settle",
             "methods": "POST",
             "callback": "settleAll",
             "permission_callback": "requireAdmin",
@@ -1287,7 +1287,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<id>\\d+)/status",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/status",
             "methods": "POST",
             "callback": "updateStatus",
             "permission_callback": "requireAdmin",
@@ -1329,7 +1329,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/services/(?P<platform_id>CZ[A-Z0-9]+)",
+            "route": "qsd/v1/admin/services/(?P<platform_id>QSD[A-Z0-9]+)",
             "methods": "GET",
             "callback": "fetchDetailByPlatformId",
             "permission_callback": "requireAdmin",
@@ -1341,7 +1341,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/tier-addons/(?P<platform_id>CZTA[A-Z0-9]+)",
+            "route": "qsd/v1/admin/tier-addons/(?P<platform_id>CZTA[A-Z0-9]+)",
             "methods": "GET",
             "callback": "fetchTierAddonByPlatformId",
             "permission_callback": "requireAdmin",
@@ -1353,7 +1353,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/tier-groups/(?P<platform_id>CZTG[A-Z0-9]+)",
+            "route": "qsd/v1/admin/tier-groups/(?P<platform_id>CZTG[A-Z0-9]+)",
             "methods": "GET",
             "callback": "fetchTierGroupByPlatformId",
             "permission_callback": "requireAdmin",
@@ -1365,7 +1365,7 @@
             }
         },
         {
-            "route": "compuzign/v1/admin/tiers/(?P<platform_id>CZT[A-Z0-9]+)",
+            "route": "qsd/v1/admin/tiers/(?P<platform_id>CZT[A-Z0-9]+)",
             "methods": "GET",
             "callback": "fetchTierByPlatformId",
             "permission_callback": "requireAdmin",

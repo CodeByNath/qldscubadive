@@ -1,5 +1,5 @@
 /*
- * Service Station — the public frontend boundary for the cz_service entity.
+ * Service Station — the public frontend boundary for the qsd_service entity.
  *
  * The only module other code should import from. It mirrors the backend
  * boundary (src/Modules/Service): everything the rest of the admin needs to

@@ -1,20 +1,20 @@
 <?php
 
-namespace CompuZign\Platform\Core;
+namespace QSD\Platform\Core;
 
-use CompuZign\Platform\Modules\Admin\AdminModule;
-use CompuZign\Platform\Modules\AdminStation\AdminStationAuth;
-use CompuZign\Platform\Modules\AdminStation\AdminStationModule;
-use CompuZign\Platform\Modules\CostBuilder\CostBuilderModule;
-use CompuZign\Platform\Modules\Homepage\HomepageModule;
-use CompuZign\Platform\Modules\Promotions\PromotionsModule;
-use CompuZign\Platform\Modules\Requests\RequestsModule;
-use CompuZign\Platform\Modules\Service\ServiceModule;
-use CompuZign\Platform\Modules\SurfacePackages\SurfacePackagesModule;
-use CompuZign\Platform\Core\Health;
-use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
-use CompuZign\Platform\PlatformIdentifier\ExistingRecordAssignmentCommand;
-use CompuZign\Platform\PlatformIdentifier\TemporaryMigrationController;
+use QSD\Platform\Modules\Admin\AdminModule;
+use QSD\Platform\Modules\AdminStation\AdminStationAuth;
+use QSD\Platform\Modules\AdminStation\AdminStationModule;
+use QSD\Platform\Modules\CostBuilder\CostBuilderModule;
+use QSD\Platform\Modules\Homepage\HomepageModule;
+use QSD\Platform\Modules\Promotions\PromotionsModule;
+use QSD\Platform\Modules\Requests\RequestsModule;
+use QSD\Platform\Modules\Service\ServiceModule;
+use QSD\Platform\Modules\SurfacePackages\SurfacePackagesModule;
+use QSD\Platform\Core\Health;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
+use QSD\Platform\PlatformIdentifier\ExistingRecordAssignmentCommand;
+use QSD\Platform\PlatformIdentifier\TemporaryMigrationController;
 
 final class Plugin
 {
@@ -36,7 +36,7 @@ final class Plugin
         (new TemporaryMigrationController($platformIdentifiers))->register();
         if (defined('WP_CLI') && WP_CLI) {
             \WP_CLI::add_command(
-                'compuzign platform-identifiers assign',
+                'qsd platform-identifiers assign',
                 new ExistingRecordAssignmentCommand($platformIdentifiers)
             );
         }
@@ -55,7 +55,7 @@ final class Plugin
 
     public static function registerCoreRoutes(): void
     {
-        register_rest_route('compuzign/v1', '/health', [
+        register_rest_route('qsd/v1', '/health', [
             'methods'             => 'GET',
             'callback'            => [self::class, 'healthCheck'],
             'permission_callback' => '__return_true',
@@ -70,7 +70,7 @@ final class Plugin
         return rest_ensure_response([
             'success' => $allHealthy,
             'status'  => $allHealthy ? 'healthy' : 'degraded',
-            'version' => defined('COMPUZIGN_PLUGIN_VERSION') ? COMPUZIGN_PLUGIN_VERSION : null,
+            'version' => defined('QSD_PLUGIN_VERSION') ? QSD_PLUGIN_VERSION : null,
             'checks'  => $checks,
         ]);
     }
