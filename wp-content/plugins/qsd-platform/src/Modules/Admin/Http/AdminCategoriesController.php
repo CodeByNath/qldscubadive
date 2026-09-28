@@ -1,0 +1,874 @@
+<?php
+
+/*
+ * FILE INDEX
+ *
+ * CATEGORY_ROUTES          Category REST route registration
+ * CATEGORY_HANDLERS        Listing, creation, modules, and lifecycle
+ * CATEGORY_IDENTITY        Platform ID collision, binding, and immutability
+ * CATEGORY_AUTHORIZATION   Permission callback
+ * CATEGORY_HELPERS         Term lookup and response projection
+ *
+ * Search: SECTION: CATEGORY_ROUTES
+ *         SECTION: CATEGORY_HANDLERS
+ *         SECTION: CATEGORY_IDENTITY
+ *         SECTION: CATEGORY_AUTHORIZATION
+ *         SECTION: CATEGORY_HELPERS
+ */
+
+namespace CompuZign\Platform\Modules\Admin\Http;
+
+use CompuZign\Platform\Modules\Admin\Support\CategoryMeta;
+use CompuZign\Platform\Modules\Admin\Support\StationLifecycle;
+use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierBinding;
+use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierConflict;
+use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
+use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierReservation;
+use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
+
+/**
+ * AdminCategoriesController — the Category station's REST family (S6 Phase B).
+ *
+ * Mirrors the Service station's route grammar under compuzign/v1. All term-meta
+ * access goes through CategoryMeta (the sole reader/writer of cz_category_meta);
+ * every status write is a StationLifecycle-computed transition.
+ *
+ * The inline convenience routes (/admin/service-categories) now live here too,
+ * moved from AdminServicesController because they own Category terms rather
+ * than the Service entity; their URLs and behaviour are unchanged. They keep
+ * producing immediately-usable categories (D3: no meta = lazy active).
+ * Station-created Categories persist as unmasked Pending records and Publish
+ * settles/activates them later. Explicit Disable is a separate presentation
+ * mask, never the name for the Pending storage state.
+ *
+ * Note both this class and Service\Http\ServiceController expose an
+ * `updateStatus` handler. They are distinct routes (PATCH
+ * /admin/categories/{id}/status here; POST /admin/services/{id}/status there)
+ * and must never be cross-wired — see docs/code-map/service-station.md.
+ */
+class AdminCategoriesController
+{
+    public function __construct(private PlatformIdentifierStation $platformIdentifiers) {}
+
+    public function register(): void
+    {
+        add_action('rest_api_init', [$this, 'registerRoutes']);
+    }
+
+    public function registerRoutes(): void
+    {
+        // ===================================================================
+        // SECTION: CATEGORY_ROUTES
+        // ===================================================================
+        // ── Station list (admin only) ─────────────────────────────────────────
+        register_rest_route('compuzign/v1', '/admin/categories', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'listCategories'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'platform_status' => [
+                    'required' => false,
+                    'type'     => 'string',
+                    'enum'     => [StationLifecycle::STATUS_ARCHIVED, StationLifecycle::STATUS_TRASHED],
+                ],
+            ],
+        ]);
+
+        // ── Station detail by permanent Platform identity ────────────────────
+        register_rest_route('compuzign/v1', '/admin/categories/(?P<platform_id>CZ[A-Z0-9]+)', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'fetchCategoryByPlatformId'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'platform_id' => ['required' => true, 'type' => 'string'],
+            ],
+        ]);
+
+        // ── Station create (born unmasked Pending) ────────────────────────────
+        register_rest_route('compuzign/v1', '/admin/categories', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'createCategory'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'name'        => ['required' => true,  'type' => 'string',
+                                  'sanitize_callback' => 'sanitize_text_field'],
+                'description' => ['required' => false, 'type' => 'string',
+                                  'sanitize_callback' => 'sanitize_textarea_field'],
+            ],
+        ]);
+
+        // ── Overview draft save ───────────────────────────────────────────────
+        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/overview', [
+            'methods'             => 'PUT',
+            'callback'            => [$this, 'saveOverview'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'id'          => ['required' => true,  'type' => 'integer'],
+                'name'        => ['required' => true,  'type' => 'string',
+                                  'sanitize_callback' => 'sanitize_text_field'],
+                'description' => ['required' => false, 'type' => 'string',
+                                  'sanitize_callback' => 'sanitize_textarea_field'],
+            ],
+        ]);
+
+        // ── Overview settle (commit draft → term) ─────────────────────────────
+        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/overview/settle', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'settleOverview'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'id' => ['required' => true, 'type' => 'integer'],
+            ],
+        ]);
+
+        // ── Overview revert (discard draft) ───────────────────────────────────
+        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/overview/revert', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'revertOverview'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'id' => ['required' => true, 'type' => 'integer'],
+            ],
+        ]);
+
+        // ── Platform status (engine transition) ───────────────────────────────
+        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/status', [
+            'methods'             => 'PATCH',
+            'callback'            => [$this, 'updateStatus'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'id'              => ['required' => true, 'type' => 'integer'],
+                'platform_status' => [
+                    'required' => false,
+                    'type'     => 'string',
+                    'enum'     => CategoryMeta::ALLOWED_PLATFORM_STATUSES,
+                ],
+                'action' => [
+                    'required' => false,
+                    'type'     => 'string',
+                    'enum'     => ['disable', 'enable'],
+                ],
+            ],
+        ]);
+
+        // ── Restore (server-driven — resolves previous_platform_status) ───────
+        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)/restore', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'restoreCategory'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'id' => ['required' => true, 'type' => 'integer'],
+            ],
+        ]);
+
+        // ── Permanent delete (trashed only + D6 guard) ────────────────────────
+        register_rest_route('compuzign/v1', '/admin/categories/(?P<id>\d+)', [
+            'methods'             => 'DELETE',
+            'callback'            => [$this, 'permanentDeleteCategory'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'id' => ['required' => true, 'type' => 'integer'],
+            ],
+        ]);
+
+        // ── Inline service category creation ─────────────────────────────────
+        register_rest_route('compuzign/v1', '/admin/service-categories', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'createServiceCategory'],
+            'permission_callback' => [$this, 'requireAdmin'],
+        ]);
+
+        // ── Inline service category update ────────────────────────────────────
+        // ── Inline service category update ────────────────────────────────────
+        register_rest_route('compuzign/v1', '/admin/service-categories/(?P<id>\d+)', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'updateServiceCategory'],
+            'permission_callback' => [$this, 'requireAdmin'],
+            'args'                => [
+                'id' => ['required' => true, 'type' => 'integer'],
+            ],
+        ]);
+    }
+
+    // ── Handlers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Station projections for every category term.
+     *
+     * Default (no platform_status param): excludes archived and trashed.
+     * With platform_status=archived|trashed: returns only that bin — same
+     * param contract as /admin/services.
+     */
+    // ===================================================================
+    // SECTION: CATEGORY_HANDLERS
+    // ===================================================================
+    public function listCategories(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $filterStatus = $request->get_param('platform_status'); // 'archived', 'trashed', or null.
+
+        $terms = get_terms([
+            'taxonomy'   => CategoryMeta::TAXONOMY,
+            'hide_empty' => false,
+            'orderby'    => 'name',
+            'order'      => 'ASC',
+        ]);
+
+        $categories = [];
+
+        foreach (is_array($terms) ? $terms : [] as $term) {
+            if (!$term instanceof \WP_Term) {
+                continue;
+            }
+
+            // The Category station's own list stays a flat list of category-role
+            // terms only. Legacy group-role terms from the retired Service
+            // Category Group station (former Admin Command Centre) may still
+            // exist on this taxonomy; excluding them here keeps them from
+            // leaking into the Category list without touching that term data.
+            if (CategoryMeta::role((int) $term->term_id) !== CategoryMeta::STATION_ROLE_CATEGORY) {
+                continue;
+            }
+
+            $projection = CategoryMeta::projection($term);
+
+            if ($filterStatus !== null) {
+                if ($projection['platform_status'] !== $filterStatus) {
+                    continue;
+                }
+            } elseif (StationLifecycle::isBinned($projection['platform_status'])) {
+                continue;
+            }
+
+            $projection['assigned_count'] = CategoryMeta::assignedServiceCount((int) $term->term_id);
+
+            $categories[] = $projection;
+        }
+
+        return rest_ensure_response(['categories' => $categories]);
+    }
+
+    public function fetchCategoryByPlatformId(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $platformId = (string) $request->get_param('platform_id');
+
+        try {
+            $binding = $this->platformIdentifiers->resolve($platformId);
+        } catch (PlatformIdentifierConflict) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Platform identifier binding is conflicting.'], 409);
+        }
+
+        if (
+            $binding === null
+            || !$binding->isBound()
+            || $binding->entityType() !== PlatformIdentifierPolicy::CATEGORY
+            || !is_int($binding->nativeReference())
+        ) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        $category = $this->categoryResponse($this->findTerm($binding->nativeReference()));
+        if ($category === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        return rest_ensure_response($category);
+    }
+
+    /**
+     * Station create: term + canonical fields + pending Overview draft. The
+     * complete Overview Save is the creation boundary; Publish settles it later.
+     * Duplicates fail — the inline flow's return-existing convenience is a
+     * service-edit affordance, not station behaviour.
+     */
+    public function createCategory(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if ($rejection = $this->rejectPlatformIdMutation($request)) {
+            return $rejection;
+        }
+
+        $name        = (string) $request->get_param('name');
+        $description = (string) ($request->get_param('description') ?? '');
+
+        if ($name === '') {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category name is required.'], 422);
+        }
+
+        try {
+            $reservation = $this->platformIdentifiers->reserve(
+                PlatformIdentifierPolicy::CATEGORY,
+                fn(string $platformId): bool => $this->platformIdExists($platformId)
+            );
+        } catch (\Throwable) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => 'Could not reserve a permanent Category identifier.',
+            ], 500);
+        }
+
+        $result = wp_insert_term($name, CategoryMeta::TAXONOMY);
+        if (is_wp_error($result)) {
+            $this->retireReservation($reservation);
+            return new \WP_REST_Response(['success' => false, 'message' => $result->get_error_message()], 422);
+        }
+
+        $termId = (int) $result['term_id'];
+
+        try {
+            $this->assignIdentifier($reservation, $termId);
+        } catch (\Throwable) {
+            $stored = CategoryMeta::platformId($termId);
+            if ($stored === '' || $stored === $reservation->platformId()) {
+                wp_delete_term($termId, CategoryMeta::TAXONOMY);
+            }
+            $this->retireReservation($reservation, $termId);
+            return new \WP_REST_Response([
+                'success'          => false,
+                'message'          => 'Category creation could not confirm its permanent identifier.',
+                'native_reference' => $termId,
+            ], 500);
+        }
+
+        $this->writeDescription($termId, $description);
+
+        // Keep the saved Overview as a pending draft even though its canonical
+        // term fields have been seeded. This preserves the Pending notification
+        // until Publish settles the module and activates the Category.
+        CategoryMeta::write($termId, [
+            'platform_status' => StationLifecycle::STATUS_DISABLED,
+            'module_status'   => [
+                'overview' => StationLifecycle::MODULE_PENDING,
+            ],
+            'overview_draft' => [
+                'name'        => $name,
+                'description' => $description,
+            ],
+        ]);
+
+        $term = get_term($termId, CategoryMeta::TAXONOMY);
+
+        return rest_ensure_response([
+            'success'  => true,
+            'category' => $this->categoryResponse($term),
+        ]);
+    }
+
+    /** Save the overview draft (name, description) — canonical term untouched, overview marked pending. */
+    public function saveOverview(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if ($rejection = $this->rejectPlatformIdMutation($request)) {
+            return $rejection;
+        }
+        $term = $this->findTerm((int) $request->get_param('id'));
+        if ($term === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        $meta = CategoryMeta::saveOverviewDraft(
+            (int) $term->term_id,
+            (string) $request->get_param('name'),
+            (string) ($request->get_param('description') ?? '')
+        );
+
+        return rest_ensure_response([
+            'success'       => true,
+            'draft'         => $meta['overview_draft'],
+            'module_status' => $meta['module_status'],
+        ]);
+    }
+
+    /**
+     * Commit the draft to the term (name via wp_update_term, description via
+     * the CompuZign term meta), clear the draft, and re-derive module status.
+     * With no draft pending this degrades to a pure re-derivation.
+     */
+    public function settleOverview(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if ($rejection = $this->rejectPlatformIdMutation($request)) {
+            return $rejection;
+        }
+        $term = $this->findTerm((int) $request->get_param('id'));
+        if ($term === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        $termId = (int) $term->term_id;
+        $draft  = CategoryMeta::overviewDraft($termId);
+
+        if ($draft !== null) {
+            // Slug is immutable (D5): name updates never regenerate it.
+            if ($draft['name'] !== '') {
+                $updated = wp_update_term($termId, CategoryMeta::TAXONOMY, ['name' => $draft['name']]);
+                if (is_wp_error($updated)) {
+                    return new \WP_REST_Response(['success' => false, 'message' => $updated->get_error_message()], 422);
+                }
+            }
+            $this->writeDescription($termId, $draft['description']);
+        }
+
+        CategoryMeta::clearOverviewDraft($termId);
+
+        return rest_ensure_response([
+            'success'  => true,
+            'category' => $this->categoryResponse(get_term($termId, CategoryMeta::TAXONOMY)),
+        ]);
+    }
+
+    /** Discard the draft; module_status re-derives from the settled state. */
+    public function revertOverview(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if ($rejection = $this->rejectPlatformIdMutation($request)) {
+            return $rejection;
+        }
+        $term = $this->findTerm((int) $request->get_param('id'));
+        if ($term === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        CategoryMeta::clearOverviewDraft((int) $term->term_id);
+
+        return rest_ensure_response([
+            'success'  => true,
+            'category' => $this->categoryResponse($term),
+        ]);
+    }
+
+    /**
+     * Engine transition via StationLifecycle::applyStatus, with explicit
+     * Disable/Enable kept as a separate mask request shape.
+     */
+    public function updateStatus(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if ($rejection = $this->rejectPlatformIdMutation($request)) {
+            return $rejection;
+        }
+        $term = $this->findTerm((int) $request->get_param('id'));
+        if ($term === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        $termId = (int) $term->term_id;
+        if ($request->has_param('action')) {
+            return $this->updateDisabledMask($termId, (string) $request->get_param('action'));
+        }
+
+        $target = sanitize_text_field((string) $request->get_param('platform_status'));
+        if (!in_array($target, CategoryMeta::ALLOWED_PLATFORM_STATUSES, true)) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Invalid platform_status.'], 422);
+        }
+
+        $change = StationLifecycle::applyStatus(
+            CategoryMeta::status($termId),
+            $target,
+            CategoryMeta::previousStatus($termId)
+        );
+        CategoryMeta::applyStatusChange($termId, $change);
+
+        return rest_ensure_response([
+            'success'  => true,
+            'category' => $this->categoryResponse($term),
+        ]);
+    }
+
+    /** Restore from archived/trashed — always lands 'disabled', never straight to active. */
+    public function restoreCategory(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if ($rejection = $this->rejectPlatformIdMutation($request)) {
+            return $rejection;
+        }
+        $term = $this->findTerm((int) $request->get_param('id'));
+        if ($term === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        $termId = (int) $term->term_id;
+
+        $change = StationLifecycle::restore(CategoryMeta::status($termId));
+        if ($change === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category is not in a restorable state.'], 422);
+        }
+        CategoryMeta::applyStatusChange($termId, $change);
+
+        return rest_ensure_response([
+            'success'  => true,
+            'category' => $this->categoryResponse($term),
+        ]);
+    }
+
+    /**
+     * Permanent delete: legal only from trashed (StationLifecycle::canDelete)
+     * AND with zero assigned services (D6 — wp_delete_term would silently sever
+     * the relationships, so detachment must happen first, service-side).
+     */
+    public function permanentDeleteCategory(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if ($rejection = $this->rejectPlatformIdMutation($request)) {
+            return $rejection;
+        }
+        $term = $this->findTerm((int) $request->get_param('id'));
+        if ($term === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        $termId = (int) $term->term_id;
+
+        if (!StationLifecycle::canDelete(CategoryMeta::status($termId))) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Only trashed categories can be permanently deleted.'], 422);
+        }
+
+        $assignedCount = CategoryMeta::assignedServiceCount($termId);
+        if ($assignedCount > 0) {
+            return new \WP_REST_Response([
+                'success'        => false,
+                'message'        => 'This category still has services assigned to it. Unassign them before deleting.',
+                'assigned_count' => $assignedCount,
+            ], 409);
+        }
+
+        try {
+            $binding = $this->ensureIdentifier($termId);
+        } catch (PlatformIdentifierConflict) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => 'Category identity is conflicted and must be reconciled before permanent deletion.',
+            ], 409);
+        }
+
+        // Removes the term row and all its term meta (cz_category_meta included).
+        $deleted = wp_delete_term($termId, CategoryMeta::TAXONOMY);
+        if (is_wp_error($deleted) || $deleted === false) {
+            $message = is_wp_error($deleted) ? $deleted->get_error_message() : 'Category could not be permanently deleted.';
+            return new \WP_REST_Response(['success' => false, 'message' => $message], 422);
+        }
+
+        try {
+            $this->platformIdentifiers->markDeleted(PlatformIdentifierPolicy::CATEGORY, $termId);
+        } catch (PlatformIdentifierConflict) {
+            return new \WP_REST_Response([
+                'success'          => false,
+                'message'          => 'Category was deleted but its permanent identifier tombstone requires reconciliation.',
+                'native_reference' => $termId,
+            ], 500);
+        }
+
+        return rest_ensure_response([
+            'success'     => true,
+            'deleted'     => $termId,
+            'platform_id' => $binding->platformId(),
+        ]);
+    }
+
+    // ── Inline service category creation/update ───────────────────────────────
+    //
+    // Moved here from AdminServicesController: these own Category terms, not the
+    // Service entity. Their /admin/service-categories/... URLs are unchanged.
+
+    public function createServiceCategory(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if ($rejection = $this->rejectPlatformIdMutation($request)) {
+            return $rejection;
+        }
+
+        $body = $request->get_json_params();
+        $name = sanitize_text_field((string) ($body['name'] ?? ''));
+        $desc = sanitize_textarea_field((string) ($body['description'] ?? ''));
+
+        if ($name === '') {
+            return rest_ensure_response(['success' => false, 'message' => 'Category name is required.']);
+        }
+
+        try {
+            $reservation = $this->platformIdentifiers->reserve(
+                PlatformIdentifierPolicy::CATEGORY,
+                fn(string $platformId): bool => $this->platformIdExists($platformId)
+            );
+        } catch (\Throwable) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => 'Could not reserve a permanent Category identifier.',
+            ], 500);
+        }
+
+        // Description is stored as CompuZign-owned term meta, not the native WP term description.
+        $result = wp_insert_term($name, CategoryMeta::TAXONOMY);
+
+        if (is_wp_error($result)) {
+            // Duplicate — return the existing term so the frontend can select it.
+            if ($result->get_error_code() === 'term_exists') {
+                $existingId = (int) $result->get_error_data();
+                $term       = get_term($existingId, CategoryMeta::TAXONOMY);
+                if ($term instanceof \WP_Term) {
+                    try {
+                        if (CategoryMeta::platformId($existingId) === '') {
+                            $binding = $this->assignIdentifier($reservation, $existingId);
+                        } else {
+                            $this->retireReservation($reservation);
+                            $binding = $this->ensureIdentifier($existingId);
+                        }
+                    } catch (PlatformIdentifierConflict) {
+                        $this->retireReservation($reservation, $existingId);
+                        return new \WP_REST_Response([
+                            'success' => false,
+                            'message' => 'The existing Category has a conflicting permanent identifier.',
+                        ], 409);
+                    }
+
+                    return rest_ensure_response([
+                        'success'  => true,
+                        'existing' => true,
+                        'category' => $this->inlineCategoryResponse($term, $binding),
+                    ]);
+                }
+            }
+            $this->retireReservation($reservation);
+            return rest_ensure_response(['success' => false, 'message' => $result->get_error_message()]);
+        }
+
+        $termId = (int) $result['term_id'];
+
+        try {
+            $binding = $this->assignIdentifier($reservation, $termId);
+        } catch (\Throwable) {
+            $stored = CategoryMeta::platformId($termId);
+            if ($stored === '' || $stored === $reservation->platformId()) {
+                wp_delete_term($termId, CategoryMeta::TAXONOMY);
+            }
+            $this->retireReservation($reservation, $termId);
+            return new \WP_REST_Response([
+                'success'          => false,
+                'message'          => 'Category creation could not confirm its permanent identifier.',
+                'native_reference' => $termId,
+            ], 500);
+        }
+
+        $this->writeDescription($termId, $desc);
+
+        $term = get_term($termId, CategoryMeta::TAXONOMY);
+
+        return rest_ensure_response([
+            'success'  => true,
+            'existing' => false,
+            'category' => $this->inlineCategoryResponse($term, $binding),
+        ]);
+    }
+
+    // ── Inline service category update ───────────────────────────────────────
+
+    public function updateServiceCategory(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if ($rejection = $this->rejectPlatformIdMutation($request)) {
+            return $rejection;
+        }
+
+        $termId = (int) $request->get_param('id');
+        $term   = get_term($termId, CategoryMeta::TAXONOMY);
+
+        if (!$term instanceof \WP_Term) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        $body = $request->get_json_params();
+        $name = isset($body['name']) ? sanitize_text_field((string) $body['name']) : null;
+        $desc = isset($body['description']) ? sanitize_textarea_field((string) $body['description']) : null;
+
+        if ($name !== null && $name !== '') {
+            wp_update_term($termId, CategoryMeta::TAXONOMY, ['name' => $name]);
+        }
+
+        if ($desc !== null) {
+            $this->writeDescription($termId, $desc);
+        }
+
+        $updated = get_term($termId, CategoryMeta::TAXONOMY);
+
+        return rest_ensure_response([
+            'success'  => true,
+            'category' => $this->inlineCategoryResponse($updated),
+        ]);
+    }
+
+    // ===================================================================
+    // SECTION: CATEGORY_IDENTITY
+    // ===================================================================
+
+    private function assignIdentifier(
+        PlatformIdentifierReservation $reservation,
+        int $termId
+    ): PlatformIdentifierBinding {
+        return $this->platformIdentifiers->assign(
+            $reservation,
+            $termId,
+            static fn(int|string $nativeReference): string => CategoryMeta::platformId((int) $nativeReference),
+            static fn(int|string $nativeReference, string $platformId): bool => CategoryMeta::claimPlatformId(
+                (int) $nativeReference,
+                $platformId
+            )
+        );
+    }
+
+    private function ensureIdentifier(int $termId): PlatformIdentifierBinding
+    {
+        return $this->platformIdentifiers->ensure(
+            PlatformIdentifierPolicy::CATEGORY,
+            $termId,
+            static fn(int|string $nativeReference): string => CategoryMeta::platformId((int) $nativeReference),
+            static fn(int|string $nativeReference, string $platformId): bool => CategoryMeta::claimPlatformId(
+                (int) $nativeReference,
+                $platformId
+            ),
+            fn(string $platformId): bool => $this->platformIdExists($platformId)
+        );
+    }
+
+    private function platformIdExists(string $platformId): bool
+    {
+        $matches = get_terms([
+            'taxonomy'   => CategoryMeta::TAXONOMY,
+            'hide_empty' => false,
+            'fields'     => 'ids',
+            'number'     => 1,
+            'meta_key'   => CategoryMeta::PLATFORM_ID_META,
+            'meta_value' => $platformId,
+        ]);
+
+        return is_array($matches) && $matches !== [];
+    }
+
+    private function rejectPlatformIdMutation(\WP_REST_Request $request): ?\WP_REST_Response
+    {
+        $json = $request->get_json_params();
+        $json = is_array($json) ? $json : [];
+
+        foreach (['platform_id', 'platformId', CategoryMeta::PLATFORM_ID_META] as $field) {
+            if ($request->has_param($field) || array_key_exists($field, $json)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => 'Platform identifiers are immutable and output-only.',
+                ], 422);
+            }
+        }
+
+        return null;
+    }
+
+    private function retireReservation(
+        PlatformIdentifierReservation $reservation,
+        ?int $nativeReference = null
+    ): void {
+        if ($nativeReference !== null) {
+            try {
+                $reverse = $this->platformIdentifiers->lookupNative(
+                    PlatformIdentifierPolicy::CATEGORY,
+                    $nativeReference
+                );
+                if ($reverse?->platformId() === $reservation->platformId()) {
+                    return;
+                }
+            } catch (\Throwable) {
+                // Continue to inspect the reservation's own forward record.
+            }
+        }
+
+        try {
+            $forward = $this->platformIdentifiers->resolve($reservation->platformId());
+            if ($forward?->status() === PlatformIdentifierStation::STATUS_RESERVED) {
+                $this->platformIdentifiers->retire($reservation);
+            }
+        } catch (\Throwable) {
+            // Preserve the first failure; never recycle an uncertain claim.
+        }
+    }
+
+    private function inlineCategoryResponse(
+        \WP_Term $term,
+        ?PlatformIdentifierBinding $binding = null
+    ): array {
+        $termId = (int) $term->term_id;
+
+        return [
+            'id'          => $termId,
+            'platform_id' => $binding?->platformId() ?? CategoryMeta::platformId($termId),
+            'name'        => html_entity_decode($term->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            'slug'        => $term->slug,
+            'description' => get_term_meta($termId, CategoryMeta::DESCRIPTION_META, true) ?: '',
+        ];
+    }
+
+    // ── Permissions ───────────────────────────────────────────────────────────
+
+    // ===================================================================
+    // SECTION: CATEGORY_AUTHORIZATION
+    // ===================================================================
+    public function requireAdmin(): bool
+    {
+        return current_user_can(\CompuZign\Platform\Core\PlatformAccess::CAP);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    // ===================================================================
+    // SECTION: CATEGORY_HELPERS
+    // ===================================================================
+    private function findTerm(int $termId): ?\WP_Term
+    {
+        $term = get_term($termId, CategoryMeta::TAXONOMY);
+
+        return $term instanceof \WP_Term ? $term : null;
+    }
+
+    /** Full response projection: draft-preferred fields + lifecycle envelope + guard count. */
+    private function categoryResponse(?\WP_Term $term): ?array
+    {
+        if (!$term instanceof \WP_Term) {
+            return null;
+        }
+
+        $projection                   = CategoryMeta::projection($term);
+        $projection['assigned_count'] = CategoryMeta::assignedServiceCount((int) $term->term_id);
+
+        return $projection;
+    }
+
+    /** Explicit Disable is a reversible mask, not a publish/settle transition. */
+    private function updateDisabledMask(int $termId, string $action): \WP_REST_Response
+    {
+        $current  = CategoryMeta::status($termId);
+        $previous = CategoryMeta::previousStatus($termId);
+
+        if ($action === 'disable') {
+            if (!StationLifecycle::isLive($current)) {
+                return new \WP_REST_Response(['success' => false, 'message' => 'Only an active or pending Category can be disabled.'], 422);
+            }
+            CategoryMeta::applyStatusChange($termId, [
+                'status'          => StationLifecycle::STATUS_DISABLED,
+                'previous_status' => $current === StationLifecycle::STATUS_ACTIVE || $previous === null ? $current : $previous,
+            ]);
+        } elseif ($action === 'enable') {
+            if ($current !== StationLifecycle::STATUS_DISABLED) {
+                return new \WP_REST_Response(['success' => false, 'message' => 'Only a disabled Category can be enabled.'], 422);
+            }
+            // Enable deliberately returns to the raw disabled/Pending storage
+            // state. It never settles drafts or activates the Category.
+            CategoryMeta::applyStatusChange($termId, [
+                'status'          => StationLifecycle::STATUS_DISABLED,
+                'previous_status' => null,
+            ]);
+        } else {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Invalid action.'], 422);
+        }
+
+        return rest_ensure_response([
+            'success'  => true,
+            'category' => $this->categoryResponse(get_term($termId, CategoryMeta::TAXONOMY)),
+        ]);
+    }
+
+    /** Empty is an authoritative Category description value, never stale meta. */
+    private function writeDescription(int $termId, string $description): void
+    {
+        if ($description === '') {
+            delete_term_meta($termId, CategoryMeta::DESCRIPTION_META);
+            return;
+        }
+        update_term_meta($termId, CategoryMeta::DESCRIPTION_META, $description);
+    }
+}

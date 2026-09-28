@@ -1,0 +1,560 @@
+{
+  "overview.complete.active": {
+    "status": "active",
+    "notes": []
+  },
+  "overview.complete.pending": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "overview.module.draft",
+        "message": "Draft saved — settle to publish",
+        "type": "info"
+      }
+    ]
+  },
+  "overview.incomplete": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "overview.title.missing",
+        "message": "Title missing",
+        "type": "error"
+      },
+      {
+        "id": "overview.content.missing",
+        "message": "Description missing",
+        "type": "error"
+      }
+    ]
+  },
+  "overview.draft.incomplete": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "overview.category.missing",
+        "message": "Category not selected",
+        "type": "error"
+      }
+    ]
+  },
+  "overview.notconfigured": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "overview.title.missing",
+        "message": "Title missing",
+        "type": "error"
+      },
+      {
+        "id": "overview.category.missing",
+        "message": "Category not selected",
+        "type": "error"
+      },
+      {
+        "id": "overview.content.missing",
+        "message": "Description missing",
+        "type": "error"
+      }
+    ]
+  },
+  "inclusions.empty": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "inclusions.empty.action",
+        "message": "Edit and add features.",
+        "type": "info"
+      }
+    ]
+  },
+  "inclusions.unlabelled": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "inclusions.labels.missing",
+        "message": "1 feature has no label",
+        "type": "error"
+      }
+    ]
+  },
+  "inclusions.complete.draft": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "inclusions.module.draft",
+        "message": "Draft saved — settle to publish",
+        "type": "info"
+      }
+    ]
+  },
+  "inclusions.complete.offline": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "inclusions.platform.inactive",
+        "message": "Waiting for service activation",
+        "type": "info"
+      }
+    ]
+  },
+  "faqs.empty": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "faqs.empty.action",
+        "message": "Edit and add questions.",
+        "type": "info"
+      }
+    ]
+  },
+  "faqs.gaps": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "faqs.question.missing",
+        "message": "1 question is missing a question",
+        "type": "error"
+      },
+      {
+        "id": "faqs.answer.missing",
+        "message": "1 question is missing an answer",
+        "type": "error"
+      }
+    ]
+  },
+  "faqs.complete": {
+    "status": "pending-dim",
+    "notes": []
+  },
+  "package.null": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "package.empty.action",
+        "message": "Edit and configure pricing tiers.",
+        "type": "info"
+      }
+    ]
+  },
+  "package.unconfigured": {
+    "status": "active",
+    "notes": [
+      {
+        "id": "package.empty.action",
+        "message": "Edit and configure pricing tiers.",
+        "type": "info"
+      }
+    ]
+  },
+  "package.configured": {
+    "status": "active",
+    "notes": []
+  },
+  "tier.undefined": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "tier.empty.action",
+        "message": "Edit and configure this tier.",
+        "type": "info"
+      }
+    ]
+  },
+  "tier.partial": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "tier.pricing.incomplete",
+        "message": "Add price and billing cycle to complete this tier.",
+        "type": "error"
+      }
+    ]
+  },
+  "tier.disabled": {
+    "status": "disabled",
+    "notes": []
+  },
+  "tier.complete": {
+    "status": "active",
+    "notes": []
+  },
+  "tierOverview.empty": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "tier-overview.empty.action",
+        "message": "Edit and configure this tier.",
+        "type": "info"
+      }
+    ]
+  },
+  "tierOverview.complete": {
+    "status": "active",
+    "notes": []
+  },
+  "tierFeatures.blocked": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "tier-features.parent.waiting",
+        "message": "Waiting for Tier Overview.",
+        "type": "info"
+      }
+    ]
+  },
+  "tierFeatures.empty": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "tier-features.empty.action",
+        "message": "Edit and add features.",
+        "type": "info"
+      }
+    ]
+  },
+  "tierFeatures.active": {
+    "status": "active",
+    "notes": []
+  },
+  "tierFeatures.offline": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "tier-features.platform.inactive",
+        "message": "Waiting for service activation",
+        "type": "info"
+      }
+    ]
+  },
+  "tierFaqs.blocked": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "tier-faqs.parent.waiting",
+        "message": "Waiting for Tier Overview.",
+        "type": "info"
+      }
+    ]
+  },
+  "tierFaqs.active": {
+    "status": "active",
+    "notes": []
+  },
+  "promoOverview.undefined": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "promotion-overview.empty.action",
+        "message": "Edit and configure this promotion.",
+        "type": "info"
+      }
+    ]
+  },
+  "promoOverview.unnamed": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "promotion-overview.empty.action",
+        "message": "Edit and configure this promotion.",
+        "type": "info"
+      }
+    ]
+  },
+  "promoOverview.billing": {
+    "status": "active",
+    "notes": [
+      {
+        "id": "promotion-overview.billing.missing",
+        "message": "Add a billing label for the price",
+        "type": "error"
+      }
+    ]
+  },
+  "promoOverview.pending": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "promotion-overview.module.draft",
+        "message": "Draft saved — settle to publish",
+        "type": "info"
+      }
+    ]
+  },
+  "promoOverview.active": {
+    "status": "active",
+    "notes": []
+  },
+  "categoryOverview.complete.active": {
+    "status": "active",
+    "notes": []
+  },
+  "categoryOverview.complete.pending": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "category-overview.module.draft",
+        "message": "Draft saved — settle to publish",
+        "type": "info"
+      }
+    ]
+  },
+  "categoryOverview.incomplete": {
+    "status": "active",
+    "notes": []
+  },
+  "categoryOverview.notconfigured": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "category-overview.empty.action",
+        "message": "Edit and name this category.",
+        "type": "info"
+      }
+    ]
+  },
+  "categoryOverview.platformInactive": {
+    "status": "disabled",
+    "notes": [
+      {
+        "id": "category-overview.platform.inactive",
+        "message": "Waiting for service activation",
+        "type": "info"
+      }
+    ]
+  },
+  "categoryServices.empty": {
+    "status": "active",
+    "notes": [
+      {
+        "id": "category-services.empty.action",
+        "message": "No Services are assigned to this Category yet.",
+        "type": "info"
+      }
+    ]
+  },
+  "categoryServices.offline": {
+    "status": "disabled",
+    "notes": [
+      {
+        "id": "category-services.platform.inactive",
+        "message": "Waiting for service activation",
+        "type": "info"
+      }
+    ]
+  },
+  "categoryGroupOverview.complete": {
+    "status": "active",
+    "notes": []
+  },
+  "categoryGroupOverview.unnamed": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "category-group-overview.empty.action",
+        "message": "Edit and name this category group.",
+        "type": "info"
+      }
+    ]
+  },
+  "familyOverview.complete.active": {
+    "status": "active",
+    "notes": []
+  },
+  "familyOverview.complete.pending": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "package-family-overview.module.draft",
+        "message": "Draft saved — settle to publish",
+        "type": "info"
+      }
+    ]
+  },
+  "familyOverview.neverActivated": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "package-family-overview.platform.inactive",
+        "message": "Waiting for Package Family activation",
+        "type": "info"
+      }
+    ]
+  },
+  "familyOverview.unnamed": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "package-family-overview.empty.action",
+        "message": "Edit and name this Package Family.",
+        "type": "info"
+      }
+    ]
+  },
+  "familyRelationships.empty": {
+    "status": "active",
+    "notes": [
+      {
+        "id": "package-family-relationships.empty.action",
+        "message": "No Services, Rate Sheet rows, or Tier selections use this Package Family yet.",
+        "type": "info"
+      }
+    ]
+  },
+  "familyRelationships.neverActivated": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "package-family-relationships.platform.inactive",
+        "message": "Waiting for Package Family activation",
+        "type": "info"
+      }
+    ]
+  },
+  "familyCapabilities.none": {
+    "status": "active",
+    "notes": []
+  },
+  "familyCapabilities.neverActivated": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "package-family-capabilities.platform.inactive",
+        "message": "Waiting for Package Family activation",
+        "type": "info"
+      }
+    ]
+  },
+  "managerItem.disabled": {
+    "status": "disabled",
+    "notes": []
+  },
+  "managerItem.active": {
+    "status": "active",
+    "notes": []
+  },
+  "managerItem.missing": {
+    "status": "active",
+    "notes": [
+      {
+        "id": "package-manager-item.i1.missing",
+        "message": "Source item no longer exists in the Service pool.",
+        "type": "info"
+      }
+    ]
+  },
+  "managerSummary.empty": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "package-manager-summary.empty.action",
+        "message": "No features or common questions to organise yet.",
+        "type": "info"
+      }
+    ]
+  },
+  "managerSummary.mixed": {
+    "status": "pending-full",
+    "notes": []
+  },
+  "rateSheets.empty": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "rate-sheet-collection.empty.action",
+        "message": "Edit and create a Rate Sheet.",
+        "type": "info"
+      }
+    ]
+  },
+  "rateSheets.stocked": {
+    "status": "active",
+    "notes": []
+  },
+  "rateSheets.offline": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "rate-sheet-collection.platform.inactive",
+        "message": "Waiting for Rate Sheet activation",
+        "type": "info"
+      }
+    ]
+  },
+  "tierSystemOverview.untitled": {
+    "status": "pending-dim",
+    "notes": [
+      {
+        "id": "tier-system-overview.title.required",
+        "message": "A Tier system needs a title before it can be published.",
+        "type": "error"
+      }
+    ]
+  },
+  "tierSystemOverview.titled": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "tier-system-overview.platform.inactive",
+        "message": "Waiting for Tier system activation",
+        "type": "info"
+      }
+    ]
+  },
+  "tierSystemOverview.published": {
+    "status": "active",
+    "notes": []
+  },
+  "tierInclusion.resolved": {
+    "status": "active",
+    "notes": []
+  },
+  "tierInclusion.unresolved": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "tier-inclusion.source.unresolved",
+        "message": "This inclusion no longer resolves to a live Rate Sheet row and Service source.",
+        "type": "error"
+      }
+    ]
+  },
+  "tierInclusionConn.configured": {
+    "status": "active",
+    "notes": []
+  },
+  "tierInclusionConn.unconfigured": {
+    "status": "disabled",
+    "notes": [
+      {
+        "id": "tier-inclusion-connection.empty.action",
+        "message": "Not configured.",
+        "type": "info"
+      }
+    ]
+  },
+  "tierRateSheetAccess.active": {
+    "status": "active",
+    "notes": []
+  },
+  "tierRateSheetAccess.noActive": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "tier-rate-sheet-access.active.required",
+        "message": "Allow at least one active Rate Sheet for this Tier system.",
+        "type": "error"
+      }
+    ]
+  },
+  "tierRateSheetAccess.unresolved": {
+    "status": "pending-full",
+    "notes": [
+      {
+        "id": "tier-rate-sheet-access.references.unresolved",
+        "message": "Remove or replace unresolved Rate Sheet references.",
+        "type": "error"
+      }
+    ]
+  }
+}

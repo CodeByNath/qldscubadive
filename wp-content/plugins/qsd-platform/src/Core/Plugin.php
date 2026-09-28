@@ -1,0 +1,77 @@
+<?php
+
+namespace CompuZign\Platform\Core;
+
+use CompuZign\Platform\Modules\Admin\AdminModule;
+use CompuZign\Platform\Modules\AdminStation\AdminStationAuth;
+use CompuZign\Platform\Modules\AdminStation\AdminStationModule;
+use CompuZign\Platform\Modules\CostBuilder\CostBuilderModule;
+use CompuZign\Platform\Modules\Homepage\HomepageModule;
+use CompuZign\Platform\Modules\Promotions\PromotionsModule;
+use CompuZign\Platform\Modules\Requests\RequestsModule;
+use CompuZign\Platform\Modules\Service\ServiceModule;
+use CompuZign\Platform\Modules\SurfacePackages\SurfacePackagesModule;
+use CompuZign\Platform\Core\Health;
+use CompuZign\Platform\PlatformIdentifier\PlatformIdentifierStation;
+use CompuZign\Platform\PlatformIdentifier\ExistingRecordAssignmentCommand;
+use CompuZign\Platform\PlatformIdentifier\TemporaryMigrationController;
+
+final class Plugin
+{
+    private static bool $booted = false;
+
+    public static function boot(): void
+    {
+        if (self::$booted) {
+            return;
+        }
+        self::$booted = true;
+
+        (new PlatformAccess())->register();
+        (new PostTypeRegistrar())->register();
+        (new TaxonomyRegistrar())->register();
+        (new MailService())->register();
+        (new AssetLoader())->register();
+        $platformIdentifiers = new PlatformIdentifierStation();
+        (new TemporaryMigrationController($platformIdentifiers))->register();
+        if (defined('WP_CLI') && WP_CLI) {
+            \WP_CLI::add_command(
+                'compuzign platform-identifiers assign',
+                new ExistingRecordAssignmentCommand($platformIdentifiers)
+            );
+        }
+        (new SurfacePackagesModule($platformIdentifiers))->register();
+        (new PromotionsModule())->register();
+        (new CostBuilderModule())->register();
+        (new HomepageModule())->register();
+        (new RequestsModule($platformIdentifiers))->register();
+        (new ServiceModule($platformIdentifiers))->register();
+        (new AdminModule($platformIdentifiers))->register();
+        (new AdminStationModule())->register();
+        (new AdminStationAuth())->register();
+
+        add_action('rest_api_init', [self::class, 'registerCoreRoutes']);
+    }
+
+    public static function registerCoreRoutes(): void
+    {
+        register_rest_route('compuzign/v1', '/health', [
+            'methods'             => 'GET',
+            'callback'            => [self::class, 'healthCheck'],
+            'permission_callback' => '__return_true',
+        ]);
+    }
+
+    public static function healthCheck(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $checks     = Health::run();
+        $allHealthy = empty($checks) || !in_array(false, $checks, true);
+
+        return rest_ensure_response([
+            'success' => $allHealthy,
+            'status'  => $allHealthy ? 'healthy' : 'degraded',
+            'version' => defined('COMPUZIGN_PLUGIN_VERSION') ? COMPUZIGN_PLUGIN_VERSION : null,
+            'checks'  => $checks,
+        ]);
+    }
+}

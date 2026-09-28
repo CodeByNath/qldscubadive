@@ -1,0 +1,35 @@
+import type { CategoryGroupStatus } from '@/admin-station/presentation/category-groups/types';
+
+export interface ServiceCatalogueCategory {
+  id:   number | null;
+  name: string;
+  slug: string;
+}
+
+export interface ServiceCataloguePackageFamily {
+  id:   string;
+  name: string;
+}
+
+/**
+ * Browse-first Service row consumed by the Service Catalogue template kit.
+ *
+ * The row keeps the Service's native numeric identity and contains only facts
+ * supplied by the Service list projection. `scope` lets the kit include the
+ * archived count in its overview without turning Home into a travel surface.
+ */
+export interface ServiceCatalogueItem {
+  id:                 number;
+  platformId:         string;
+  name:               string;
+  slug:               string;
+  description:        string;
+  createdAt:          string | null;
+  categories:         ServiceCatalogueCategory[];
+  packageFamilies:    ServiceCataloguePackageFamily[];
+  inclusionCount:     number;
+  faqCount:           number;
+  platformStatus:     'active' | 'disabled' | 'archived';
+  presentationStatus: CategoryGroupStatus | null;
+  scope:               'current' | 'archived';
+}

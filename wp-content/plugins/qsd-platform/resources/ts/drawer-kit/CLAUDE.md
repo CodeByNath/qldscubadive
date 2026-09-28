@@ -1,0 +1,56 @@
+# Drawer Kit — Shared Drawer Presentation
+
+Global policy is defined by [AGENTS.md](../../../../../../AGENTS.md).
+
+The shared presentation layer implements the renderer side of the locked
+[Station and Drawer Lifecycle Contract](../../../../../../docs/architecture/StationDrawerLifecycleContract-v1.md).
+It may render pills, notifications, module shells, inline editors, and the
+record-footer grammar, but it must never create records, own lifecycle state,
+or infer Disabled from a merely unactivated record. Pending-dim/full semantics
+and identity handoff remain owning-Station responsibilities.
+
+## Ownership and entry points
+
+`resources/ts/drawer-kit/` is the entity-agnostic presentation layer every Admin Station drawer renders through. It owns drawer content structure and appearance; it never owns persistence, validation, lifecycle or domain rules — those stay with the owning station.
+
+- `EntityDrawer.tsx`, `entityDrawerHost.ts` — the composition bridge a station host supplies.
+- `ReadBlock.tsx`, `ActionFooter.tsx` — the module read card and its card-level footer.
+- `EntityActionFooter.tsx` — the record footer grammar (split action, overflow menu, tones). `CanonicalEntityFooter.tsx` is the `platformStatus` policy layer over it. The split action's optional `menuOnly` flag (opt-in, additive) makes the visible label open the menu instead of firing its action directly — every existing caller omits it and keeps the default direct-click behavior. The optional `splitForward` prop (additive, `SupportedActionFooter`'s `'split-forward'` placement) is a SECOND, independent split control rendered on the opposite side of `split` — the Tier drawer's own pinned footer is the one current consumer of both: `split` carries backward/travel lifecycle actions on the left, `splitForward` carries forward/publish actions on the right, each with its own open/closed state and its own `menuOnly` safety.
+- `FocusedTaskShell.tsx` — the generic Focused Drawer Task primitive (Back + Task Title + Task State header, one body, one footer), extracted from `InlineEditorShell.tsx` (still its own module edit session: header, body, save/cancel footer, dirty-discard confirm — now a thin specialisation over this shell, unchanged behavior/DOM). The standard shape for any focused task that must suppress the surrounding drawer chrome without reparenting/remounting the content underneath it — the Tier drawer's Edition Bin (`TierEditionBinFocusedView.tsx`, package-station) is its first non-editor adopter, replacing an earlier design that kept a second secondary-nav row alongside the Bin.
+- `InlineEditorShell.tsx` — the module edit session: header, body, save/cancel footer, dirty-discard confirm.
+- `DrawerTabs.tsx` — the two-tab Overview/Connections bar. Deliberately not configurable.
+- `ui/ChildChipStrip.tsx` — the shared child/subsection navigation primitive for a group whose own content is further split into child records (e.g. Tier Options' own Editions). A subordinate sibling of `ui/DrawerGroupTabs.tsx`'s top-level group bar: same token family, visibly smaller, pill/filled active state instead of the top bar's underline, horizontally scrollable with the scrollbar hidden cross-browser (mouse/trackpad/touch scrolling still works). Carries an optional, additive `trailing` seam (Edition lifecycle/Bin UX cleanup) — a fixed control (e.g. Tier Options' own Edition Bin icon) rendered outside the scrollable chip region but inside the same sticky/hide-reveal row, mirroring `DrawerGroupTabs`' own tablist/-tabs/-trailing split one level up; omitting it renders byte-identical markup to before this addition. Generic and reusable, but Tier Edition is its only adopter today.
+- `schema/` — the shell/element renderer contract (`ShellSchema`, `ShellSlot`, `ShellEditSession`, `TableSchema`).
+- `fields/` — **the one Admin drawer field system**. See below.
+- `ui/`, `utils/` — async section, skeleton, status pill, module notifications.
+
+The stylesheet is `resources/css/modules/drawer-kit.css`, built as its own Vite entry and enqueued ahead of the Admin Station sheet. `.cz-admin-station` is its only live root.
+
+## The field system
+
+`fields/` and the `cz-tf-*` classes are the single field system for every Admin Station drawer and editor. Do not create another one, and do not restyle controls from a feature stylesheet.
+
+- `fields/types.ts` — `AdminFieldType` (text, number, email, tel, search, select, textarea, checkbox), `AdminFieldSize` (small, default, large), `AdminFieldDef`, `AdminFieldBinding`.
+- `fields/AdminField.tsx` — renders one definition. The only place that decides which element and which classes a field type gets.
+- `fields/AdminFieldGroup.tsx` — wrapper, label, hint, error, required marker.
+- `fields/MultiSelectField.tsx` — a trigger + floating checklist panel over a candidate pool. Not an `AdminFieldType` (a picker over a collection "stays a dedicated component" per `fields/types.ts`'s own boundary); it consumes `AdminField`'s checkbox internally for each option and reuses `.cz-tf-control`/`.cz-tf-select` for its trigger. Extracted from Tier Overview's own hand-rolled Customer Groups picker (package-station) once Tier System's Included Rate Sheets editor needed the identical trigger/panel/checklist shape — both are its real consumers today. Measures itself against the viewport on open and flips to opening upward when there is more room above the trigger than below, rather than always opening downward.
+
+CSS contract: one wrapper `.cz-tf-field`, one label `.cz-tf-label`, one hint `.cz-tf-hint`, one error `.cz-tf-error`, one control base `.cz-tf-control`. Types specialise the base (`.cz-tf-input`, `.cz-tf-select`, `.cz-tf-textarea`, `.cz-tf-checkbox`); sizes are `--sm` / `--lg` on the base; states are declared once on the base. Eight types × three sizes are built from shared tokens and shared primitives — never as separate implementations.
+
+Editors pass field data into `AdminField`. An editor that hand-authors `<div class="cz-tf-field"><label class="cz-tf-label">…<input class="cz-tf-input">` is a defect.
+
+## Module entry
+
+Every drawer that presents modules opens **readable**, on its Overview screen — including creation drawers. The module renders even when empty, carries its own pill from the 5-state vocabulary, opens its notification panel from that pill, offers Edit, and only Edit opens the inline editor. No explanation block above the modules, no entry-state editor, and a module rule's `resolveStatus` must return a status `PILL_META` knows. **Disabled is a user action** written by the footer's enable/disable control; a module never infers it from a record that was simply never activated — that reads Pending. The full rule and its rationale: the Module entry contract in [Drawer System](../../../../../../docs/code-map/drawer-system.md), enforced by `npm run contract:drawer-module-entry`.
+
+## Boundaries
+
+Consumers import from `@/drawer-kit`. The kit renders entity data; it must not import station mutation hooks or call endpoints. Colour, shape and rhythm come from the Admin Station token file — the kit defines no tokens of its own.
+
+Feature stylesheets must not declare `border`, `border-radius`, `height`, `min-height`, `outline`, `box-shadow`, `background` or `color` on an `input`, `select`, `textarea`, `label` or a `cz-tf-*` class. `scripts/admin-station-css-contract.mjs` enforces this.
+
+Read [Admin Station Styles](../../../../../../docs/code-map/admin-station-styles.md), [Admin Station Drawer](../../../../../../docs/code-map/admin-station-drawer.md), [Drawer System](../../../../../../docs/code-map/drawer-system.md), and the locked [Admin Station Field System](../../../../../../docs/architecture/admin-station-field-system-v1.md).
+
+## Validation
+
+From the plugin root: `npx tsc --noEmit`, `npm run build`, `npm run contract:admin-station-css`, `npm run contract:drawer-module-entry`, `npm run docs:check`.

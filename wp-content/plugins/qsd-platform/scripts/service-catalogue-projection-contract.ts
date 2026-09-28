@@ -1,0 +1,123 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import {
+  packageFamiliesForService,
+  toPackageFamilyRelationship,
+  type PackageFamilyRelationship,
+} from '../resources/ts/package-station/surface/packageFamily/relationships';
+import type { PackageFamilyListItem } from '../resources/ts/package-station';
+import {
+  packageFamilyOptions,
+  serviceMatchesCategory,
+  serviceMatchesPackageFamily,
+} from '../resources/ts/service-station/presentation/model';
+import type { ServiceCatalogueItem } from '../resources/ts/service-station/presentation/types';
+
+function check(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(`Service catalogue projection contract: ${message}`);
+}
+
+const familyRow = (group_id: string, label: string, related_service_ids: number[]): PackageFamilyListItem => ({
+  platform_id: '',
+  group_id,
+  label,
+  related_service_ids,
+} as PackageFamilyListItem);
+const relationships: PackageFamilyRelationship[] = [
+  familyRow('pcg_kairos', 'KAIROS', [42]),
+  familyRow('pcg_aptos', 'APTOS', [7, 42]),
+  familyRow('pcg_other', 'Other', [7]),
+].map(toPackageFamilyRelationship);
+
+const packageFamilies = packageFamiliesForService(relationships, 42);
+check(packageFamilies.length === 2, 'one Service projects every related Package Family');
+check(packageFamilies.map((family) => family.id).join(',') === 'pcg_kairos,pcg_aptos', 'native string Family IDs are preserved');
+
+const service: ServiceCatalogueItem = {
+  id: 42,
+  platformId: 'CZS2A7KZ',
+  name: 'Virtual Machines',
+  slug: 'virtual-machines',
+  description: 'Managed compute.',
+  createdAt: null,
+  categories: [{ id: 5, name: 'Compute', slug: 'compute' }],
+  packageFamilies,
+  inclusionCount: 2,
+  faqCount: 1,
+  platformStatus: 'active',
+  presentationStatus: 'active',
+  scope: 'current',
+};
+
+check(serviceMatchesPackageFamily(service, 'pcg_kairos'), 'first related Family matches');
+check(serviceMatchesPackageFamily(service, 'pcg_aptos'), 'second related Family matches');
+check(!serviceMatchesPackageFamily(service, 'KAIROS'), 'Family display name is not used as filter identity');
+check(!serviceMatchesPackageFamily(service, 'pcg_other'), 'unrelated Family does not match');
+check(serviceMatchesCategory(service, 'compute'), 'Category filtering uses the direct Service Category');
+check(!serviceMatchesCategory(service, 'infrastructure-group'), 'an unrelated grouping label does not match Category');
+
+const options = packageFamilyOptions([service]);
+check(options.map((option) => option.value).join(',') === 'pcg_aptos,pcg_kairos', 'Family options use native string IDs and readable labels');
+
+const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+const catalogue = source('resources/ts/service-station/presentation/ServiceCatalogue.tsx');
+const model = source('resources/ts/service-station/presentation/model.ts');
+const adapter = source('resources/ts/service-station/surface/serviceCatalogueAdapter.ts');
+const serviceApi = source('resources/ts/service-station/api.ts');
+const serviceTypes = source('resources/ts/service-station/types.ts').split('// ── DETAIL')[0];
+const serviceController = source('src/Modules/Service/Http/ServiceController.php')
+  .split('public function listServices')[1]
+  .split('public function createService')[0];
+const packageController = source('src/Modules/SurfacePackages/Http/PackageFamiliesController.php');
+const packageRelationships = source('src/Modules/SurfacePackages/Support/PackageCategoryGroups.php')
+  .split('public static function relatedServiceIds')[1]
+  .split('public static function dependents')[0];
+
+check(!/apiClient|fetch[A-Z]|api\/endpoints/.test(catalogue), 'presentation contains no endpoint call');
+check(!/familyGroups|group_name/.test(`${catalogue}\n${model}\n${adapter}`), 'Family filtering contains no Service Category Group projection');
+check(!/group_id|group_name/.test(serviceTypes), 'Service catalogue summary exposes no taxonomy-parent fields');
+check(!/group_id|group_name/.test(serviceController), 'Service catalogue response exposes no taxonomy-parent fields');
+check(serviceController.includes('CategoryMeta::STATION_ROLE_CATEGORY'), 'Service catalogue response retains direct Category-role terms');
+check(
+  packageController.includes("$groups[$index]['related_service_ids'] = $derivation['service_ids'] ?? []"),
+  'Package Family list boundary exposes related Service identities',
+);
+// The ids come from the Tier Group's own walk, never from the manager's
+// single-valued `sources[].category_group_id`. That field can place a Service in
+// at most ONE Family, so a Service supplying Tiers in several Families was
+// reported under one and missing from the rest — the Catalogue's Family filter
+// returned too few rows and every other Family undercounted its Services.
+check(
+  !packageController.includes("PackageCategoryGroups::relatedServiceIds("),
+  'the Family list boundary does not fall back to the single-valued manager grouping',
+);
+// One walk supplies both, so the filter and the card count cannot disagree.
+check(
+  packageController.includes("$groups[$index]['composition'] = $derivation['composition'] ?? null"),
+  'the Family Service set and the Family composition come from the same derivation',
+);
+check(/is_int\(\$serviceId\)/.test(packageRelationships) && !/\(int\).*entity_id/.test(packageRelationships), 'Package relationship projection preserves native numeric Service identity');
+check(model.includes('family.id === selectedFamilyId'), 'Family matching is strict against native Family ID');
+// A post id is a small integer; a parsed date is epoch milliseconds. Comparing
+// one against the other pinned every dateless Service to one end of the list.
+check(
+  !/Number\.isFinite\(\w+\)\s*\?\s*\w+\s*:\s*\w+\.id/.test(catalogue),
+  'sorting never substitutes a native id for a missing timestamp',
+);
+// Reset and its disabled state must cover every toolbar control, sort included.
+check(
+  /const resetFilters[\s\S]*?setSort\('newest'\)/.test(catalogue)
+    && /hasFilters = Boolean\([\s\S]*?sort !== 'newest'/.test(catalogue),
+  'Reset clears every toolbar control and reports itself accurately',
+);
+check(catalogue.includes("onIntent(service.id, 'view')"), 'mature Service drawer intent keeps the native Service ID');
+check(adapter.includes('platformId:         summary.platformId'), 'catalogue adapter preserves immutable platform identity');
+check(
+  serviceApi.includes('const { platform_id, ...rest } = value')
+    && serviceApi.includes('platformId: platform_id')
+    && serviceApi.includes('response.stations.map(mapPlatformId)'),
+  'endpoint adapters map backend platform identity',
+);
+check(!/Number\(.*(?:service|family).*id|String\(.*(?:service|family).*id/i.test(`${catalogue}\n${model}\n${adapter}`), 'catalogue introduces no Service or Family ID coercion');
+
+console.log('Service catalogue projection contract checks passed.');

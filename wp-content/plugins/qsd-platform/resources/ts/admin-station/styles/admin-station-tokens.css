@@ -1,0 +1,279 @@
+/* Admin Station design tokens.
+ *
+ * All Admin Station colour and shape values live here, scoped to the
+ * `.cz-admin-station` root and switched by `data-station-theme`. Components
+ * reference these variables only — no component-level hardcoded colours. Light
+ * and dark are both defined; the old admin theme is untouched.
+ *
+ * `--station-sidebar-bg` is the single application background token. The
+ * viewport, Header, Body, Footer, and slide menu all use it. Dropdowns use the
+ * elevated surface token (a token-driven surface derived from the same family)
+ * so their border/shadow can read as a raised surface.
+ *
+ * Direction: modern, rounded, quiet, spacious-but-compact, subtle borders. */
+
+.cz-admin-station {
+  /* Shape and rhythm — theme-independent. Softer, more rounded borders. */
+  --station-pill-radius: 999px;
+  --station-dropdown-radius: 16px;
+  --station-control-radius: 10px;
+  --station-header-height: 60px;
+  --station-space-x: 16px;
+  --station-nav-offset: 24px;
+
+  /* Home body shell — the station-agnostic layout frame. The whole body scrolls
+   * together as one page: the shell sets a viewport floor so a short page still
+   * fills the screen, but grows past it instead of clipping content into an
+   * inner scroller. The Header and the group tabs stay reachable by sticking to
+   * the top of that single scroll (see `--station-z-sticky`). */
+  --station-shell-height: 100dvh;
+  --station-content-max: 1440px;
+  /* The 1440px-and-below compact ceiling — see the matching media query in
+   * admin-station-responsive.css. */
+  --station-content-max-compact: 1200px;
+  --station-grid-columns: 12;
+  --station-grid-gap: 8px;
+  --station-body-pad: 24px;
+  --station-body-pad-sm: 16px;
+
+  /* Accent identity — theme-independent, so accent-bearing surfaces carry the
+   * same hue in both light and dark. The navigation tokens below derive from
+   * this family rather than restating the same values. */
+  --station-accent: #5c6ef5;
+  --station-accent-strong: #7080ff;
+  --station-accent-soft-bg: rgba(92, 110, 245, 0.12);
+  --station-accent-border: rgba(92, 110, 245, 0.45);
+  /* Small accent text and filled actions require stronger contrast than the
+   * decorative accent itself provides on light surfaces. */
+  --station-accent-fg: #4654b8;
+  --station-action-bg: #4654b8;
+  --station-action-bg-hover: #39469f;
+  /* Foreground on a filled accent surface. Theme-independent, because the
+   * accent it sits on is. */
+  --station-accent-on: #ffffff;
+  /* The seam between a split control's two halves — a divider drawn on the
+   * filled accent, never a gap. */
+  --station-accent-seam: rgba(255, 255, 255, 0.30);
+
+  /* Login gate — a fixed dark brand screen, always this look regardless of
+   * theme, so its accents live here as their own theme-independent family
+   * rather than switching with --station-surface/--station-card-bg. */
+  --station-login-glow: rgba(92, 110, 245, 0.22);
+  --station-login-card-bg: rgba(21, 24, 34, 0.78);
+  --station-login-card-border: rgba(124, 140, 255, 0.35);
+  --station-login-card-radius: 24px;
+
+  /* Navigation tabs — derived from the admin secondary (accent-outline) button
+   * style. Theme-independent so the Header pills carry the same accent identity
+   * in both light and dark. */
+  --station-nav-accent: var(--station-accent);
+  --station-nav-accent-strong: var(--station-accent-strong);
+  --station-nav-bg: transparent;
+  --station-nav-border: var(--station-nav-accent);
+  --station-nav-text: #5f6ccc;
+  --station-nav-hover-bg: var(--station-accent-soft-bg);
+  --station-nav-active-bg: rgba(92, 110, 245, 0.15);
+
+  /* Entity cards — the presentation card system (Category Group cards are the
+   * first consumer). Shape and rhythm only; colour comes from the surface,
+   * accent, and status families.
+   *
+   * Direction: restrained and near-monochrome. The card reads as a quiet
+   * surface with a subtle edge; the accent is spent in a few small places only
+   * (the medallion, the code pill, and the primary action), never as outlines
+   * on every element. The medallion is a FILLED accent plate carrying a light
+   * glyph — it and the action are the two accents a typical card shows.
+   *
+   * Regions are delimited by hairline rules (--station-card-divider) rather
+   * than spacing alone, because the metrics read as a list of labelled rows.
+   *
+   * The presentation region has no height ceiling of its own: a card row lands
+   * at roughly 310px, and the region simply renders at that height, adding to
+   * the single page scroll rather than clipping into an inner scroller. */
+  --station-card-radius: 16px;
+  --station-card-pad: 16px;
+  --station-card-gap: 12px;
+  --station-card-bg: var(--station-surface-elevated);
+  --station-card-icon-size: 44px;
+  /* A rounded square, not a disc: the medallion reads as a plate behind the
+   * glyph and sits square with the identity block beside it. */
+  --station-card-icon-radius: 12px;
+  --station-card-glyph-size: 24px;
+  --station-card-divider: var(--station-border);
+
+  /* Metric rows — the repeating glyph/label/value lines inside a card. Neutral
+   * by design: they are data, not accent surfaces. A row carries its own glyph
+   * plate and pushes the value to the trailing edge, so several rows share one
+   * value column and a single row still reads as a labelled fact.
+   *
+   * `--station-metric-min-size` is retained: it remains the reflow floor for any
+   * surface that lays metrics out horizontally. */
+  --station-metric-radius: 12px;
+  --station-metric-min-size: 68px;
+  --station-metric-pad: 12px;
+  --station-metric-row-gap: 10px;
+  --station-metric-glyph-plate: 34px;
+  --station-metric-glyph-radius: 10px;
+  --station-metric-glyph-size: 18px;
+
+  /* Small pills (status, code) and compact controls. */
+  --station-pill-pad-y: 3px;
+  --station-pill-pad-x: 10px;
+  --station-dot-size: 6px;
+  --station-control-height: 38px;
+  --station-control-pad-x: 14px;
+  --station-menu-min-width: 180px;
+  --station-disabled-opacity: 0.5;
+
+  /* Field system — the one contract behind every Admin drawer control.
+   *
+   * The eight field types and three sizes are built from these values plus the
+   * shared `cz-tf-*` primitives in drawer-kit.css. A type never restates a
+   * value here; it selects from it. Colour and shape names are aliases over the
+   * families above, so the field system follows the theme without a palette of
+   * its own.
+   *
+   * The default is the station control height, so a field in a drawer and a
+   * filter on a station page are literally the same control rather than two
+   * that happen to look alike. Small and large are the two deliberate steps
+   * either side of it, on the 4px rhythm.
+   *
+   * A textarea opts out of the floor: it sizes from its own rows. */
+  --station-field-gap: 6px;
+
+  --station-field-min-h: var(--station-control-height);
+  --station-field-pad-y: 8px;
+  --station-field-pad-x: 12px;
+  --station-field-font: 14px;
+
+  --station-field-pad-y-sm: 5px;
+  --station-field-pad-x-sm: 10px;
+  --station-field-font-sm: 12px;
+  --station-field-min-h-sm: 30px;
+
+  --station-field-pad-y-lg: 11px;
+  --station-field-pad-x-lg: 16px;
+  --station-field-font-lg: 16px;
+  --station-field-min-h-lg: 46px;
+
+  --station-field-radius: var(--station-control-radius);
+  --station-field-bg: var(--station-surface);
+  --station-field-border: var(--station-border);
+  --station-field-text: var(--station-text);
+  --station-field-muted: var(--station-text-muted);
+  --station-field-ring: var(--station-focus-ring);
+  --station-field-accent: var(--station-accent-border);
+  --station-field-accent-bg: var(--station-accent-soft-bg);
+  --station-field-error: var(--station-status-inactive-fg);
+  --station-field-error-bg: var(--station-status-inactive-bg);
+  --station-field-readonly-bg: var(--station-active-bg);
+  --station-field-disabled-opacity: var(--station-disabled-opacity);
+  --station-field-checkbox-size: 16px;
+
+  /* Layering. Anchored menus share one level: they are siblings in the page, not
+   * a stack, and the slide-menu layer (80) stays above them. The sticky header
+   * and group tabs sit beneath both — above normal page content, never above an
+   * open dropdown or the slide menu. */
+  --station-z-sticky: 10;
+  --station-z-dropdown: 70;
+
+  /* Type scale — card typography. */
+  --station-text-xs: 11px;
+  --station-text-sm: 13px;
+  --station-text-lg: 16px;
+  --station-text-xl: 22px;
+  --station-tracking-wide: 0.06em;
+  --station-tracking-tight: -0.01em;
+  --station-line-snug: 1.45;
+
+  /* Light theme (default). */
+  --station-sidebar-bg: #f3f5f8;
+  --station-header-bg: var(--station-sidebar-bg);
+  --station-surface: var(--station-sidebar-bg);
+  --station-surface-elevated: #ffffff;
+  --station-text: #1b1e24;
+  --station-text-muted: #5c6472;
+  --station-border: rgba(18, 22, 31, 0.12);
+  --station-hover-bg: rgba(18, 22, 31, 0.05);
+  --station-active-bg: rgba(18, 22, 31, 0.09);
+  --station-focus-ring: rgba(18, 22, 31, 0.40);
+  --station-icon: #3d434e;
+  --station-shadow: 0 12px 32px rgba(17, 20, 24, 0.12);
+  --station-card-shadow: 0 2px 6px rgba(17, 20, 24, 0.04);
+  --station-backdrop: rgba(20, 22, 28, 0.38);
+
+  /* Status families — one per Presentation Status Contract pill (Active /
+   * Pending / Disabled). The contract owns which status maps to which pill;
+   * these only give that pill a station-native appearance. */
+  --station-status-active-fg: #1a7f43;
+  --station-status-active-bg: rgba(26, 127, 67, 0.10);
+  --station-status-active-border: rgba(26, 127, 67, 0.38);
+  --station-status-pending-fg: #8a5a00;
+  --station-status-pending-bg: rgba(138, 90, 0, 0.10);
+  --station-status-pending-border: rgba(138, 90, 0, 0.38);
+  --station-status-inactive-fg: #a3323b;
+  --station-status-inactive-bg: rgba(163, 50, 59, 0.10);
+  --station-status-inactive-border: rgba(163, 50, 59, 0.38);
+}
+
+.cz-admin-station[data-station-theme='light'] {
+  color-scheme: light;
+  --station-accent-fg: #4654b8;
+  --station-action-bg: #4654b8;
+  --station-action-bg-hover: #39469f;
+  --station-sidebar-bg: #f3f5f8;
+  --station-header-bg: var(--station-sidebar-bg);
+  --station-surface: var(--station-sidebar-bg);
+  --station-surface-elevated: #ffffff;
+  --station-text: #1b1e24;
+  --station-text-muted: #5c6472;
+  --station-border: rgba(18, 22, 31, 0.12);
+  --station-hover-bg: rgba(18, 22, 31, 0.05);
+  --station-active-bg: rgba(18, 22, 31, 0.09);
+  --station-focus-ring: rgba(18, 22, 31, 0.40);
+  --station-icon: #3d434e;
+  --station-shadow: 0 12px 32px rgba(17, 20, 24, 0.12);
+  --station-card-shadow: 0 2px 6px rgba(17, 20, 24, 0.04);
+  --station-backdrop: rgba(20, 22, 28, 0.38);
+
+  --station-status-active-fg: #1a7f43;
+  --station-status-active-bg: rgba(26, 127, 67, 0.10);
+  --station-status-active-border: rgba(26, 127, 67, 0.38);
+  --station-status-pending-fg: #8a5a00;
+  --station-status-pending-bg: rgba(138, 90, 0, 0.10);
+  --station-status-pending-border: rgba(138, 90, 0, 0.38);
+  --station-status-inactive-fg: #a3323b;
+  --station-status-inactive-bg: rgba(163, 50, 59, 0.10);
+  --station-status-inactive-border: rgba(163, 50, 59, 0.38);
+}
+
+.cz-admin-station[data-station-theme='dark'] {
+  color-scheme: dark;
+  --station-accent-fg: #93a0ff;
+  --station-action-bg: #4654b8;
+  --station-action-bg-hover: #39469f;
+  --station-sidebar-bg: #15171c;
+  --station-header-bg: var(--station-sidebar-bg);
+  --station-surface: var(--station-sidebar-bg);
+  --station-surface-elevated: #21242b;
+  --station-text: #e7e9ee;
+  --station-text-muted: #9aa1ad;
+  --station-border: rgba(255, 255, 255, 0.09);
+  --station-hover-bg: rgba(255, 255, 255, 0.06);
+  --station-active-bg: rgba(255, 255, 255, 0.11);
+  --station-focus-ring: rgba(255, 255, 255, 0.45);
+  --station-icon: #c4c9d4;
+  --station-shadow: 0 12px 34px rgba(0, 0, 0, 0.50);
+  --station-card-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  --station-backdrop: rgba(0, 0, 0, 0.55);
+
+  --station-status-active-fg: #4ade80;
+  --station-status-active-bg: rgba(74, 222, 128, 0.12);
+  --station-status-active-border: rgba(74, 222, 128, 0.42);
+  --station-status-pending-fg: #f5c451;
+  --station-status-pending-bg: rgba(245, 196, 81, 0.12);
+  --station-status-pending-border: rgba(245, 196, 81, 0.42);
+  --station-status-inactive-fg: #f2727f;
+  --station-status-inactive-bg: rgba(242, 114, 127, 0.12);
+  --station-status-inactive-border: rgba(242, 114, 127, 0.42);
+}
