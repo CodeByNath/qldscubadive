@@ -2,8 +2,6 @@
 
 namespace QSD\Platform\Modules\Service\Support;
 
-use QSD\Platform\Modules\CostBuilder\Support\MetaSchema;
-
 /**
  * ServiceSchema — the Service entity's shape: storage keys, module vocabulary,
  * and REST request definitions.
@@ -23,9 +21,8 @@ use QSD\Platform\Modules\CostBuilder\Support\MetaSchema;
  * WHAT DOES NOT
  *   - Route *paths*. Those stay as literals in ServiceController so a URL
  *     remains greppable from the route registration itself.
- *   - qsd_service_pricing. Cost Builder is its sole authority; the Service module
- *     neither reads nor writes it. The MetaSchema import below is only for the
- *     shared platform_status vocabulary, which predates this module.
+ *   - Pricing. The Service entity carries no price; a future pricing module
+ *     is added as its own Service module, not as Overview fields.
  *
  * Argument arrays are assembled from small shared pieces (identity(),
  * overviewFields()) because the routes already repeat those shapes verbatim.
@@ -53,6 +50,9 @@ final class ServiceSchema
 
     /** Bin states the catalog list can filter to. */
     public const BIN_STATUSES = ['archived', 'trashed'];
+
+    /** Record travel values stored in qsd_service_meta.platform_status. */
+    public const ALLOWED_PLATFORM_STATUSES = ['active', 'disabled', 'archived', 'trashed'];
 
     /** Accepted on the deprecated post_status parameter of the status route. */
     public const ALLOWED_POST_STATUSES = ['publish', 'draft'];
@@ -148,7 +148,7 @@ final class ServiceSchema
             'platform_status' => [
                 'required' => false,
                 'type'     => 'string',
-                'enum'     => MetaSchema::ALLOWED_PLATFORM_STATUSES,
+                'enum'     => self::ALLOWED_PLATFORM_STATUSES,
             ],
             // Deprecated: kept for backward compat; ignored if platform_status is present.
             'is_active'   => ['required' => false, 'type' => 'boolean'],
@@ -157,5 +157,21 @@ final class ServiceSchema
             // 'active' (which Publish also sends). See ServiceController::updateStatus.
             'action' => ['required' => false, 'type' => 'string', 'enum' => ['disable', 'enable']],
         ];
+    }
+
+    /**
+     * The stored travel status of a Service. platform_status is authoritative;
+     * WordPress post_status is never written after creation and never read
+     * here except as a legacy fallback for a record with no platform_status.
+     */
+    public static function resolvePlatformStatus(array $meta, string $postStatus): string
+    {
+        if (isset($meta['platform_status']) && in_array($meta['platform_status'], self::ALLOWED_PLATFORM_STATUSES, true)) {
+            return $meta['platform_status'];
+        }
+        if (isset($meta['is_active']) && $meta['is_active'] === false) {
+            return 'disabled';
+        }
+        return $postStatus === 'publish' ? 'active' : 'disabled';
     }
 }

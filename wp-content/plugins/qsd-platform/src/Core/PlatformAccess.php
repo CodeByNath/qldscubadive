@@ -3,12 +3,12 @@
 namespace QSD\Platform\Core;
 
 /**
- * PlatformAccess — the shared platform capability, role, and default holder.
+ * PlatformAccess — the shared platform capability and role.
  *
  * This is the single backend authority for who may reach QSD's
  * authenticated admin surfaces. It owns only access registration: the platform
- * capability, the role that carries it, the transparent grant for developers,
- * and provisioning of the initial platform user. It contains no routing, menu,
+ * capability, the role that carries it, and the transparent grant for
+ * developers. It never creates accounts, and contains no routing, menu,
  * redirect, asset, or UI logic.
  *
  * Capability model:
@@ -18,8 +18,8 @@ namespace QSD\Platform\Core;
  *   manage_options, so developer accounts retain access without role migration.
  *
  * Provisioning:
- *   Assign new business/platform users the 'qsd_platform_manager' role.
- *   They receive manage_qsd natively and never need install_plugins.
+ *   Create business users in WordPress and assign the 'qsd_platform_manager'
+ *   role. They receive manage_qsd natively and never need install_plugins.
  */
 class PlatformAccess
 {
@@ -29,7 +29,6 @@ class PlatformAccess
     public function register(): void
     {
         add_action('init',         [$this, 'registerRole'],         1);
-        add_action('init',         [$this, 'provisionDefaultUser'], 2);
         add_filter('user_has_cap', [$this, 'grantPlatformCap'], 10, 4);
     }
 
@@ -57,29 +56,6 @@ class PlatformAccess
         if (empty($role->capabilities[self::CAP])) {
             $role->add_cap(self::CAP, true);
         }
-    }
-
-    /**
-     * Provision the default platform user on first run.
-     * Skips immediately once the account exists — one DB lookup, no overhead.
-     * Credentials are initial values only; the password can be changed in WP admin.
-     */
-    public function provisionDefaultUser(): void
-    {
-        if (get_user_by('login', 'accountmanager') !== false) {
-            return;
-        }
-
-        $host  = (string) parse_url(home_url(), PHP_URL_HOST);
-        $email = 'accountmanager@' . ($host ?: 'example.com');
-
-        wp_insert_user([
-            'user_login'   => 'accountmanager',
-            'user_pass'    => 'Compuzign@2026',
-            'display_name' => 'Account Manager',
-            'user_email'   => $email,
-            'role'         => self::ROLE,
-        ]);
     }
 
     // ── Capability ────────────────────────────────────────────────────────────

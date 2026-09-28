@@ -207,7 +207,7 @@ if (!class_exists('WP_REST_Response')) {
     }
 }
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/autoload.php';
 
 use QSD\Platform\Modules\Service\Http\ServiceController;
 use QSD\Platform\Modules\Service\Support\ServiceSchema;

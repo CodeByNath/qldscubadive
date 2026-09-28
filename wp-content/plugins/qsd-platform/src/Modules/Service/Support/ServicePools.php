@@ -6,28 +6,19 @@ namespace QSD\Platform\Modules\Service\Support;
  * ServicePools — the write path for the Service-owned inclusion/FAQ pools.
  *
  * Features (inclusions) and FAQs are owned exclusively by the Service pools
- * (qsd_service_inclusions / qsd_service_faqs). Two callers add to them:
- *
- *   1. Service's own pool endpoints (/inclusion-pool/items, /faq-pool/items) —
- *      immediate canonical creation, no draft indirection.
- *   2. Package Station tier saves, which may carry `new_inclusions` / `new_faqs`
- *      and need a real pool id back to reference from a tier module draft.
- *
- * Extracted (unchanged) when the Package Station handlers left
- * AdminServicesController, so the two callers keep sharing ONE implementation
- * rather than duplicating the pool write. The complementary read/graph
- * operations live in Admin\Support\PoolReferences, which is deliberately pure
- * (no WordPress calls), so this meta read/write path could not live there.
+ * (qsd_service_inclusions / qsd_service_faqs). Service's own pool endpoints
+ * (/inclusion-pool/items, /faq-pool/items) write through here — immediate
+ * canonical creation, no draft indirection — and any future Station that must
+ * add pool items it references uses this same path.
  *
  * Writing to a pool never changes module_status and never touches drafts.
  * Dedupe is case-insensitive on label/question, or exact id match; a duplicate
  * resolves to the existing item rather than erroring or creating a copy.
  *
- * This is the Service module's one public support contract. Package Station
- * imports it directly, which is the intended direction: Package Station writes
- * references into pools that the Service owns, so it must go through the
- * Service's write path rather than touching qsd_service_* meta itself. Nothing
- * outside the module may import ServiceController or its internals.
+ * This is the Service module's one public support contract. Another Station
+ * that writes references into Service-owned pools must go through this write
+ * path rather than touching qsd_service_* meta itself. Nothing outside the
+ * module may import ServiceController or its internals.
  *
  * The meta key constants below intentionally duplicate ServiceSchema's: this
  * class is consumed cross-module and stays standalone, and the pair is pinned
@@ -58,9 +49,6 @@ final class ServicePools
         }
         if (!empty($added)) {
             $raw['inclusions'] = $pool;
-            if (!isset($raw['tier_inclusions']) || !is_array($raw['tier_inclusions'])) {
-                $raw['tier_inclusions'] = array_fill_keys(\QSD\Platform\Modules\SurfacePackages\Support\PackageSchema::ALLOWED_TIERS, []);
-            }
             update_post_meta($serviceId, self::META_INCLUSIONS, $raw);
         }
         return $added;

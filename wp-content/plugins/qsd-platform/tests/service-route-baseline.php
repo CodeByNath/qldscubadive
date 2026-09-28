@@ -66,7 +66,7 @@ if (!function_exists('add_action')) {
     }
 }
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/autoload.php';
 
 // ── Controllers under contract ───────────────────────────────────────────────
 //
@@ -81,13 +81,6 @@ $controllers = [
     ),
     static fn() => new \QSD\Platform\Modules\Admin\Http\AdminCategoriesController(
         new \QSD\Platform\PlatformIdentifier\PlatformIdentifierStation()
-    ),
-    static fn() => new \QSD\Platform\Modules\SurfacePackages\Http\PackageFamiliesController(),
-    static fn() => new \QSD\Platform\Modules\SurfacePackages\Http\PackageStationController(
-        new \QSD\Platform\Modules\SurfacePackages\Repositories\PackageRepository()
-    ),
-    static fn() => new \QSD\Platform\Modules\Promotions\Http\PromotionsController(
-        new \QSD\Platform\Modules\SurfacePackages\Repositories\PackageRepository()
     ),
 ];
 

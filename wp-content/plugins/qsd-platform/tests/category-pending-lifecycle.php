@@ -106,7 +106,7 @@ class WP_REST_Response {
     public function get_status(): int { return $this->status; }
 }
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/autoload.php';
 
 use QSD\Platform\Modules\Admin\Http\AdminCategoriesController;
 use QSD\Platform\Modules\Admin\Support\CategoryMeta;

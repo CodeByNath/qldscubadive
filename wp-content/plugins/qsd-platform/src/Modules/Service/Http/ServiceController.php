@@ -27,13 +27,11 @@
  * from AdminServicesController, which this replaces.
  *
  * NOT OWNED HERE
- *   - qsd_service_pricing — Cost Builder is the sole authority. The MetaSchema
- *     import is only the shared platform_status vocabulary, not pricing.
- *   - The Package Station and Promotions route families, which are nested under
- *     /admin/services/{id}/package-station/* as compatibility contracts but are
- *     owned by SurfacePackages and Promotions respectively.
- *   - StationLifecycle, PoolReferences, CategoryMeta — entity-neutral shared
- *     infrastructure that stays in Admin\Support.
+ *   - StationLifecycle, CategoryMeta — entity-neutral shared infrastructure
+ *     that stays in Admin\Support.
+ *   - Knowledge of who else references a pool item. Other Stations report
+ *     their references through the `qsd_service_pool_references` filter (see
+ *     poolSettleWarnings()); Service never reads another Station's storage.
  *
  * Storage keys and REST argument definitions live in Support\ServiceSchema; the
  * pool write path is Support\ServicePools, the module's one public contract.
@@ -42,13 +40,10 @@
 namespace QSD\Platform\Modules\Service\Http;
 
 use QSD\Platform\Modules\Admin\Support\CategoryMeta;
-use QSD\Platform\Modules\Admin\Support\PoolReferences;
 use QSD\Platform\Modules\Admin\Support\StationLifecycle;
-use QSD\Platform\Modules\CostBuilder\Support\MetaSchema;
 use QSD\Platform\Modules\Service\Support\ServiceModules;
 use QSD\Platform\Modules\Service\Support\ServicePools;
 use QSD\Platform\Modules\Service\Support\ServiceSchema;
-use QSD\Platform\Modules\SurfacePackages\Repositories\PackageRepository;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierConflict;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierReservation;
@@ -56,19 +51,7 @@ use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 class ServiceController
 {
-    private ?PackageRepository $packageRepository = null;
-
     public function __construct(private PlatformIdentifierStation $platformIdentifiers) {}
-
-    /**
-     * Single Package Station authority (independent option storage). Resolved
-     * lazily and only for the settle guard, which is the sole path here that
-     * needs to see the station graph.
-     */
-    private function packages(): PackageRepository
-    {
-        return $this->packageRepository ??= new PackageRepository();
-    }
 
     public function register(): void
     {
@@ -184,10 +167,10 @@ class ServiceController
             'args'                => ServiceSchema::statusArgs(),
         ]);
 
-        // Phase 2 — P5 Step 2: immediate canonical pool creation. Service owns the
-        // pool; Tier only ever stores a reference (id) into it. These write straight
-        // to the canonical pool (no draft indirection) so a caller gets a real id back
-        // to attach to a tier's module draft in a separate, subsequent save.
+        // Immediate canonical pool creation. Service owns the pool; another
+        // Station only ever stores a reference (id) into it. These write straight
+        // to the canonical pool (no draft indirection) so a caller gets a real id
+        // back to reference in a separate, subsequent save.
         register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/inclusion-pool/items', [
             'methods'             => 'POST',
             'callback'            => [$this, 'createInclusionPoolItem'],
@@ -262,7 +245,7 @@ class ServiceController
         foreach ($posts as $post) {
             $meta           = get_post_meta($post->ID, ServiceSchema::META_KEY, true);
             $meta           = is_array($meta) ? $meta : [];
-            $platformStatus = MetaSchema::resolvePlatformStatus($meta, $post->post_status);
+            $platformStatus = ServiceSchema::resolvePlatformStatus($meta, $post->post_status);
 
             if ($filterStatus !== null) {
                 // Filtered view (archived/trash): include only the requested status.
@@ -290,7 +273,7 @@ class ServiceController
                 )
             ));
 
-            // Pool sizes for the Package Manager Services table — counts only;
+            // Pool sizes for the catalogue — counts only;
             // the Service-owned pool content itself never leaves the Service.
             $rawInclusions = get_post_meta($post->ID, 'qsd_service_inclusions', true);
             $rawFaqs       = get_post_meta($post->ID, 'qsd_service_faqs', true);
@@ -391,7 +374,7 @@ class ServiceController
         }
 
         // Initialize canonical inclusions/faqs as empty placeholders.
-        update_post_meta($id, ServiceSchema::META_INCLUSIONS, ['inclusions' => [], 'tier_inclusions' => []]);
+        update_post_meta($id, ServiceSchema::META_INCLUSIONS, ['inclusions' => []]);
         update_post_meta($id, ServiceSchema::META_FAQS, []);
 
         // overview: pending (draft exists); inclusions/faqs: not-configured (no draft, no active).
@@ -479,7 +462,7 @@ class ServiceController
             'categories'               => $categories,
             'inclusions'               => $inclusions,
             'faqs'                     => $faqs,
-            'platform_status'          => MetaSchema::resolvePlatformStatus($meta, $post->post_status),
+            'platform_status'          => ServiceSchema::resolvePlatformStatus($meta, $post->post_status),
             'previous_platform_status' => (string) ($meta['previous_platform_status'] ?? ''),
             'module_status'            => $meta['module_status'] ?? ServiceSchema::defaultModuleStatus(),
             'drafts'                   => [
@@ -804,7 +787,7 @@ class ServiceController
 
         if ($request->has_param('platform_status')) {
             $platformStatus = sanitize_text_field((string) $request->get_param('platform_status'));
-            if (!in_array($platformStatus, MetaSchema::ALLOWED_PLATFORM_STATUSES, true)) {
+            if (!in_array($platformStatus, ServiceSchema::ALLOWED_PLATFORM_STATUSES, true)) {
                 return new \WP_REST_Response(['success' => false, 'message' => 'Invalid platform_status.'], 422);
             }
         } elseif ($request->has_param('is_active')) {
@@ -848,7 +831,7 @@ class ServiceController
                 'module_status'            => $meta['module_status']   ?? ServiceSchema::defaultModuleStatus(),
                 // Deprecated fields retained for frontend transition period.
                 'post_status'     => $post->post_status,
-                'is_active'       => MetaSchema::resolvePlatformStatus($meta, $post->post_status) === 'active',
+                'is_active'       => ServiceSchema::resolvePlatformStatus($meta, $post->post_status) === 'active',
             ],
         ]);
     }
@@ -874,7 +857,7 @@ class ServiceController
      */
     private function updateDisabledMask(int $id, \WP_Post $post, array $meta, string $action): \WP_REST_Response
     {
-        $current = MetaSchema::resolvePlatformStatus($meta, $post->post_status);
+        $current = ServiceSchema::resolvePlatformStatus($meta, $post->post_status);
 
         if ($action === 'disable') {
             if (!StationLifecycle::isLive($current)) {
@@ -910,7 +893,7 @@ class ServiceController
                 'previous_platform_status' => (string) ($meta['previous_platform_status'] ?? ''),
                 'module_status'            => $meta['module_status'] ?? ServiceSchema::defaultModuleStatus(),
                 'post_status'              => $post->post_status,
-                'is_active'                => MetaSchema::resolvePlatformStatus($meta, $post->post_status) === 'active',
+                'is_active'                => ServiceSchema::resolvePlatformStatus($meta, $post->post_status) === 'active',
             ],
         ]);
     }
@@ -934,7 +917,7 @@ class ServiceController
 
         $meta          = get_post_meta($id, ServiceSchema::META_KEY, true);
         $meta          = is_array($meta) ? $meta : [];
-        $currentStatus = MetaSchema::resolvePlatformStatus($meta, $post->post_status);
+        $currentStatus = ServiceSchema::resolvePlatformStatus($meta, $post->post_status);
 
         $change = StationLifecycle::restore($currentStatus);
         if ($change === null) {
@@ -964,7 +947,7 @@ class ServiceController
     /**
      * Permanently delete a trashed service and clean up all related platform data.
      * Only callable when platform_status === 'trashed'. Uses wp_delete_post with force=true
-     * (bypasses WordPress Trash). Scrubs the service ID from surface package refs first.
+     * (bypasses WordPress Trash) and leaves a permanent Platform ID tombstone.
      */
     public function permanentDeleteService(\WP_REST_Request $request): \WP_REST_Response
     {
@@ -980,7 +963,7 @@ class ServiceController
 
         $meta           = get_post_meta($id, ServiceSchema::META_KEY, true);
         $meta           = is_array($meta) ? $meta : [];
-        $platformStatus = MetaSchema::resolvePlatformStatus($meta, $post->post_status);
+        $platformStatus = ServiceSchema::resolvePlatformStatus($meta, $post->post_status);
 
         if (!StationLifecycle::canDelete($platformStatus)) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Only trashed services can be permanently deleted.'], 422);
@@ -1006,9 +989,6 @@ class ServiceController
         }
 
         // Hard delete — removes the wp_posts row and all wp_postmeta rows automatically.
-        // The Package Station lives in its own option storage, so deleting a
-        // service can no longer destroy commercial data; any manager items
-        // sourced from this service degrade to source_missing at read time.
         $deleted = wp_delete_post($id, true);
         if (!$deleted) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Service could not be permanently deleted.'], 500);
@@ -1038,7 +1018,7 @@ class ServiceController
     /**
      * Phase 2 — P5 Step 2: create (or resolve) a single canonical inclusion.
      * Immediate write to the Service-owned pool — no draft, no module_status change,
-     * same as the existing addItemsToInclusionPool contract used by tier saves.
+     * through ServicePools, the Service's one public pool-write contract.
      * Dedupe is case-insensitive on label, or exact id match; a duplicate resolves
      * to the existing item (existing: true) instead of erroring or creating a copy.
      */
@@ -1217,10 +1197,19 @@ class ServiceController
 
     /**
      * B3 — non-blocking pool-settle guard. When settling would remove a pool item
-     * still referenced anywhere in the station graph (tier occupants + drafts,
-     * binned occupants, promotion instances of every status + drafts), report it
-     * so the admin UI can warn. Never blocks the settle; refs are never pruned —
-     * they degrade to dangling and re-resolve if the pool item returns.
+     * that another Station still references, report it so the admin UI can warn.
+     * Never blocks the settle; refs are never pruned — they degrade to dangling
+     * and re-resolve if the pool item returns.
+     *
+     * Service does not know which Stations reference its pools. A Station that
+     * stores references to Service pool items registers a provider:
+     *
+     *   add_filter('qsd_service_pool_references', function (array $refs, int $serviceId, string $module) {
+     *       // $refs[$poolItemId][] = 'Human-readable referrer label';
+     *       return $refs;
+     *   }, 10, 3);
+     *
+     * With no provider registered the guard reports nothing.
      *
      * Must run BEFORE settleModule() commits, since the commit replaces the pool
      * being compared.
@@ -1270,12 +1259,9 @@ class ServiceController
             return [];
         }
 
-        $station   = $this->packages()->loadStation() ?? [];
-        $instances = $this->packages()->loadPromotions();
-
-        $refs = $module === 'inclusions'
-            ? PoolReferences::collectInclusionRefs($station, $instances)
-            : PoolReferences::collectFaqRefs($station, $instances);
+        /** @var array<string, string[]> $refs */
+        $refs = apply_filters('qsd_service_pool_references', [], $serviceId, $module);
+        $refs = is_array($refs) ? $refs : [];
 
         $warnings = [];
         foreach ($removed as $itemId => $label) {

@@ -2,8 +2,20 @@
 
 namespace QSD\Platform\Core;
 
+/**
+ * Declares the platform's WordPress post types. Declaration only — each owning
+ * Station holds the behaviour.
+ *
+ * Every platform entity is private to WordPress: no public URL, archive,
+ * query var, search result, sitemap entry, or core /wp/v2 REST route. The
+ * platform lifecycle (platform_status, drafts, bin) never writes post_status,
+ * so WordPress's own public output could not honour it. All reads go through
+ * the qsd/v1 API, where each Station applies its lifecycle.
+ */
 class PostTypeRegistrar
 {
+    public const SERVICE = 'qsd_service';
+
     public function register(): void
     {
         add_action('init', [$this, 'registerPostTypes']);
@@ -11,74 +23,21 @@ class PostTypeRegistrar
 
     public function registerPostTypes(): void
     {
-        register_post_type('qsd_surface_package', [
-            'labels'             => [
-                'name'               => 'Surface Packages',
-                'singular_name'      => 'Surface Package',
-                'add_new_item'       => 'Add New Surface Package',
-                'edit_item'          => 'Edit Surface Package',
-                'new_item'           => 'New Surface Package',
-                'view_item'          => 'View Surface Package',
-                'search_items'       => 'Search Surface Packages',
-                'not_found'          => 'No surface packages found.',
-                'not_found_in_trash' => 'No surface packages in trash.',
+        register_post_type(self::SERVICE, [
+            'labels'              => [
+                'name'          => 'Services',
+                'singular_name' => 'Service',
             ],
-            'public'             => false,
-            'publicly_queryable' => false,
-            'show_ui'            => false,
-            'show_in_nav_menus'  => false,
-            'show_in_rest'       => false,
-            'has_archive'        => false,
-            'rewrite'            => false,
-            'query_var'          => false,
-            'supports'           => ['title'],
-        ]);
-
-        register_post_type('qsd_request', [
-            'labels'             => [
-                'name'               => 'Requests',
-                'singular_name'      => 'Request',
-                'add_new_item'       => 'Add New Request',
-                'edit_item'          => 'Edit Request',
-                'new_item'           => 'New Request',
-                'view_item'          => 'View Request',
-                'search_items'       => 'Search Requests',
-                'not_found'          => 'No requests found.',
-                'not_found_in_trash' => 'No requests in trash.',
-            ],
-            'public'             => false,
-            'publicly_queryable' => false,
-            'show_ui'            => false,
-            'show_in_nav_menus'  => false,
-            'show_in_rest'       => false,
-            'has_archive'        => false,
-            'rewrite'            => false,
-            'query_var'          => false,
-            'supports'           => ['title'],
-        ]);
-
-        register_post_type('qsd_service', [
-            'labels'       => [
-                'name'               => 'Services',
-                'singular_name'      => 'Service',
-                'menu_name'          => 'Services',
-                'name_admin_bar'     => 'Service',
-                'add_new'            => 'Add New',
-                'add_new_item'       => 'Add New Service',
-                'new_item'           => 'New Service',
-                'edit_item'          => 'Edit Service',
-                'view_item'          => 'View Service',
-                'all_items'          => 'All Services',
-                'search_items'       => 'Search Services',
-                'not_found'          => 'No services found.',
-                'not_found_in_trash' => 'No services found in Trash.',
-            ],
-            'public'       => true,
-            'has_archive'  => true,
-            'show_in_rest' => true,
-            'supports'     => ['title', 'editor', 'thumbnail', 'excerpt'],
-            'rewrite'      => ['slug' => 'services'],
-            'menu_icon'    => 'dashicons-hammer',
+            'public'              => false,
+            'publicly_queryable'  => false,
+            'exclude_from_search' => true,
+            'show_ui'             => false,
+            'show_in_nav_menus'   => false,
+            'show_in_rest'        => false,
+            'has_archive'         => false,
+            'rewrite'             => false,
+            'query_var'           => false,
+            'supports'            => ['title', 'editor', 'excerpt'],
         ]);
     }
 }

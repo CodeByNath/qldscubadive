@@ -32,7 +32,7 @@ function update_option(string $key, mixed $value, string|bool|null $autoload = n
     return $changed;
 }
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/autoload.php';
 
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierConflict;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
@@ -77,25 +77,8 @@ function identifierRandom(string $characters): callable
 }
 
 $expected = [
-    'service'                  => 'QSDS',
-    'category'                 => 'QSDC',
-    'package_family_group'     => 'CZPG',
-    'tier_group'               => 'CZTG',
-    'tier'                     => 'CZT',
-    'tier_addon'               => 'CZTA',
-    'tier_edition'             => 'CZTE',
-    'tier_leg'                 => 'CZTL',
-    'tier_edition_leg'         => 'CZTEL',
-    'tier_promotion'           => 'CZTP',
-    'package_rate_card'        => 'CZPRC',
-    'package_rate_card_group'  => 'CZPRCG',
-    'package_rate_card_item'   => 'CZPRCI',
-    'package_rate_card_item_option' => 'CZPRCIO',
-    'package_rate_card_bundle'      => 'CZPRCB',
-    'package_rate_card_bundle_item' => 'CZPRCBI',
-    'package_rate_card_bundle_item_option' => 'CZPRCBIO',
-    'package_rate_card_bundle_option'      => 'CZPRCBO',
-    'request'                  => 'CZR',
+    'service'  => 'QSDS',
+    'category' => 'QSDC',
 ];
 
 checkIdentifier(PlatformIdentifierPolicy::prefixes() === $expected, 'every entity prefix is locked');
@@ -107,7 +90,8 @@ foreach ($expected as $entityType => $prefix) {
     checkIdentifier(!PlatformIdentifierPolicy::validate($entityType, $prefix . '2A7K'), "{$entityType} rejects a short suffix");
     checkIdentifier(!PlatformIdentifierPolicy::validate($entityType, $prefix . '2A7K0'), "{$entityType} rejects an ambiguous suffix");
 }
-checkIdentifier(PlatformIdentifierPolicy::entityTypeFor('CZPRCG2A7KZ') === 'package_rate_card_group', 'overlapping prefix families resolve by exact policy validation');
+checkIdentifier(PlatformIdentifierPolicy::entityTypeFor('QSDC2A7KZ') === 'category' && PlatformIdentifierPolicy::entityTypeFor('QSDS2A7KZ') === 'service', 'each prefix resolves to exactly its own entity type');
+checkIdentifier(PlatformIdentifierPolicy::entityTypeFor('QSDX2A7KZ') === null, 'an unknown prefix resolves to no entity type');
 
 $station = new PlatformIdentifierStation(identifierRandom('7K9Q2'));
 $generated = $station->generate(PlatformIdentifierPolicy::SERVICE);

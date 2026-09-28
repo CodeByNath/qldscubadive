@@ -2,8 +2,18 @@
 
 namespace QSD\Platform\Core;
 
+/**
+ * Declares the platform's WordPress taxonomies. Declaration only — the
+ * Category Station (Admin\Http\AdminCategoriesController + CategoryMeta) owns
+ * behaviour and lifecycle.
+ *
+ * Private for the same reason as PostTypeRegistrar: no term archives, query
+ * vars, or core REST routes; reads go through the qsd/v1 API.
+ */
 class TaxonomyRegistrar
 {
+    public const SERVICE_CATEGORY = 'qsd_service_category';
+
     public function register(): void
     {
         add_action('init', [$this, 'registerTaxonomies']);
@@ -11,40 +21,20 @@ class TaxonomyRegistrar
 
     public function registerTaxonomies(): void
     {
-        register_taxonomy('qsd_service_category', ['qsd_service'], [
-            'labels'       => [
-                'name'              => 'Service Categories',
-                'singular_name'     => 'Service Category',
-                'search_items'      => 'Search Service Categories',
-                'all_items'         => 'All Service Categories',
-                'parent_item'       => 'Parent Service Category',
-                'parent_item_colon' => 'Parent Service Category:',
-                'edit_item'         => 'Edit Service Category',
-                'update_item'       => 'Update Service Category',
-                'add_new_item'      => 'Add New Service Category',
-                'new_item_name'     => 'New Service Category Name',
-                'menu_name'         => 'Service Categories',
+        register_taxonomy(self::SERVICE_CATEGORY, [PostTypeRegistrar::SERVICE], [
+            'labels'             => [
+                'name'          => 'Service Categories',
+                'singular_name' => 'Service Category',
             ],
-            'hierarchical' => true,
-            'show_in_rest' => true,
-            'rewrite'      => ['slug' => 'service-category'],
-        ]);
-
-        register_taxonomy('qsd_billing_cycle', ['qsd_service'], [
-            'labels'       => [
-                'name'          => 'Billing Cycles',
-                'singular_name' => 'Billing Cycle',
-                'search_items'  => 'Search Billing Cycles',
-                'all_items'     => 'All Billing Cycles',
-                'edit_item'     => 'Edit Billing Cycle',
-                'update_item'   => 'Update Billing Cycle',
-                'add_new_item'  => 'Add New Billing Cycle',
-                'new_item_name' => 'New Billing Cycle Name',
-                'menu_name'     => 'Billing Cycles',
-            ],
-            'hierarchical' => false,
-            'show_in_rest' => true,
-            'rewrite'      => ['slug' => 'billing-cycle'],
+            'hierarchical'       => true,
+            'public'             => false,
+            'publicly_queryable' => false,
+            'show_ui'            => false,
+            'show_in_nav_menus'  => false,
+            'show_tagcloud'      => false,
+            'show_in_rest'       => false,
+            'rewrite'            => false,
+            'query_var'          => false,
         ]);
     }
 }

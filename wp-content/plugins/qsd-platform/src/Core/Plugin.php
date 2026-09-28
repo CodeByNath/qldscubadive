@@ -5,17 +5,17 @@ namespace QSD\Platform\Core;
 use QSD\Platform\Modules\Admin\AdminModule;
 use QSD\Platform\Modules\AdminStation\AdminStationAuth;
 use QSD\Platform\Modules\AdminStation\AdminStationModule;
-use QSD\Platform\Modules\CostBuilder\CostBuilderModule;
-use QSD\Platform\Modules\Homepage\HomepageModule;
-use QSD\Platform\Modules\Promotions\PromotionsModule;
-use QSD\Platform\Modules\Requests\RequestsModule;
 use QSD\Platform\Modules\Service\ServiceModule;
-use QSD\Platform\Modules\SurfacePackages\SurfacePackagesModule;
-use QSD\Platform\Core\Health;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
-use QSD\Platform\PlatformIdentifier\ExistingRecordAssignmentCommand;
-use QSD\Platform\PlatformIdentifier\TemporaryMigrationController;
 
+/**
+ * Platform boot. WordPress is the runtime and storage host only: this wires
+ * access, entity registration, the permanent Platform ID station, the domain
+ * Stations (Service, Category), and the Admin Station host.
+ *
+ * Adding a Station: construct its module here and inject the shared
+ * PlatformIdentifierStation when the Station issues permanent identifiers.
+ */
 final class Plugin
 {
     private static bool $booted = false;
@@ -32,19 +32,9 @@ final class Plugin
         (new TaxonomyRegistrar())->register();
         (new MailService())->register();
         (new AssetLoader())->register();
+
         $platformIdentifiers = new PlatformIdentifierStation();
-        (new TemporaryMigrationController($platformIdentifiers))->register();
-        if (defined('WP_CLI') && WP_CLI) {
-            \WP_CLI::add_command(
-                'qsd platform-identifiers assign',
-                new ExistingRecordAssignmentCommand($platformIdentifiers)
-            );
-        }
-        (new SurfacePackagesModule($platformIdentifiers))->register();
-        (new PromotionsModule())->register();
-        (new CostBuilderModule())->register();
-        (new HomepageModule())->register();
-        (new RequestsModule($platformIdentifiers))->register();
+
         (new ServiceModule($platformIdentifiers))->register();
         (new AdminModule($platformIdentifiers))->register();
         (new AdminStationModule())->register();
@@ -62,16 +52,26 @@ final class Plugin
         ]);
     }
 
+    /**
+     * Public liveness probe. Anonymous callers get only the aggregate status;
+     * the per-subsystem checks and the platform version are returned to
+     * authenticated platform managers only.
+     */
     public static function healthCheck(\WP_REST_Request $request): \WP_REST_Response
     {
         $checks     = Health::run();
         $allHealthy = empty($checks) || !in_array(false, $checks, true);
 
-        return rest_ensure_response([
+        $body = [
             'success' => $allHealthy,
             'status'  => $allHealthy ? 'healthy' : 'degraded',
-            'version' => defined('QSD_PLUGIN_VERSION') ? QSD_PLUGIN_VERSION : null,
-            'checks'  => $checks,
-        ]);
+        ];
+
+        if (current_user_can(PlatformAccess::CAP)) {
+            $body['version'] = defined('QSD_PLUGIN_VERSION') ? QSD_PLUGIN_VERSION : null;
+            $body['checks']  = $checks;
+        }
+
+        return rest_ensure_response($body);
     }
 }

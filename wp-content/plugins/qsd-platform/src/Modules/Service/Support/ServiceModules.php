@@ -16,8 +16,8 @@ namespace QSD\Platform\Modules\Service\Support;
  * service id, holding no controller state.
  *
  * NOT here: the cross-station pool-settle reference guard (poolSettleWarnings)
- * stays in ServiceController — it reads Package Station storage through
- * PackageRepository and is request orchestration, not a Service module rule.
+ * stays in ServiceController — it is request orchestration over the
+ * qsd_service_pool_references filter, not a Service module rule.
  */
 final class ServiceModules
 {
@@ -80,12 +80,7 @@ final class ServiceModules
                 $draft = get_post_meta($id, ServiceSchema::DRAFT_INCLUSIONS, true);
                 if (!is_array($draft)) break;
 
-                $existing = get_post_meta($id, ServiceSchema::META_INCLUSIONS, true);
-                $existing = is_array($existing) ? $existing : [];
-                update_post_meta($id, ServiceSchema::META_INCLUSIONS, [
-                    'inclusions'      => $draft,
-                    'tier_inclusions' => $existing['tier_inclusions'] ?? [],
-                ]);
+                update_post_meta($id, ServiceSchema::META_INCLUSIONS, ['inclusions' => $draft]);
 
                 delete_post_meta($id, ServiceSchema::DRAFT_INCLUSIONS);
                 $meta['module_status']['inclusions'] = self::isInclusionsComplete($id) ? 'settled' : 'not-configured';
