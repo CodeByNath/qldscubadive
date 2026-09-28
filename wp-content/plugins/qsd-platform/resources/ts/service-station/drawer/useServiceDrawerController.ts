@@ -22,7 +22,7 @@
 // is unchanged by the composition split.
 
 import { useCallback, useRef, useState } from 'preact/hooks';
-import type { ServiceItem } from '@/api/types/cost-builder';
+import type { ServiceItem } from '@/api/types/service';
 import { useServiceStation } from '@/service-station';
 import type {
   ServiceOverviewShellData,
@@ -41,7 +41,7 @@ import type { ServiceDrawerContentProps } from './serviceDrawerTypes';
 export type ServiceDrawerControllerArgs = ServiceDrawerContentProps;
 
 export function useServiceDrawerController({
-  service: seedService, packages, allCategories, initialTab, initialEdit, bridge,
+  service: seedService, allCategories, initialTab, initialEdit, bridge,
 }: ServiceDrawerControllerArgs) {
   // Local record identity, seeded from the opening handoff and advanced by
   // lifecycle actions. Replaces the old host's ctx.setStepData('service', …):
@@ -58,12 +58,12 @@ export function useServiceDrawerController({
   const [tab, setTab] = useState<DrawerTabId>(initialTab ?? 'details');
   const [openPanel, setOpenPanel] = useState<string | null>(null);
 
-  const station = useServiceStation(service, packages, bridge.onMutationComplete, setService);
+  const station = useServiceStation(service, bridge.onMutationComplete, setService);
   const {
     platformStatus, isActive, isDisabledMasked, detailLoaded, canPublish, pendingModuleNames, moduleStatus,
     hasInclusionsDraft, hasFaqsDraft,
     modules,
-    relatedPkg, inclusions, faqs, overviewDraft: stationOverviewDraft, settledOverview,
+    inclusions, faqs, overviewDraft: stationOverviewDraft, settledOverview,
     inclSummary, faqsSummary,
     revertOverview, revertInclusions, revertFaqs,
   } = station;
@@ -182,7 +182,7 @@ export function useServiceDrawerController({
   return {
     // record + station
     service, station, platformStatus, isActive, isDisabledMasked, canPublish, isNewNeverPublished, hasBeenPublished,
-    relatedPkg, inclSummary, faqsSummary, pendingModuleNames, displayTitle,
+    inclSummary, faqsSummary, pendingModuleNames, displayTitle,
     // tabs
     tab, selectServiceTab,
     // panels + bindings

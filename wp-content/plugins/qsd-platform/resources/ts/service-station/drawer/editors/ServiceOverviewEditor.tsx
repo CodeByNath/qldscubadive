@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'preact/hooks';
 import { AdminField } from '@/drawer-kit/fields';
-import type { Category, ServiceItem } from '@/api/types/cost-builder';
+import type { Category, ServiceItem } from '@/api/types/service';
 import type { OverviewDraft } from '@/service-station';
 import { decodeHtml } from '@/utils/format';
 

@@ -45,7 +45,6 @@ const DYNAMIC_CLASSES = new Map([
   ['cz-service-stat__icon--active', 'service-station/presentation/ServiceCatalogue.tsx'],
   ['cz-service-stat__icon--inactive', 'service-station/presentation/ServiceCatalogue.tsx'],
   ['cz-service-stat__icon--pending', 'service-station/presentation/ServiceCatalogue.tsx'],
-  ['cz-tier-deck__button--destructive', 'package-station/presentation/package-tier-workspace'],
   ['is-error', 'admin-station status notification list'],
 ]);
 

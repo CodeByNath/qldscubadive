@@ -1,17 +1,16 @@
 // Contract: one generic tab system, two station-owned decks.
 //
 // `admin-station/presentation/StationTabSet.tsx` owns tab behaviour and
-// accessibility for every station that presents lanes. Package Home's Tier deck
-// and Service Home's lower deck both consume it, and neither one leaks into it.
+// accessibility for every station that presents lanes. Service Home's lower
+// deck consumes it today; a future Station deck consumes the same primitive.
 //
 // Two halves:
 //
 //   1. The primitive stays generic — no station, entity, drawer route, data
 //      source, or lane meaning inside it, and no station's class names.
-//   2. Service Home's deck stays Service-owned — Family cards above it, the
-//      existing catalogue inside `Details`, Connections and Settings as
-//      Service's own lane components, and no Package or Tier presentation
-//      anywhere in it.
+//   2. Service Home's deck stays Service-owned — the existing catalogue
+//      inside `Details`, Connections and Settings as Service's own lane
+//      components, and no other Station's presentation anywhere in it.
 //
 // This reads composition and registration. It does not execute Preact, so it
 // asserts no rendered pixel and no browser behaviour.
@@ -97,18 +96,12 @@ check(
   'the primitive imports nothing but Preact',
 );
 
-// ── 2. Service Home: Family cards above a Service-owned lower deck ────────────
+// ── 2. Service Home: the Service-owned lower deck ────────────────────────────
 
-const familyBinding = adminRegister.indexOf("surfaceId: 'package-families'");
-const deckBinding = adminRegister.indexOf("surfaceId: 'service-lower-deck'");
 check(
-  familyBinding !== -1 && deckBinding !== -1 && familyBinding < deckBinding,
-  'Service Home binds the Package Family cards above the lower deck',
-);
-check(
-  /surfaceId: 'package-families',[\s\S]*?order: 0,[\s\S]*?templateKitKey: 'category-group-cards'/.test(adminRegister)
-    && /surfaceId: 'service-lower-deck',[\s\S]*?order: 1,[\s\S]*?dataSourceKey: 'service-catalogue',[\s\S]*?templateKitKey: 'service-lower-deck'/.test(adminRegister),
-  'the Family card wall keeps its own kit and the deck keeps the catalogue source and Service drawer',
+  /surfaceId: 'service-lower-deck',[\s\S]*?dataSourceKey: 'service-catalogue',[\s\S]*?templateKitKey: 'service-lower-deck'/.test(adminRegister)
+    && /surfaceId: 'service-lower-deck',[\s\S]*?drawerTemplateKey: 'service'/.test(adminRegister),
+  'Service Home binds the lower deck to the catalogue source and the Service drawer',
 );
 check(
   serviceRegister.includes("'service-lower-deck': ServiceLowerDeck")
@@ -146,7 +139,7 @@ check(
 // The deck cannot grow content it never imported, so its import list is the
 // honest boundary: the shared tab primitive, the station glyph its context bar
 // draws, the existing catalogue, and Service's own Connections/Settings lanes —
-// nothing with a Package/Tier source, projection, drawer route, or model.
+// nothing with another Station's source, projection, drawer route, or model.
 const deckImports = (serviceDeck.match(/from '([^']+)'/g) ?? []).map((from) => from.slice(6, -1));
 check(
   deckImports.every((from) => [
@@ -162,26 +155,14 @@ check(
   `the deck imports beyond its lanes: ${deckImports.join(', ')}`,
 );
 
-// ── 4. No Package presentation reaches Service Station ────────────────────────
+// ── 4. Service Station stays self-contained ───────────────────────────────────
 
-// Service consuming Package DOMAIN contracts through the public barrel is the
-// documented peer relationship and predates this deck. What must never appear is
-// a reach into Package PRESENTATION — the Tier workspace kit, the Package deck,
-// or the Tier classes they paint.
 for (const file of sourceFiles('resources/ts/service-station')) {
   const text = source(file);
   check(
-    !/from '[^']*package-station\/(?!index)/.test(text),
-    `${file} reaches past the Package Station barrel`,
-  );
-  check(
-    !text.includes('cz-tier-'),
-    `${file} renders a Tier class; Service Home owns no Tier presentation`,
+    !text.includes('package-station') && !text.includes('cz-tier-'),
+    `${file} reaches a Package/Tier module or class; Service Station owns no Package presentation`,
   );
 }
-check(
-  !serviceDeck.includes('package-station'),
-  'the Service deck consumes no Package Station module at all',
-);
 
 console.log(`Station tab set contract passed: ${checks} checks.`);

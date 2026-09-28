@@ -9,7 +9,7 @@
 // this module always made.
 
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import type { Category, ServiceItem } from '@/api/types/cost-builder';
+import type { Category, ServiceItem } from '@/api/types/service';
 import { createServiceCategory, updateServiceCategory } from '@/api/endpoints/admin';
 import type { ServiceStation } from '@/service-station';
 import type { OverviewDraft, InclusionsDraft, FaqsDraft } from '@/service-station';

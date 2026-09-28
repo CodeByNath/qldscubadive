@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import type { ServiceItem } from '@/api/types/cost-builder';
+import type { ServiceItem } from '@/api/types/service';
 import type { FaqDraftItem, FaqsDraft } from '@/service-station';
 
 function genId(): string {

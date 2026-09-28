@@ -1,7 +1,7 @@
 // Service module rules — Service Overview, Included Features, Common Questions.
 // Assembled by useServiceStation; rules derive state only and render nothing.
 
-import type { ServiceInclusion, ServiceFaq, ServiceItem } from '@/api/types/cost-builder';
+import type { ServiceInclusion, ServiceFaq, ServiceItem } from '@/api/types/service';
 // Targets the station's './types' module, not its public barrel: useServiceStation
 // imports this file, so going through the barrel would close a cycle.
 import type { OverviewDraftData } from '@/service-station/types';

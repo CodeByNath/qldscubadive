@@ -6,10 +6,6 @@
 // are joined here without transferring their authority to Service.
 
 import type { ServiceSummary } from '@/service-station';
-import {
-  packageFamiliesForService,
-  type PackageFamilyRelationship,
-} from '@/package-station';
 import { decodeHtml } from '@/utils/format';
 import { resolveServiceCardStatus } from './serviceCardAdapter';
 import type { ServiceCatalogueItem } from '@/service-station/presentation/types';
@@ -17,7 +13,6 @@ import type { ServiceCatalogueItem } from '@/service-station/presentation/types'
 export function toServiceCatalogueItem(
   summary: ServiceSummary,
   scope: ServiceCatalogueItem['scope'],
-  packageFamilyRelationships: PackageFamilyRelationship[],
 ): ServiceCatalogueItem {
   const categories = summary.categories
     .filter((category) => category.id !== null)
@@ -35,8 +30,6 @@ export function toServiceCatalogueItem(
     description:        decodeHtml(summary.excerpt ?? '').trim(),
     createdAt:          summary.created_at ?? null,
     categories,
-    packageFamilies:    packageFamiliesForService(packageFamilyRelationships, summary.id)
-      .map((family) => ({ ...family, name: decodeHtml(family.name) })),
     inclusionCount:     summary.inclusion_count ?? 0,
     faqCount:           summary.faq_count ?? 0,
     platformStatus:     summary.platform_status === 'active'

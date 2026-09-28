@@ -106,9 +106,6 @@ globalThis.fetch = (url, init = {}) => {
       }],
     });
   }
-  if (path.endsWith('/admin/surface-packages') && method === 'GET') {
-    return jsonResponse({ success: true, total: 0, packages: [] });
-  }
   if (path.endsWith(`/admin/services/${SERVICE_ID}`) && method === 'GET') {
     return jsonResponse({
       success: true,

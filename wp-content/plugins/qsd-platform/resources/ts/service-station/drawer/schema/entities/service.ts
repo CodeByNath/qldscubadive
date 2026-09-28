@@ -10,7 +10,6 @@ import {
   serviceOverviewShell,
   serviceInclusionsShell,
   serviceFaqsShell,
-  servicePackageSummaryShell,
 } from '../bindings/service';
 import {
   serviceCatalogTable,
@@ -35,10 +34,9 @@ export const SERVICE_ENTITY: EntitySchema = {
   },
 
   // Keyed by backend module key (service detail: overview / inclusions /
-  // faqs). `package` is the related Package Station's primary module,
-  // surfaced through the service station's package registry — it registers
-  // here so the Connections group can place it (related stations' shells,
-  // §8); the shell object itself is shared, never copied.
+  // faqs). A related Station's shell may be registered here later so the
+  // Connections group can place it (§8); the shell object itself is shared,
+  // never copied.
   shells: {
     overview:   serviceOverviewShell,
     inclusions: serviceInclusionsShell,
@@ -59,8 +57,7 @@ export const SERVICE_ENTITY: EntitySchema = {
 
   placements: {
     // Drawer Tab Contract keys — Details = the station's own shells in the
-    // `details` viewpoint; Connections = related stations (Commercial group:
-    // the package summary in the `summary` viewpoint).
+    // `details` viewpoint; Connections = related stations' shells (none yet).
     drawer: {
       details: [
         { module: 'overview',   mode: 'details' },

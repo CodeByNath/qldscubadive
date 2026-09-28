@@ -11,11 +11,7 @@ import {
   ServicesIcon,
   ViewIcon,
 } from '@/admin-station/shell/icons';
-import {
-  packageFamilyOptions,
-  serviceMatchesCategory,
-  serviceMatchesPackageFamily,
-} from './model';
+import { serviceMatchesCategory } from './model';
 import type { ServiceCatalogueItem } from './types';
 
 type StatusFilter = 'all' | 'active' | 'pending' | 'disabled';
@@ -103,13 +99,11 @@ export function ServiceCatalogue({ items, loading, error, onIntent }: TemplateKi
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [category, setCategory] = useState('all');
-  const [family, setFamily] = useState('all');
   const [sort, setSort] = useState<SortOrder>('newest');
   const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
   const [requestedPage, setRequestedPage] = useState(1);
 
   const categories = useMemo(() => categoryOptions(current), [current]);
-  const families = useMemo(() => packageFamilyOptions(current), [current]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -121,18 +115,16 @@ export function ServiceCatalogue({ items, loading, error, onIntent }: TemplateKi
         item.description,
         item.slug,
         ...item.categories.map((entry) => entry.name),
-        ...item.packageFamilies.map((entry) => entry.name),
       ].some((value) => value.toLocaleLowerCase().includes(needle));
       const matchesStatus = status === 'all'
         || (status === 'active' && item.presentationStatus === 'active')
         || (status === 'disabled' && item.presentationStatus === 'disabled')
         || (status === 'pending' && isPending(item));
       const matchesCategory = serviceMatchesCategory(item, category);
-      const matchesFamily = serviceMatchesPackageFamily(item, family);
-      return matchesQuery && matchesStatus && matchesCategory && matchesFamily;
+      return matchesQuery && matchesStatus && matchesCategory;
     });
     return sortItems(matches, sort);
-  }, [current, query, status, category, family, sort]);
+  }, [current, query, status, category, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const page = Math.min(requestedPage, totalPages);
@@ -143,14 +135,13 @@ export function ServiceCatalogue({ items, loading, error, onIntent }: TemplateKi
   // Reset that left the table reordered while claiming nothing was set was the
   // inconsistency. Both the enabled state and the reset cover every control.
   const hasFilters = Boolean(
-    query || status !== 'all' || category !== 'all' || family !== 'all' || sort !== 'newest',
+    query || status !== 'all' || category !== 'all' || sort !== 'newest',
   );
 
   const resetFilters = () => {
     setQuery('');
     setStatus('all');
     setCategory('all');
-    setFamily('all');
     setSort('newest');
     setRequestedPage(1);
   };
@@ -213,12 +204,6 @@ export function ServiceCatalogue({ items, loading, error, onIntent }: TemplateKi
           {categories.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
 
-        <select class="cz-tf-control cz-tf-select" aria-label="Filter by Family Group" value={family}
-          onChange={(event) => { setFamily(event.currentTarget.value); setRequestedPage(1); }}>
-          <option value="all">All families</option>
-          {families.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-        </select>
-
         <select class="cz-tf-control cz-tf-select cz-service-catalogue__sort" aria-label="Sort services" value={sort}
           onChange={(event) => { setSort(event.currentTarget.value as SortOrder); setRequestedPage(1); }}>
           <option value="newest">Sort by: Newest</option>
@@ -239,7 +224,6 @@ export function ServiceCatalogue({ items, loading, error, onIntent }: TemplateKi
             <tr>
               <th>Service</th>
               <th>Category</th>
-              <th>Family Group</th>
               <th>Inclusions</th>
               <th>FAQs</th>
               <th>Status</th>
@@ -248,7 +232,7 @@ export function ServiceCatalogue({ items, loading, error, onIntent }: TemplateKi
           </thead>
           <tbody>
             {visible.length === 0 ? (
-              <tr><td class="cz-service-catalogue__empty" colSpan={7}>No services match these filters.</td></tr>
+              <tr><td class="cz-service-catalogue__empty" colSpan={6}>No services match these filters.</td></tr>
             ) : visible.map((service) => (
               <tr key={service.id}>
                 <td data-label="Service">
@@ -264,15 +248,6 @@ export function ServiceCatalogue({ items, loading, error, onIntent }: TemplateKi
                   </span>
                 </td>
                 <td data-label="Category">{service.categories.map((entry) => entry.name).join(', ') || 'Uncategorised'}</td>
-                <td data-label="Family Group">
-                  {service.packageFamilies.length > 0 ? (
-                    <span class="cz-service-row__families">
-                      {service.packageFamilies.map((packageFamily) => (
-                        <span key={packageFamily.id} class="cz-service-row__family">{packageFamily.name}</span>
-                      ))}
-                    </span>
-                  ) : 'Unassigned'}
-                </td>
                 <td data-label="Inclusions" class="cz-service-row__count">{service.inclusionCount}</td>
                 <td data-label="FAQs" class="cz-service-row__count">{service.faqCount}</td>
                 <td data-label="Status">

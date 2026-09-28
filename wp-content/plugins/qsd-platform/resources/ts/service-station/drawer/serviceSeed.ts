@@ -11,7 +11,7 @@
 // fetchAdminServiceDetail(service.id) on mount and everything authoritative
 // comes from there.
 
-import type { Category, ServiceItem, TierId, PricingTierData } from '@/api/types/cost-builder';
+import type { Category, ServiceItem } from '@/api/types/service';
 import type { ServiceSummary } from '@/service-station';
 
 // The lightweight category projection embedded in the Service catalogue
@@ -43,25 +43,10 @@ export function buildServiceItemForStationHandoff(summary: ServiceSummary): Serv
     categories: normalizeAdminCategories(summary.categories),
     inclusions:   [],
     faqs:         [],
-    availability: { is_available: true, message: '' },
     meta: {
       platform_status:           summary.platform_status,
       previous_platform_status:  summary.previous_platform_status ?? '',
       module_status:             summary.module_status as ServiceItem['meta']['module_status'],
-      short_description: '',
-      long_description:  '',
-      billing_cycle:     '',
-      sla:               '',
-      uptime:            '',
-      notes:             '',
-      popular_tier:      null,
-      popular_label:     null,
-      sort_order:        0,
     },
-    pricing: {
-      tiers:  {} as Record<TierId, PricingTierData>,
-      bundle: { title: '', description: '', price: null },
-    },
-    promotion_tiers: [],
   };
 }

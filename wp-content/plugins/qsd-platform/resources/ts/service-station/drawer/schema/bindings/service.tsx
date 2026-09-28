@@ -11,7 +11,7 @@
 // utils/moduleNotifications.ts — composition, never inheritance; those
 // definitions are untouched by the schema layer.
 
-import type { Category, ServiceItem } from '@/api/types/cost-builder';
+import type { Category, ServiceItem } from '@/api/types/service';
 import {
   overviewModule,
   inclusionsModule,
@@ -21,12 +21,10 @@ import { ServiceOverviewEditor } from '../../editors/ServiceOverviewEditor';
 import { ServiceInclusionsEditor } from '../../editors/ServiceInclusionsEditor';
 import { ServiceFaqsEditor } from '../../editors/ServiceFaqsEditor';
 import type { OverviewDraft, InclusionsDraft, FaqsDraft } from '@/service-station';
-import { packageModule } from '@/drawer-kit/utils/moduleNotifications';
 import type { ShellActionSchema, ShellBinding, ShellSchema } from '@/drawer-kit/schema/types';
 import { decodeHtml } from '@/utils/format';
 import type {
   ItemCollectionValue,
-  MetricsValue,
   QaCollectionValue,
   RelationSummaryValue,
   RichTextValue,
@@ -215,36 +213,6 @@ export interface ServiceFaqsShellData {
   items:        Array<{ id: string; question: string; answer: string }>;
   serviceTitle: string;   // parent identity, for the empty-state copy
 }
-
-// ── Package Summary (Commercial group, summary viewpoint) ────────────────────
-// The package station's primary module presented at a glance inside the
-// Service drawer's Connections tab. Read-only from this placement: the footer
-// routes into the Package station drawer via the step-supplied handler.
-
-export interface ServicePackageSummaryShellData {
-  headline: string;   // e.g. '2 tiers configured'
-  copy:     string;   // availability / guidance line
-}
-
-export const servicePackageSummaryShell: ShellSchema<ServicePackageSummaryShellData> = {
-  archetype: 'overview',
-  dna:       packageModule,
-  header: {
-    title:    'Package Summary',
-    subtitle: 'Pricing and tiers for this service.',
-    icon:     'package',
-  },
-  content: [
-    {
-      id: 'summary', element: 'metrics',
-      bind: (d): MetricsValue => ({ headline: d.headline, copy: d.copy }),
-    },
-  ],
-  footer:  { actions: ['view'] },
-  actions: {
-    view: { id: 'view', label: 'View & Manage', intent: 'secondary' },
-  },
-};
 
 export const serviceFaqsShell: ShellSchema<ServiceFaqsShellData> = {
   archetype: 'child',

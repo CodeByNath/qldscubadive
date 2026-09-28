@@ -16,7 +16,6 @@
 import { useMemo, useRef } from 'preact/hooks';
 import type { VNode } from 'preact';
 import { useApi } from '@/hooks/useApi';
-import { useSurfacePackages } from '@/package-station';
 import type { EntityDrawerHostBridge } from '@/drawer-kit/entityDrawerHost';
 import { ServiceDrawerContent } from '@/service-station/drawer/ServiceDrawerContent';
 import {
@@ -37,7 +36,6 @@ export function ServiceDrawerHost({
   // The drawer's own read, separate from the wall's — refreshing one cannot
   // disturb the other (the same two-instance rule the Package Family drawer keeps).
   const { data, loading, error } = useApi(() => fetchAdminCatalog());
-  const { data: packagesData } = useSurfacePackages();
 
   // Resolve by the record's OWN native id. A Service id is numeric, so a foreign
   // id shape simply fails to match and the neutral state renders — nothing is
@@ -56,7 +54,6 @@ export function ServiceDrawerHost({
     [isNew, summary],
   );
   const allCategories = useMemo(() => normalizeAdminCategories(data?.categories ?? []), [data]);
-  const packages      = packagesData?.packages ?? [];
 
   // Stable bridge that always calls the latest host callbacks, so the
   // composition's guard/footer effects do not re-fire on unrelated host churn.
@@ -83,7 +80,6 @@ export function ServiceDrawerHost({
   return (
     <ServiceDrawerContent
       service={service}
-      packages={packages}
       allCategories={allCategories}
       // The shell's view/edit tab is the opening intent. 'edit' opens straight
       // into the Overview editor; the composition owns every other module's

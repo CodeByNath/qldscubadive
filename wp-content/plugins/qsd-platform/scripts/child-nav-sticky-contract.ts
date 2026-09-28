@@ -6,8 +6,9 @@
 // Scroll-direction hide/reveal (useScrollHide) is Tabs-mode only: it is not
 // a property of ChildChipStrip or useScrollHide themselves — both stay
 // generic and take whatever scrollContainer they're handed — it is a
-// decision TierDrawerContent makes by only resolving a real container while
-// `tierGroupView === 'tabs'` and passing `null` otherwise. Accordion mode
+// decision the consuming Station drawer makes by only resolving a real
+// container in Tabs mode and passing `null` otherwise. (No Station consumes
+// these primitives yet; the first adopter re-adds its composition checks.) Accordion mode
 // therefore gets sticky positioning with no hide/reveal, with no mode
 // branch anywhere inside the generic primitives.
 //
@@ -56,8 +57,6 @@ const childChipStrip = source('resources/ts/drawer-kit/ui/ChildChipStrip.tsx');
 const drawerGroupTabs = source('resources/ts/drawer-kit/ui/DrawerGroupTabs.tsx');
 const drawerGroupAccordion = source('resources/ts/drawer-kit/ui/DrawerGroupAccordion.tsx');
 const drawerKitCss = source('resources/css/modules/drawer-kit.css');
-const tierDrawerContent = source('resources/ts/package-station/drawer/tier/TierDrawerContent.tsx');
-const switcher = source('resources/ts/package-station/drawer/tier/TierEditionDeclarationSwitcher.tsx');
 
 // ── useScrollHide: direction-hysteresis, container-scoped, never window ─────
 
@@ -112,21 +111,6 @@ check(
   'ChildChipStrip borrows no Cost Builder/public UI class',
 );
 
-// ── TierDrawerContent: hide/reveal is Tabs-only, decided at the composition layer ─
-
-check(
-  /tierGroupView\s*===\s*'tabs'\s*\?\s*\(rootEl\?\.closest/.test(tierDrawerContent),
-  'TierDrawerContent only resolves a real scroll container while Tabs mode is active — Accordion mode gets null, disabling hide/reveal with no branch inside the generic primitives',
-);
-check(
-  tierDrawerContent.includes('scrollContainer={scrollContainer}'),
-  'TierDrawerContent forwards the (possibly null) scroll container down to TierEditionDeclarationSwitcher',
-);
-check(
-  switcher.includes('scrollContainer={scrollContainer}'),
-  'TierEditionDeclarationSwitcher forwards scrollContainer through to ChildChipStrip unchanged',
-);
-
 // ── CSS: sticky-under-chrome, pill chip, tab-matched font-size, no underline ─
 
 check(
@@ -173,10 +157,6 @@ check(
 check(
   !drawerKitCss.includes('.cz-drawer-groups__chip-strip-trailing--hidden'),
   'the trailing control has no hidden-state class of its own — it hides/reveals ONLY via the outer .cz-drawer-groups__chip-strip--hidden it shares with the chips, so Tabs mode moves both together as one unit',
-);
-check(
-  drawerKitCss.includes('.cz-drawer-groups__bin-toggle'),
-  'the Bin icon has its own compact sizing class, matching the existing view-toggle convention',
 );
 check(
   /\.cz-admin-station \.cz-drawer-groups__content \.cz-drawer-groups__chip-strip\s*\{[^}]*margin-top:\s*-24px/.test(drawerKitCss),

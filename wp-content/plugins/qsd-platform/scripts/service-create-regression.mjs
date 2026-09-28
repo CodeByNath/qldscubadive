@@ -73,9 +73,6 @@ globalThis.fetch = (url, init = {}) => {
   if (path.endsWith('/admin/services') && method === 'GET') {
     return jsonResponse({ categories: [CATEGORY], stations: [] });
   }
-  if (path.endsWith('/admin/surface-packages') && method === 'GET') {
-    return jsonResponse({ success: true, total: 0, packages: [] });
-  }
   if (path.endsWith('/admin/services') && method === 'POST') {
     createServiceCalls += 1;
     const payload = JSON.parse(init.body);

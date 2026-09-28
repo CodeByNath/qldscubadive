@@ -17,7 +17,6 @@ import { useEffect } from 'preact/hooks';
 import { EntityDrawer } from '@/drawer-kit/EntityDrawer';
 import type { EntityDrawerEditingModule } from '@/drawer-kit/EntityDrawer';
 import { SERVICE_ENTITY } from './schema/entities/service';
-import { TIER_KEYS, TIER_LABELS } from '@/package-station';
 import type { OverviewDraft, InclusionsDraft, FaqsDraft } from '@/service-station';
 import { useServiceDrawerController } from './useServiceDrawerController';
 import { ServiceDrawerFooter } from './ServiceDrawerFooter';
@@ -113,48 +112,6 @@ export function ServiceDrawerContent(props: ServiceDrawerContentProps) {
         openPanel={c.openPanel}
         onTogglePanel={c.togglePanel}
         editing={editing}
-        trailing={{
-          connections: (
-            <>
-              {c.relatedPkg && (
-                <div class="cz-shell-section cz-shell-section--no-border">
-                  <p class="cz-shell-section__title">Pricing Summary</p>
-                  <div class="cz-sp-tier-table-wrap">
-                    <table class="cz-sp-tier-table">
-                      <thead>
-                        <tr>
-                          <th>Tier</th>
-                          <th>Price</th>
-                          <th>Cycle</th>
-                          <th class="cz-sp-tier-table__center">Features</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {TIER_KEYS.map((tierId) => {
-                          const tier = c.relatedPkg!.tiers[tierId];
-                          return (
-                            <tr key={tierId}>
-                              <td class="cz-sp-tier-table__name">{TIER_LABELS[tierId]}</td>
-                              <td>
-                                <span class={`cz-price-tag${tier?.price != null ? ' cz-price-tag--has-price' : ''}`}>
-                                  {tier?.price != null ? `$${tier.price.toLocaleString()}` : '—'}
-                                </span>
-                              </td>
-                              <td class="cz-sp-tier-table__muted">{tier?.billing_cycle ?? '—'}</td>
-                              <td class="cz-sp-tier-table__center cz-sp-tier-table__muted">
-                                {tier?.inclusion_count ? tier.inclusion_count : '—'}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </>
-          ),
-        }}
       >
         {c.saveOk && <div class="cz-admin-ok-msg">Changes saved.</div>}
       </EntityDrawer>

@@ -42,24 +42,6 @@ export function patchModuleDraft<C extends ModuleContainer>(
 }
 
 /**
- * Nested variant: patch one module draft on one tier inside a `tiers` map, reusing
- * `patchModuleDraft` for the slot-level write. Lets `usePackageStation` patch a tier
- * slot in place without hand-rolling the same nested spread. Returns the map
- * unchanged when the tier is absent.
- */
-export function patchTierModuleDraft<T extends ModuleContainer>(
-  tiers:        Record<string, T>,
-  tierId:       string,
-  moduleKey:    string,
-  draftValue:   unknown,
-  moduleStatus: Record<string, string>,
-): Record<string, T> {
-  const slot = tiers[tierId];
-  if (!slot) return tiers;
-  return { ...tiers, [tierId]: patchModuleDraft(slot, moduleKey, draftValue, moduleStatus) };
-}
-
-/**
  * List variant: patch one module draft on one instance inside an id-keyed list,
  * reusing `patchModuleDraft` for the container-level write. Promotion instances
  * live in an array (unbounded, id-identified) rather than a fixed-key map, so

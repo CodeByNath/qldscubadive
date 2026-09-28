@@ -233,29 +233,9 @@
   font-size: var(--admin-fs-label);
 }
 
-.cz-admin-empty {
-  background: var(--station-surface);
-  border: 1px dashed var(--station-border);
-  border-radius: var(--admin-radius);
-  padding: var(--cz-space-10) var(--cz-space-6);
-  text-align: center;
-  color: var(--station-text-muted);
-}
-
 .cz-sc-table__name {
   font-weight: var(--admin-fw-strong);
   max-width: 240px;
-}
-
-.cz-sc-table__tier {
-  text-align: center;
-  white-space: nowrap;
-}
-
-.cz-sc-table__confirm-label {
-  font-size: var(--admin-fs-s-label);
-  color: var(--station-text-muted);
-  margin-right: var(--cz-space-2);
 }
 
 .cz-sc-table__service {
@@ -264,20 +244,6 @@
 
 .cz-sc-table__status {
   text-align: center;
-}
-
-.cz-price-tag {
-  display: inline-block;
-  padding: 2px var(--cz-space-2);
-  border-radius: var(--admin-radius);
-  font-size: var(--admin-fs-s-label);
-  color: var(--station-text-muted);
-  background: transparent;
-}
-
-.cz-price-tag--has-price {
-  color: var(--station-text);
-  background: var(--admin-accent-a12);
 }
 
 .cz-publish-confirm-overlay {
@@ -484,46 +450,12 @@
 /* The Qty box in a rate-sheet inclusion row's price line stays a compact
    fixed width — the price element beside it (cz-tf-input/cz-tf-select above)
    takes the rest via flex: 1. */
-.cz-ie-row .cz-ie-qty-input {
-  flex: 0 0 72px;
-  width: 72px;
-}
-
-.cz-ie-entry {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 
 /* Separates a rate-sheet inclusion row's identity (name + Remove) from its
    price line (price/price option + Qty) below it. */
-.cz-ie-divider {
-  border-top: 1px solid var(--station-border);
-  margin: var(--cz-space-1) 0;
-}
 
 /* A Bundle-backed row's own supplied content — read-only, nested under its
    entry in the inclusion editor. */
-.cz-ie-sub-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding-left: var(--cz-space-6);
-  list-style: disc;
-}
-
-.cz-ie-sub-item {
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
-
-.cz-ie-sub-empty {
-  margin: 0;
-  padding-left: var(--cz-space-6);
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
 
 .cz-ie-faq-item {
   border: 1px solid var(--station-border);
@@ -565,80 +497,7 @@
   padding-bottom: 0;
 }
 
-.cz-shell-section__title {
-  margin: 0 0 var(--cz-space-3);
-  font-size: var(--admin-fs-s-label);
-  font-weight: var(--admin-fw-strong);
-  line-height: var(--admin-lh-s-label);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--station-text);
-}
-
 .cz-admin-btn--sm {
-  font-size: var(--admin-fs-s-label);
-}
-
-.cz-sp-tier-table-wrap {
-  border: 1px solid var(--station-border);
-  border-radius: var(--admin-radius);
-  overflow: hidden;
-}
-
-.cz-sp-tier-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--admin-fs-label);
-  table-layout: fixed;
-}
-
-.cz-sp-tier-table th {
-  padding: 8px 12px;
-  text-align: left;
-  font-size: var(--admin-fs-s-label);
-  font-weight: var(--admin-fw-strong);
-  line-height: var(--admin-lh-s-label);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--station-text-muted);
-  background: var(--admin-accent-a12);
-  border-bottom: 1px solid var(--station-border);
-  white-space: nowrap;
-}
-
-.cz-sp-tier-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--station-border);
-  color: var(--station-text);
-  vertical-align: middle;
-}
-
-.cz-sp-tier-table tr:last-child td {
-  border-bottom: none;
-}
-
-.cz-sp-tier-table tr:hover td {
-  background: var(--admin-accent-a12);
-}
-
-.cz-sp-tier-table__name {
-  min-width: 130px;
-  font-weight: var(--admin-fw-strong);
-}
-
-.cz-sp-tier-table__name-inner {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.cz-sp-tier-table__center {
-  text-align: left;
-}
-
-.cz-sp-tier-table__muted {
-  color: var(--station-text-muted);
   font-size: var(--admin-fs-s-label);
 }
 
@@ -647,73 +506,9 @@
    (Title | Platform ID | Status | Actions), replacing the former ad hoc
    inline-styled <ul> block. Icon-only row actions, never large text
    buttons — see TierEditionBinList.tsx. */
-.cz-tier-edition-bin-table-wrap {
-  border: 1px solid var(--station-border);
-  border-radius: var(--admin-radius);
-  overflow: hidden;
-}
-
-.cz-tier-edition-bin-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--admin-fs-label);
-}
-
-.cz-tier-edition-bin-table th {
-  padding: 8px 12px;
-  text-align: left;
-  font-size: var(--admin-fs-s-label);
-  font-weight: var(--admin-fw-strong);
-  line-height: var(--admin-lh-s-label);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--station-text-muted);
-  background: var(--admin-accent-a12);
-  border-bottom: 1px solid var(--station-border);
-  white-space: nowrap;
-}
-
-.cz-tier-edition-bin-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--station-border);
-  color: var(--station-text);
-  vertical-align: middle;
-}
-
-.cz-tier-edition-bin-table tr:last-child td {
-  border-bottom: none;
-}
-
-.cz-tier-edition-bin-table tr:hover td {
-  background: var(--admin-accent-a12);
-}
-
-.cz-tier-edition-bin-table__platform-id {
-  color: var(--station-text-muted);
-  font-size: var(--admin-fs-s-label);
-}
-
-.cz-tier-edition-bin-table__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--cz-space-1);
-}
-
-.cz-tier-edition-bin-table__icon-btn {
-  width: 32px;
-  height: 32px;
-}
-
-.cz-tier-edition-bin-table__icon-btn .cz-station-icon {
-  width: 16px;
-  height: 16px;
-}
 
 /* Same danger foreground token .cz-admin-btn--danger already uses for its
    own text color — no new color introduced. */
-.cz-tier-edition-bin-table__icon-btn--danger {
-  color: var(--station-status-inactive-fg);
-}
 
 /* ── The Admin drawer field system ────────────────────────────────────────────
  *
@@ -751,20 +546,6 @@
 /* Two fields sharing one row (e.g. a value + its unit) — layout only, no
  * control restyling. Children stay ordinary .cz-tf-field wrappers; the row
  * carries the spacing they'd otherwise carry individually. */
-.cz-tf-field-row {
-  display: flex;
-  gap: var(--cz-space-4);
-  margin-bottom: var(--cz-space-4);
-}
-
-.cz-tf-field-row:last-child {
-  margin-bottom: 0;
-}
-
-.cz-tf-field-row > .cz-tf-field {
-  flex: 1 1 0;
-  margin-bottom: 0;
-}
 
 /* The row a checkbox and its label share. It sits inside the one wrapper, so
    hint and error still read beneath the control the way they do for every
@@ -1397,31 +1178,12 @@
   margin-bottom: var(--cz-space-2);
 }
 
-.cz-drawer-groups__view-toggle {
-  width: 28px;
-  height: 28px;
-}
-
-.cz-drawer-groups__view-toggle .cz-station-icon {
-  width: 16px;
-  height: 16px;
-}
-
 /* Edition Bin toggle — ChildChipStrip's own fixed trailing control (see
    .cz-drawer-groups__chip-strip-trailing above), sized identically to the
    view-mode toggle above it since both are compact secondary icon controls
    living in this drawer's nav chrome. aria-pressed carries the active/bin
    state through the SAME persistent-state styling .cz-station-iconbtn
    already gives the theme toggle — no bespoke "active" modifier class. */
-.cz-drawer-groups__bin-toggle {
-  width: 28px;
-  height: 28px;
-}
-
-.cz-drawer-groups__bin-toggle .cz-station-icon {
-  width: 16px;
-  height: 16px;
-}
 
 .cz-drawer-groups__tab {
   position: relative;
@@ -1651,31 +1413,11 @@ button.cz-drawer-groups__chip.cz-drawer-groups__chip {
    DrawerGroupAccordion and everything they render stay mounted at the exact
    same tree position whether editing or not, so an open editor's own local
    state is never wiped by a reparenting remount the instant editing starts. */
-.cz-req-detail--editing .cz-drawer-groups__tablist {
-  display: none;
-}
-
-.cz-req-detail--editing .cz-drawer-groups__accordion-trailing,
-.cz-req-detail--editing .cz-drawer-groups__accordion-heading {
-  display: none;
-}
-
-.cz-req-detail--editing .cz-drawer-groups__accordion-section {
-  border: none;
-  background: transparent;
-}
 
 /* The three collapsed sections (their panel carries the `hidden` attribute
    DrawerGroupAccordion already sets) disappear entirely rather than showing
    as empty bordered boxes with no trigger; the one open section's panel —
    the editor itself — is unaffected. */
-.cz-req-detail--editing .cz-drawer-groups__accordion-section:has(.cz-drawer-groups__accordion-panel[hidden]) {
-  display: none;
-}
-
-.cz-req-detail--editing .cz-drawer-groups__accordion-panel {
-  padding: 0;
-}
 
 .cz-module-status-pill {
   display: inline-flex;
@@ -1752,10 +1494,6 @@ button.cz-module-status-pill {
   color: var(--station-text-muted);
   line-height: var(--admin-lh-s-label);
   margin: 0;
-}
-
-.cz-shell-section--no-border {
-  border-bottom: none;
 }
 
 .drawerModule {

@@ -119,8 +119,7 @@
 .cz-station-pill:focus-visible,
 .cz-station-menu__item:focus-visible,
 .cz-station-tab:focus-visible,
-.cz-station-groups__panel:focus-visible,
-.cz-station-drawer-iconbtn:focus-visible {
+.cz-station-groups__panel:focus-visible {
   outline: 2px solid var(--station-focus-ring);
   outline-offset: 2px;
 }
@@ -237,19 +236,6 @@
      !important, which this <main> would otherwise lose to regardless of
      class specificity. */
   background: var(--station-surface) !important;
-}
-
-.cz-platform-id-migration {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--station-space-x);
-  margin: var(--station-space-x) auto 0;
-  padding: 12px 16px;
-  width: min(calc(100% - (2 * var(--station-space-x))), var(--station-content-max));
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface-elevated);
 }
 
 .cz-admin-station__footer {
@@ -810,9 +796,6 @@ button.cz-station-status-pill {
    panel for a short (2-3 item) candidate list doesn't resize the editor body
    around it. Scoped to this one editor only — the shared .cz-ies/.cz-tf-form
    editor shell stays untouched for every other module. */
-.cz-tier-rate-sheet-access-form {
-  min-height: 220px;
-}
 
 .cz-station-split__item--destructive:hover:not(:disabled) {
   background: var(--station-status-inactive-bg);
@@ -1230,34 +1213,6 @@ button.cz-station-status-pill {
   background: var(--station-hover-bg);
 }
 
-.cz-station-drawer-iconbtn-wrap {
-  position: relative;
-  display: inline-flex;
-}
-
-.cz-station-drawer-iconbtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: var(--station-control-radius);
-  background: transparent;
-  color: var(--station-text-muted);
-  cursor: pointer;
-  transition: background 140ms ease;
-}
-
-.cz-station-drawer-iconbtn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.cz-station-drawer-iconbtn:hover:not(:disabled) {
-  background: var(--station-hover-bg);
-}
-
 /* CRM-1C audit correction: default/hover/disabled already matched the
    established Admin neutral tokens (see .cz-station-drawer__close above,
    the same tokens); focus-visible and active/pressed did not have their
@@ -1266,39 +1221,6 @@ button.cz-station-status-pill {
    token family .cz-station-iconbtn (the canonical Admin header icon
    pattern) already uses: the shared focus-ring rule above, and this same
    neutral active-bg token for a momentary pressed state. */
-.cz-station-drawer-iconbtn:active:not(:disabled) {
-  background: var(--station-active-bg);
-}
-
-.cz-station-drawer-iconbtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.cz-station-drawer-iconbtn-tooltip {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 6px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: var(--station-text);
-  color: var(--station-surface);
-  font-size: 12px;
-  line-height: 1.4;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateY(-2px);
-  transition: opacity 120ms ease, transform 120ms ease;
-  z-index: 10;
-}
-
-.cz-station-drawer-iconbtn-wrap:hover .cz-station-drawer-iconbtn-tooltip,
-.cz-station-drawer-iconbtn:focus-visible ~ .cz-station-drawer-iconbtn-tooltip {
-  opacity: 1;
-  transform: translateY(0);
-}
 .cz-station-drawer__body {
   flex: 1 1 auto;
   min-height: 0;
@@ -1590,107 +1512,6 @@ button.cz-station-status-pill {
    Requests' own class names, the same shape as `cz-service-deck__*`: no
    Service class is reused here. */
 
-.cz-requests-deck__identity {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.cz-requests-deck__identity-icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: var(--station-metric-glyph-plate);
-  height: var(--station-metric-glyph-plate);
-  border-radius: var(--station-metric-glyph-radius);
-  background: var(--station-accent-soft-bg);
-  color: var(--station-accent-fg);
-}
-
-.cz-requests-deck__identity-icon > svg {
-  width: var(--station-metric-glyph-size);
-  height: var(--station-metric-glyph-size);
-}
-
-.cz-requests-deck__identity-copy {
-  min-width: 0;
-}
-
-.cz-requests-deck__identity-name {
-  display: block;
-  overflow: hidden;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cz-requests-deck__identity-ref {
-  display: block;
-  margin-top: 2px;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
-
-.cz-requests-deck__field {
-  min-width: 0;
-  font-size: var(--station-text-sm);
-}
-
-.cz-requests-deck__field-label {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  letter-spacing: var(--station-tracking-wide);
-  text-transform: uppercase;
-}
-
-.cz-requests-deck__row-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.cz-requests-deck__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--station-grid-gap);
-  min-height: var(--station-control-height);
-  padding-inline: var(--station-control-pad-x);
-  border: 1px solid transparent;
-  border-radius: var(--station-control-radius);
-  font: inherit;
-  font-size: var(--station-text-sm);
-  font-weight: 700;
-  line-height: var(--station-line-snug);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
-}
-
-.cz-requests-deck__button--primary {
-  border-color: var(--station-action-bg);
-  background: var(--station-action-bg);
-  color: var(--station-accent-on);
-}
-
-.cz-requests-deck__button--primary:hover:not(:disabled) {
-  border-color: var(--station-action-bg-hover);
-  background: var(--station-action-bg-hover);
-}
-
-.cz-requests-deck__button:focus-visible {
-  outline: 2px solid var(--station-focus-ring);
-  outline-offset: 2px;
-}
-
-.cz-requests-deck__identity-name,
-.cz-requests-deck__field {
-  color: var(--station-text);
-}
-
 /* ── Requests Summary Cards ────────────────────────────────────────────── */
 
 /* Display-only count strip above the list. Each card reuses the shared
@@ -1699,174 +1520,17 @@ button.cz-station-status-pill {
    so it reads as the same "small detail card" family without importing
    Category Group's own grid/subgrid machinery, which this single-row strip
    does not need. */
-.cz-requests-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--station-card-gap);
-}
-
-.cz-requests-summary__card {
-  padding: var(--station-card-pad);
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface-elevated);
-}
 
 /* ── Requests Catalogue ────────────────────────────────────────────────── */
 
-.cz-requests-catalogue {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-  min-width: 0;
-}
-
-.cz-requests-catalogue__toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--station-grid-gap);
-}
-
-.cz-requests-catalogue__search {
-  display: flex;
-  align-items: center;
-  gap: var(--station-grid-gap);
-  flex: 1 1 320px;
-}
-
-.cz-requests-catalogue__search .cz-station-icon {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  color: var(--station-text-muted);
-}
-
 /* ── Requests Drawer ───────────────────────────────────────────────────── */
-
-.cz-requests-drawer {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-}
-
-.cz-requests-drawer__fact {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--station-grid-gap);
-  margin: 0;
-  padding-block: 6px;
-  border-bottom: 1px solid var(--station-border);
-  font-size: var(--station-text-sm);
-}
-
-.cz-requests-drawer__fact:last-child {
-  border-bottom: 0;
-}
-
-.cz-requests-drawer__fact strong {
-  color: var(--station-text-muted);
-  font-weight: 700;
-}
-
-.cz-requests-drawer__notes {
-  margin: 10px 0 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--station-border);
-  color: var(--station-text);
-  font-size: var(--station-text-sm);
-  line-height: var(--station-line-snug);
-  white-space: pre-wrap;
-}
-
-.cz-requests-drawer__items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-grid-gap);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.cz-requests-drawer__item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-block: 8px;
-  border-bottom: 1px solid var(--station-border);
-}
-
-.cz-requests-drawer__item:last-child {
-  border-bottom: 0;
-}
 
 /* Live-correction round: the copy+price row is its own flex row so an
    optional detail block (composable inclusions/streams) can stack full-width
    beneath it instead of competing for the same row's horizontal space. */
-.cz-requests-drawer__item-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--station-grid-gap);
-}
-
-.cz-requests-drawer__item-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  color: var(--station-text);
-  font-size: var(--station-text-sm);
-}
-
-.cz-requests-drawer__item-copy small {
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
-
-.cz-requests-drawer__item-price {
-  flex: none;
-  color: var(--station-text);
-  font-size: var(--station-text-sm);
-  font-weight: 700;
-  white-space: nowrap;
-}
 
 /* Live-correction round: composable ("Build Your Own") inclusion/Leg detail,
    beneath the aggregate line's own row. */
-.cz-requests-drawer__item-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
-  margin-left: 12px;
-  border-left: 2px solid var(--station-border);
-  font-size: var(--station-text-xs);
-}
-
-.cz-requests-drawer__inclusions,
-.cz-requests-drawer__streams {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.cz-requests-drawer__inclusion-row,
-.cz-requests-drawer__stream-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--station-grid-gap);
-  color: var(--station-text-muted);
-}
-
-.cz-requests-drawer__stream-value {
-  font-weight: 600;
-  color: var(--station-text);
-  white-space: nowrap;
-}
 
 /* ── Service Catalogue ─────────────────────────────────────────────────── */
 
@@ -2078,18 +1742,6 @@ button.cz-station-status-pill {
   display: grid;
 }
 
-.cz-station-list__row--details {
-  grid-template-columns: minmax(200px, 1.6fr) minmax(120px, 0.8fr) minmax(110px, 0.7fr) minmax(80px, 0.5fr) auto auto;
-}
-
-.cz-station-list__row--connection {
-  grid-template-columns: minmax(200px, 1.6fr) minmax(120px, 0.8fr) minmax(120px, 0.7fr) minmax(120px, 0.7fr) auto;
-}
-
-.cz-station-list__row--settings {
-  grid-template-columns: minmax(200px, 1.6fr) minmax(140px, 0.9fr) minmax(120px, 0.6fr) auto;
-}
-
 /* Service Home's own column templates — different column counts than Package's
    above, so they declare their own modifiers rather than reusing `--connection`
    / `--settings`, per the shared list system's "add a selector, not a second
@@ -2108,9 +1760,6 @@ button.cz-station-status-pill {
 /* CRM-1B: Requests' own column template — Identity · Customer · Type ·
    Submitted · Status · actions, its own six-column shape per the same
    "add a selector, not a second family" rule. */
-.cz-station-list__row--requests {
-  grid-template-columns: minmax(200px, 1.6fr) minmax(160px, 1fr) minmax(90px, 0.5fr) minmax(120px, 0.7fr) auto auto;
-}
 
 .cz-service-catalogue__table th,
 .cz-service-catalogue__table td,
@@ -2219,25 +1868,6 @@ button.cz-station-status-pill {
 .cz-service-row__count {
   color: var(--station-text) !important;
   font-variant-numeric: tabular-nums;
-}
-
-.cz-service-row__families {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--station-grid-gap);
-}
-
-.cz-service-row__family {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding-inline: var(--station-control-pad-x);
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-control-radius);
-  background: var(--station-active-bg);
-  color: var(--station-text);
-  font-size: var(--station-text-xs);
-  line-height: var(--station-line-snug);
 }
 
 .cz-service-row__action {
@@ -2409,94 +2039,18 @@ button.cz-station-status-pill {
    Selection is transient view state; the surface writes nothing. Everything here
    is drawn from the Admin Station tokens — no glow, no second theme, no neon:
    an operational engine in the station's own language. */
-.cz-tier-workspace {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-  min-width: 0;
-}
 
 /* Engine header — the wall title carries the name; this is its one-line intro. */
-.cz-tier-workspace__intro {
-  margin: 0;
-  max-width: 68ch;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-sm);
-  line-height: var(--station-line-snug);
-}
 
 /* Header — one-line engine context and the Focus/Grid switch. */
-.cz-tier-workspace__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--station-card-gap);
-}
 
 /* Compact Family scope at the head of the right-side Family group. */
-.cz-tier-workspace__scope {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  min-width: 0;
-}
-
-.cz-tier-workspace__scope-label {
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  letter-spacing: var(--station-tracking-wide);
-  text-transform: uppercase;
-}
 
 /* The accent treatment that marks this control as naming the active scope is a
    shared variant now. What remains is how it sits in the scope row. */
-.cz-tier-workspace__scope-select {
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
-  text-overflow: ellipsis;
-}
 
 /* View switch — a two-option segmented control (Focus | Grid). A view mode of
    the one tool, so it reads as one small control, not a set of tabs. */
-.cz-tier-workspace__viewswitch {
-  display: inline-flex;
-  flex: none;
-  padding: 2px;
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-control-radius);
-  background: var(--station-surface);
-}
-
-.cz-tier-workspace__viewswitch-option {
-  padding: 6px 14px;
-  border: 0;
-  border-radius: calc(var(--station-control-radius) - 2px);
-  background: transparent;
-  color: var(--station-text-muted);
-  font: inherit;
-  font-size: var(--station-text-sm);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.cz-tier-workspace__viewswitch-option:hover {
-  color: var(--station-text);
-}
-
-.cz-tier-workspace__viewswitch-option:focus-visible {
-  outline: 2px solid var(--station-focus-ring);
-  outline-offset: 2px;
-}
-
-.cz-tier-workspace__viewswitch-option[aria-pressed="true"] {
-  background: var(--station-accent-soft-bg);
-  color: var(--station-text);
-  box-shadow: inset 0 0 0 1px var(--station-accent-border);
-}
 
 /* Workspace composition — one three-column layout grid reading left to right as
    Tier Tabs → focused Tier → Family group. The __primary and __focus wrappers are
@@ -2504,42 +2058,10 @@ button.cz-station-status-pill {
    items of THIS grid, producing that reading order without changing the React
    hierarchy. The Family group stays present in Grid view too, so re-scoping never
    requires changing view mode. */
-.cz-tier-workspace__layout {
-  display: grid;
-  grid-template-columns: minmax(240px, 0.9fr) minmax(500px, 1.5fr) minmax(260px, 1fr);
-  gap: var(--station-card-gap);
-  align-items: stretch;
-  min-width: 0;
-}
-
-.cz-tier-workspace__primary,
-.cz-tier-workspace__focus {
-  display: contents;
-}
-
-.cz-tier-workspace__tabs {
-  grid-column: 1;
-}
-
-.cz-tier-workspace__detail {
-  grid-column: 2;
-}
-
-.cz-tier-workspace__family {
-  grid-column: 3;
-}
 
 /* Grid view and the empty-Tier message render directly inside __primary, so
    under display:contents they are layout-grid items too. Hold them across the
    primary area (columns 1–2), leaving the Family group in column 3. */
-.cz-tier-workspace__primary > .cz-cg-grid,
-.cz-tier-workspace__primary > .cz-station-empty {
-  grid-column: 1 / 3;
-}
-
-.cz-tier-workspace__primary > .cz-tier-workspace__no-system {
-  grid-column: 1 / 3;
-}
 
 /* Grid view's Tier occupant cards — 2×2 at desktop widths (live correction,
    round 3), scoped to this grid only so Package Family/Category card grids
@@ -2549,122 +2071,16 @@ button.cz-station-status-pill {
    monitors. The existing ≤767px single-column collapse
    (admin-station-responsive.css) is untouched — this rule only applies above
    it, at the same boundary the shared grid already uses. */
-@media (min-width: 768px) {
-  .cz-tier-workspace__primary > .cz-cg-grid {
-    max-width: 1440px;
-  }
-
-  .cz-tier-workspace__primary > .cz-cg-grid > .cz-cg-grid__cell {
-    grid-column: span 6;
-  }
-}
 
 /* All three regions share one elevated-panel treatment so they read as equal
    parts of a single engine, not a bare list beside two cards. */
-.cz-tier-workspace__tabs,
-.cz-tier-workspace__detail,
-.cz-tier-workspace__family {
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface-elevated);
-}
-
-.cz-tier-workspace__family {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-  min-width: 0;
-  padding: var(--station-card-pad);
-}
-
-.cz-tier-workspace__family-summary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-  min-width: 0;
-  padding-top: var(--station-card-gap);
-  border-top: 1px solid var(--station-card-divider);
-}
 
 /* Name and description stacked above the status pill rather than forced into a
    narrow horizontal row with it. */
-.cz-tier-workspace__family-head {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  min-width: 0;
-}
-
-.cz-tier-workspace__family-identity {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.cz-tier-workspace__family-name {
-  margin: 0;
-  color: var(--station-text);
-  font-size: var(--station-text-xl);
-  font-weight: 700;
-  letter-spacing: var(--station-tracking-tight);
-  overflow-wrap: anywhere;
-}
 
 /* Clamp the positioning line so a long description never stretches the panel. */
-.cz-tier-workspace__family-description {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-sm);
-  line-height: var(--station-line-snug);
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
-}
-
-.cz-tier-workspace__family-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border-top: 1px solid var(--station-card-divider);
-}
-
-.cz-tier-workspace__family-metrics > * {
-  padding-block: var(--station-metric-pad);
-}
-
-.cz-tier-workspace__family-metrics > * + * {
-  border-top: 1px solid var(--station-card-divider);
-}
 
 /* Left rail — a real vertical tablist rendered as a compact list of buttons. */
-.cz-tier-workspace__tabs {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-  padding: var(--station-card-pad);
-}
-
-.cz-tier-workspace__panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.cz-tier-workspace__panel-label {
-  margin: 0 0 2px;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  letter-spacing: var(--station-tracking-wide);
-  text-transform: uppercase;
-}
 
 /* Grid view's Composable Occupant box has no other CSS of its own (a bare
    wrapper around the label and the Tier shell below it) — its label's 2px
@@ -2673,289 +2089,43 @@ button.cz-station-status-pill {
    own reuse of this label are unaffected. Live correction (round 3): the
    first --station-card-gap pass still read too tight against the shell
    directly beneath it. */
-.cz-tier-workspace__composable > .cz-tier-workspace__panel-label {
-  margin-bottom: var(--station-body-pad-sm);
-}
 
 /* Compact, visually-secondary list filter — small footprint so it reads as a
    sort control, not a form field competing with the panel heading. */
-.cz-tier-workspace__list-filter-select {
-  min-width: 0;
-  width: auto;
-}
-
-.cz-tier-workspace__list-empty {
-  padding: var(--station-card-pad);
-}
-
-.cz-tier-workspace__tab {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  padding: 14px;
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: transparent;
-  color: var(--station-text);
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-
-.cz-tier-workspace__tab:hover {
-  background: var(--station-hover-bg);
-}
-
-.cz-tier-workspace__tab:focus-visible {
-  outline: 2px solid var(--station-focus-ring);
-  outline-offset: 2px;
-}
 
 /* Selected tab — the accent-outline treatment the station uses for an active
    pill, not a filled hero. */
-.cz-tier-workspace__tab--selected {
-  border-color: var(--station-accent);
-  background: var(--station-accent-soft-bg);
-  box-shadow: inset 3px 0 0 var(--station-accent);
-}
-
-.cz-tier-workspace__tab-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-}
-
-.cz-tier-workspace__tab-name {
-  min-width: 0;
-  font-size: var(--station-text-sm);
-  font-weight: 700;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
 
 /* Compact, non-interactive status chip inside a tab. Colour comes from the same
    status tokens the shared pill uses; it is a chip rather than the interactive
    StationStatusPill because a tab is itself a button (no button-in-button). */
-.cz-tier-workspace__tab-status {
-  flex: none;
-  padding: var(--station-pill-pad-y) var(--station-pill-pad-x);
-  border: 1px solid transparent;
-  border-radius: var(--station-pill-radius);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.cz-tier-workspace__tab-status[data-status="active"] {
-  background: var(--station-status-active-bg);
-  border-color: var(--station-status-active-border);
-  color: var(--station-status-active-fg);
-}
-
-.cz-tier-workspace__tab-status[data-status="disabled"] {
-  background: var(--station-status-inactive-bg);
-  border-color: var(--station-status-inactive-border);
-  color: var(--station-status-inactive-fg);
-}
-
-.cz-tier-workspace__tab-status[data-status="pending"] {
-  background: var(--station-status-pending-bg);
-  border-color: var(--station-status-pending-border);
-  color: var(--station-status-pending-fg);
-}
-
-.cz-tier-workspace__tab-status[data-status="empty"] {
-  background: var(--station-surface);
-  border-color: var(--station-border);
-  color: var(--station-text-muted);
-}
-
-.cz-tier-workspace__tab-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 10px;
-  margin-top: 3px;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  line-height: var(--station-line-snug);
-}
 
 /* The composable occupant's own sixth destination — visually separated from
    the five filterable Tier tabs above it by a plain divider, and its own
    tab gets a dashed border so it never reads as a sixth peer Tier slot. */
-.cz-tier-workspace__tab-divider {
-  height: 1px;
-  margin: 4px 2px;
-  border: 0;
-  background: var(--station-card-divider);
-}
-
-.cz-tier-workspace__tab--subordinate {
-  border-style: dashed;
-}
 
 /* Right — the one selected Tier's detail, an elevated panel echoing the card. */
 /* The focused Tier is the dominant panel: border/radius/background come from the
    shared panel rule above; here it becomes an edge-to-edge stack of separated
    regions (head, price, metrics, actions), each with its own padding and divider,
    and fills the row height so it reads as the centre of the engine. */
-.cz-tier-workspace__detail {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  min-width: 0;
-  min-height: 100%;
-  padding: 0;
-  overflow: hidden;
-}
-
-.cz-tier-workspace__detail-head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--station-card-gap);
-  padding: 20px;
-  border-bottom: 1px solid var(--station-card-divider);
-}
 
 /* Mirrors the card medallion, so the detail reads as the same tier. */
-.cz-tier-workspace__detail-medallion {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: var(--station-card-icon-size);
-  height: var(--station-card-icon-size);
-  border-radius: var(--station-card-icon-radius);
-  background: var(--station-nav-active-bg);
-  color: var(--station-nav-accent-strong);
-}
-
-.cz-tier-workspace__detail-glyph {
-  width: var(--station-card-glyph-size);
-  height: var(--station-card-glyph-size);
-}
-
-.cz-tier-workspace__detail-identity {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  margin-inline-end: auto;
-}
-
-.cz-tier-workspace__detail-name {
-  margin: 0;
-  min-width: 0;
-  color: var(--station-text);
-  font-size: var(--station-text-xl);
-  font-weight: 700;
-  letter-spacing: var(--station-tracking-tight);
-  overflow-wrap: anywhere;
-}
-
-.cz-tier-workspace__detail-kind {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  min-width: 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-sm);
-  line-height: var(--station-line-snug);
-  overflow-wrap: anywhere;
-}
 
 /* The focused card's Popular badge — an accent chip, not a lifecycle status,
    so it uses the accent tokens rather than the status-pill vocabulary. */
-.cz-tier-workspace__popular-badge {
-  flex: none;
-  padding: var(--station-pill-pad-y) var(--station-pill-pad-x);
-  border: 1px solid var(--station-accent-border);
-  border-radius: var(--station-pill-radius);
-  background: var(--station-accent-soft-bg);
-  color: var(--station-accent-fg);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  white-space: nowrap;
-}
 
 /* The price line, carried straight from the occupant card's description, given
    its own banded region below the header. */
-.cz-tier-workspace__detail-price {
-  margin: 0;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--station-card-divider);
-  color: var(--station-text);
-  font-size: var(--station-text-xl);
-  font-weight: 600;
-}
 
 /* The authoritative metric rows — a vertical list separated by rules, matching
    the card's metric repeater. */
-.cz-tier-workspace__detail-metrics {
-  display: flex;
-  flex-direction: column;
-  padding-inline: 20px;
-}
-
-.cz-tier-workspace__detail-metrics > * {
-  padding-block: var(--station-metric-pad);
-}
-
-.cz-tier-workspace__detail-metrics > * + * {
-  border-top: 1px solid var(--station-card-divider);
-}
 
 /* The View/Edit control, anchored to the panel's bottom edge in its own banded
    region. */
-.cz-tier-workspace__detail-actions {
-  display: flex;
-  margin-top: auto;
-  padding: 16px 20px 20px;
-  border-top: 1px solid var(--station-card-divider);
-}
-
-.cz-tier-workspace__detail-actions .cz-station-split,
-.cz-tier-workspace__detail-actions .cz-station-split__primary {
-  flex: 1 1 auto;
-}
-
-.cz-tier-workspace__detail-actions .cz-station-split {
-  width: 100%;
-}
 
 /* Empty slots retain the focused compartment. This is a neutral overlay within
    the existing shell, not a substitute editor or a fabricated Tier card. */
-.cz-tier-workspace__empty-focus {
-  display: grid;
-  place-items: center;
-  flex: 1 1 auto;
-  gap: 18px;
-  min-height: 250px;
-  padding: 32px;
-  text-align: center;
-  background: linear-gradient(180deg, transparent, var(--station-surface));
-}
-
-.cz-tier-workspace__empty-copy {
-  max-width: 52ch;
-}
-
-.cz-tier-workspace__empty-copy h5 {
-  margin: 0;
-  color: var(--station-text);
-  font-size: var(--station-text-lg);
-}
-
-.cz-tier-workspace__empty-copy p {
-  margin: 8px 0 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-sm);
-  line-height: var(--station-line-snug);
-}
 
 /* ── Composable-only middle shell ──────────────────────────────────────────────
    Sits between the upper focus area and the lower deck, mounted only while the
@@ -2963,85 +2133,10 @@ button.cz-station-status-pill {
    elevated panels echoing the engine's own tabs/detail/family treatment: up to
    six featured/selected inclusions on the left, a concise Customer Selection
    Rules stat list on the right. */
-.cz-tier-workspace__composable-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
-  gap: var(--station-card-gap);
-  align-items: stretch;
-  min-width: 0;
-}
-
-.cz-tier-workspace__composable-highlights,
-.cz-tier-workspace__composable-rules {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-  min-width: 0;
-  padding: var(--station-card-pad);
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface-elevated);
-}
-
-.cz-tier-workspace__composable-highlight-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.cz-tier-workspace__composable-highlight {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-control-radius);
-  background: var(--station-surface);
-}
-
-.cz-tier-workspace__composable-highlight-icon {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--station-accent-soft-bg);
-  color: var(--station-accent-fg);
-}
-
-.cz-tier-workspace__composable-highlight-icon > svg {
-  width: 16px;
-  height: 16px;
-}
-
-.cz-tier-workspace__composable-highlight-name {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--station-text);
-  font-size: var(--station-text-sm);
-  font-weight: 600;
-}
 
 /* Reuses the accent-chip treatment the focused card's own Popular badge
    uses (merchandising flag, not a lifecycle status), pushed to the row's
    trailing edge. */
-.cz-tier-workspace__featured-badge {
-  flex: none;
-  margin-inline-start: auto;
-  padding: var(--station-pill-pad-y) var(--station-pill-pad-x);
-  border: 1px solid var(--station-accent-border);
-  border-radius: var(--station-pill-radius);
-  background: var(--station-accent-soft-bg);
-  color: var(--station-accent-fg);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  white-space: nowrap;
-}
 
 /* Same divided stat-row rhythm the Family summary's own metrics list uses.
    No border-top on the container itself (2026-09-07 cleanup) — the tab
@@ -3049,419 +2144,66 @@ button.cz-station-status-pill {
    tab underline (`.cz-station-tabset__list`/`[aria-selected='true']::after`),
    so an additional top border here doubled that line; `> * + *` below still
    divides each row from the next. */
-.cz-tier-workspace__composable-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.cz-tier-workspace__composable-metrics > * {
-  padding-block: var(--station-metric-pad);
-}
-
-.cz-tier-workspace__composable-metrics > * + * {
-  border-top: 1px solid var(--station-card-divider);
-}
 
 /* Live-UI correction, project-work/2026-09-06-tier-catalogue-admin-ux-
    consolidation.md, Phase 3: the declaration tabs sit at the top of the
    right (`-rules`) column, aligned to its trailing edge — layered onto the
    shared `cz-station-tabset__list` skin, the same additive-modifier pattern
    TierTabSet.tsx's own `cz-tier-deck__tabs` already uses. */
-.cz-tier-workspace__scope-tabs {
-  justify-content: flex-end;
-}
 
 /* ── Tier Workspace lower deck ─────────────────────────────────────────────────
    The focused-Tier deck beneath the engine: a single elevated panel carrying a
    context bar, a tab strip (Details | Connections | Settings), and the active
    lane. It reads as one more region of the same engine, so it shares the engine's
    panel treatment, tokens and status vocabulary rather than introducing its own. */
-.cz-tier-deck {
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface-elevated);
-  color: var(--station-text);
-  overflow: hidden;
-}
 
 /* Context bar — which Tier is focused, and the reminder that the scope is the
    engine's, not a second selector. */
-.cz-tier-deck__bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--station-card-gap);
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--station-card-divider);
-}
-
-.cz-tier-deck__context {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.cz-tier-deck__context-icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: var(--station-card-icon-size);
-  height: var(--station-card-icon-size);
-  border-radius: var(--station-card-icon-radius);
-  background: var(--station-accent-soft-bg);
-  color: var(--station-accent-fg);
-}
-
-.cz-tier-deck__context-icon > svg {
-  width: var(--station-card-glyph-size);
-  height: var(--station-card-glyph-size);
-}
-
-.cz-tier-deck__context-name {
-  margin: 0;
-  font-size: var(--station-text-sm);
-  font-weight: 700;
-}
-
-.cz-tier-deck__context-scope {
-  margin: 2px 0 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
-
-.cz-tier-deck__scope-note {
-  flex: none;
-  padding: var(--station-pill-pad-y) var(--station-pill-pad-x);
-  border: 1px solid var(--station-accent-border);
-  border-radius: var(--station-pill-radius);
-  background: var(--station-accent-soft-bg);
-  color: var(--station-accent-fg);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-}
 
 /* Tab strip — the mockup's Details | Connections | Settings.
    The underlined strip itself is the shared `cz-station-tabset` skin; the deck
    adds only what its framed panel needs, which is the inset that lines the tabs
    up with the context bar above them. */
-.cz-tier-deck__tabs {
-  padding-inline: 20px;
-}
 
 /* Tab label type matches the engine's own upper tab row
    (`.cz-tier-workspace__tab-name`) so the deck's tab strip reads as the same
    type scale as the engine above it. */
-.cz-tier-deck__tabs .cz-station-tabset__tab {
-  font-size: var(--station-text-sm);
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.cz-tier-deck__panel {
-  padding: 18px 20px 20px;
-}
 
 /* Lane header — title and one honest line about what the lane shows. */
-.cz-tier-deck__lane-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.cz-tier-deck__lane-title {
-  margin: 0;
-  font-size: var(--station-text-sm);
-  font-weight: 700;
-}
-
-.cz-tier-deck__lane-note {
-  margin: 4px 0 0;
-  max-width: 76ch;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  line-height: var(--station-line-snug);
-}
 
 /* Details toolbar — search plus the two real filters. */
-.cz-tier-deck__toolbar {
-  display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) minmax(150px, 0.6fr) minmax(150px, 0.6fr);
-  gap: 10px;
-}
-
-.cz-tier-deck__search {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.cz-tier-deck__search-icon {
-  position: absolute;
-  inset-inline-start: 12px;
-  width: 16px;
-  height: 16px;
-  color: var(--station-text-muted);
-  pointer-events: none;
-}
 
 /* The deck's filters are shared controls. What stays here is the one piece of
    genuine layout they need: room for the search glyph sitting over the field. */
-.cz-tier-deck__control--search {
-  padding-inline-start: 36px;
-}
 
 /* Station-page actions must use the Station token family. Drawer-kit
    `.cz-admin-btn` controls resolve through the separate dark --admin-* palette
    and therefore must remain inside drawers. */
-.cz-tier-deck__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--station-grid-gap);
-  min-height: var(--station-control-height);
-  padding-inline: var(--station-control-pad-x);
-  border: 1px solid transparent;
-  border-radius: var(--station-control-radius);
-  font: inherit;
-  font-size: var(--station-text-sm);
-  font-weight: 700;
-  line-height: var(--station-line-snug);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
-}
-
-.cz-tier-deck__button--primary {
-  border-color: var(--station-action-bg);
-  background: var(--station-action-bg);
-  color: var(--station-accent-on);
-}
-
-.cz-tier-deck__button--primary:hover:not(:disabled) {
-  border-color: var(--station-action-bg-hover);
-  background: var(--station-action-bg-hover);
-}
-
-.cz-tier-deck__button--destructive,
-.cz-tier-deck__button--destructive:hover:not(:disabled) {
-  border-color: var(--station-status-inactive-border);
-  background: var(--station-status-inactive-bg);
-  color: var(--station-status-inactive-fg);
-}
-
-.cz-tier-deck__button:disabled {
-  opacity: var(--station-disabled-opacity);
-  cursor: not-allowed;
-}
-
-.cz-tier-deck__button:focus-visible {
-  outline: 2px solid var(--station-focus-ring);
-  outline-offset: 2px;
-}
 
 /* Details, Connections and Settings rows are the station list system above; this
    deck declares no list surface of its own. What follows is cell content only. */
 
 /* Connections — one continuous browser: the toolbar above, three ordered
    accordion sections below. */
-.cz-tier-deck__connections {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-}
-
-.cz-tier-deck__accordion {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.cz-tier-deck__accordion-section {
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface-elevated);
-  overflow: hidden;
-}
-
-.cz-tier-deck__accordion-heading {
-  margin: 0;
-}
-
-.cz-tier-deck__accordion-trigger {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: var(--station-card-pad);
-  border: none;
-  background: transparent;
-  color: var(--station-text);
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
 
 /* Package Home accordion row (2026-09-14 work order, confirmed against live
    screenshots): the resting row reads the raised, elevated surface and hover
    settles to the base surface — the reverse of a typical "hover lightens"
    pattern, but this is the confirmed intended direction for this row. */
-.cz-tier-deck__accordion-trigger:hover {
-  background: var(--station-surface);
-}
-
-.cz-tier-deck__accordion-trigger:focus-visible {
-  outline: 2px solid var(--station-focus-ring);
-  outline-offset: -2px;
-}
-
-.cz-tier-deck__accordion-trigger .cz-tier-deck__lane-title {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cz-tier-deck__accordion-chevron {
-  display: grid;
-  place-items: center;
-  flex: none;
-  color: var(--station-text-muted);
-  transform: rotate(-90deg);
-  transition: transform 140ms ease;
-}
-
-.cz-tier-deck__accordion-chevron > svg {
-  width: 16px;
-  height: 16px;
-}
-
-.cz-tier-deck__accordion-trigger[aria-expanded='true'] .cz-tier-deck__accordion-chevron {
-  color: var(--station-accent-fg);
-  transform: rotate(0);
-}
-
-.cz-tier-deck__accordion-count {
-  flex: none;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--station-accent-soft-bg);
-  color: var(--station-accent-fg);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-}
-
-.cz-tier-deck__accordion-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-  padding: 0 var(--station-card-pad) var(--station-card-pad);
-}
 
 /* An author rule at the same specificity as the UA `[hidden]` rule always wins
    the cascade, so the block `display: flex` above silently defeats the native
    `hidden` attribute unless restated here. A collapsed section must actually
    disappear, not just rotate its chevron. */
-.cz-tier-deck__accordion-panel[hidden] {
-  display: none;
-}
 
 /* Settings' accordion header meta — a descriptive summary, not a numeric
    count, so it wears muted text rather than the Connections count pill. */
-.cz-tier-deck__accordion-summary {
-  flex: none;
-  max-width: 60%;
-  overflow: hidden;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cz-tier-deck__identity {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.cz-tier-deck__identity-icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: var(--station-card-icon-size);
-  height: var(--station-card-icon-size);
-  border-radius: var(--station-card-icon-radius);
-  background: var(--station-accent-soft-bg);
-  color: var(--station-accent-fg);
-}
-
-.cz-tier-deck__identity-icon > svg {
-  width: var(--station-card-glyph-size);
-  height: var(--station-card-glyph-size);
-}
-
-.cz-tier-deck__identity-icon--compact {
-  width: var(--station-metric-glyph-plate);
-  height: var(--station-metric-glyph-plate);
-  border-radius: var(--station-metric-glyph-radius);
-}
-
-.cz-tier-deck__identity-icon--compact > svg {
-  width: var(--station-metric-glyph-size);
-  height: var(--station-metric-glyph-size);
-}
-
-.cz-tier-deck__identity-copy {
-  min-width: 0;
-}
-
-.cz-tier-deck__identity-name {
-  display: block;
-  overflow: hidden;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cz-tier-deck__identity-ref {
-  display: block;
-  margin-top: 2px;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
 
 /* Family/Tier Group/Rate Sheet connection rows already carry their own
    Platform ID field (PlatformIdField) — this caption would only repeat the
    internal id beneath the name a second time. Hidden here, display-only: the
    underlying reference stays in the row data for search and stays reachable
    at every other TierDeckRowIdentity use (inclusion rows, settings rows). */
-.cz-station-list__row--connection .cz-tier-deck__identity-ref {
-  display: none;
-}
-
-.cz-tier-deck__field {
-  min-width: 0;
-  font-size: var(--station-text-sm);
-}
-
-.cz-tier-deck__field-label {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  letter-spacing: var(--station-tracking-wide);
-  text-transform: uppercase;
-}
-
-.cz-tier-deck__money {
-  font-weight: 700;
-}
 
 /* The deck's own `cz-tier-deck__status` pill is retired: every workspace lane
    now renders the shared `cz-module-status-pill` from drawer-kit.css, so the
@@ -3473,154 +2215,28 @@ button.cz-station-status-pill {
   justify-self: start;
 }
 
-.cz-tier-deck__row-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 /* Settings follows the same full-width accordion-section flow as Connections. */
-.cz-tier-settings {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-}
 
 /* A group's top-of-panel control row — a filter plus its primary action,
    right-aligned as one unit above the group's note and sections. */
-.cz-tier-settings__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
-  width: 100%;
-}
 
 /* The field system's select sizes to a form column by default; here it sits
    beside a button in a right-aligned row, so it sizes to its own content
    instead of forcing the row onto two lines. */
-.cz-tier-settings__toolbar .cz-tf-select {
-  width: auto;
-  max-width: fit-content;
-}
 
 /* Each open group contributes one full-width settings leaf. */
-.cz-tier-settings__leaf {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.cz-tier-settings__leaf-title {
-  margin: 0;
-  color: var(--station-text);
-  font-size: var(--station-text-sm);
-  font-weight: 700;
-}
-
-.cz-tier-settings__muted,
-.cz-tier-settings__leaf p {
-  margin: 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  line-height: var(--station-line-snug);
-}
 
 /* Package Settings' own Maintenance section — Commercial Legs Debug. A
    read-only report, nested Family -> Tier -> Edition -> Period -> Component
    -> Item via plain <details>, not a new drawer/module presentation system. */
-.cz-legs-debug {
-  display: flex;
-  flex-direction: column;
-  gap: var(--station-card-gap);
-  width: 100%;
-}
-
-.cz-legs-debug__controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.cz-legs-debug__controls .cz-tf-select {
-  width: auto;
-  max-width: 360px;
-}
-
-.cz-legs-debug__muted {
-  margin: 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
-
-.cz-legs-debug__family-title {
-  margin: 0;
-  color: var(--station-text);
-  font-size: var(--station-text-sm);
-  font-weight: 700;
-}
-
-.cz-legs-debug__tier,
-.cz-legs-debug__edition,
-.cz-legs-debug__period,
-.cz-legs-debug__component {
-  margin: 6px 0 6px 12px;
-  padding: 4px 0 4px 10px;
-  border-left: 2px solid var(--station-border);
-}
-
-.cz-legs-debug__tier > summary,
-.cz-legs-debug__edition > summary,
-.cz-legs-debug__period > summary,
-.cz-legs-debug__component > summary {
-  cursor: pointer;
-  color: var(--station-text);
-  font-size: var(--station-text-xs);
-}
-
-.cz-legs-debug__tier > summary {
-  font-weight: 700;
-}
-
-.cz-legs-debug__edition > summary {
-  font-weight: 600;
-}
-
-.cz-legs-debug__table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 6px 0 10px;
-  font-size: var(--station-text-xs);
-}
-
-.cz-legs-debug__table th,
-.cz-legs-debug__table td {
-  text-align: left;
-  padding: 3px 8px;
-  border-bottom: 1px solid var(--station-border);
-  color: var(--station-text);
-}
 
 /* Keep every primary data value on the Station foreground. WordPress and the
    separately loaded drawer stylesheet both expose inherited text colours; the
    deck is a Station surface and must close that inheritance boundary itself. */
-.cz-tier-deck__context-name,
-.cz-tier-deck__lane-title,
-.cz-tier-deck__identity-name,
-.cz-tier-deck__field,
-.cz-tier-deck__money,
-.cz-tier-settings__leaf-title {
-  color: var(--station-text);
-}
 
 /* A Settings row is a deck row with one summary field: identity, that field, the
    record's state, and its actions. The five-column connection row still serves
    the slot list, which carries two. */
-.cz-tier-settings__leaf .cz-station-list {
-  width: 100%;
-}
 
 /* ── Rate Sheet authoring tool ───────────────────────────────────────────── */
 /* The Rate Sheet is a registered drawer that follows the mature View/Edit flow.
@@ -3629,136 +2245,11 @@ button.cz-station-status-pill {
    only the authoring grid, groups, and source picker — the drawer shell, header,
    footer, and read cards are owned by Admin Station and the drawer kit. */
 
-.cz-rate-sheet-tool__editor {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.cz-rate-sheet-tool__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.cz-rate-sheet-tool__focused-head {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto auto;
-  align-items: center;
-  gap: 10px;
-}
-
 /* The focused Rate Sheet's own child navigation — the shared ChildChipStrip
    (drawer-kit) carrying [Rate Sheet][Bundle …] plus the fixed "+ Bundle"
    trailing control. The strip's own gutter margin is authored for the Tier
    drawer's space-6 padded groups; this editor is not that container, so the
    gutter is neutralised HERE rather than by changing the shared primitive. */
-.cz-rate-sheet-tool__editor--focused > .cz-drawer-groups__chip-strip {
-  margin-inline: 0;
-  padding-inline: 0;
-}
-
-.cz-rate-sheet-tool__bundle {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.cz-rate-sheet-tool__inline-values {
-  display: flex;
-  min-width: 240px;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface);
-}
-
-.cz-rate-sheet-tool__inline-value {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-@media (max-width: 782px) {
-  .cz-rate-sheet-tool__focused-head {
-    grid-template-columns: 1fr;
-  }
-}
-
-.cz-rate-sheet-tool__group-create,
-.cz-rate-sheet-tool__group-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cz-rate-sheet-tool__groups {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface);
-}
-
-.cz-rate-sheet-tool__group-row .cz-tf-input {
-  max-width: 320px;
-}
-
-.cz-rate-sheet-tool__grid-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-}
-
-.cz-rate-sheet-tool__grid {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--station-text-sm);
-}
-
-.cz-rate-sheet-tool__grid th,
-.cz-rate-sheet-tool__grid td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--station-border);
-  vertical-align: middle;
-}
-
-.cz-rate-sheet-tool__grid th {
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  color: var(--station-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.cz-rate-sheet-tool__grid tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.cz-rate-sheet-tool__cell-name {
-  font-weight: 600;
-}
-
-.cz-rate-sheet-tool__cell-name-stack {
-  display: grid;
-  gap: 2px;
-}
-
-.cz-rate-sheet-tool__cell-name-stack small {
-  font-weight: 400;
-  font-size: var(--station-text-xs);
-  color: var(--station-text-muted);
-}
-
-.cz-rate-sheet-tool__grid .cz-tf-input,
-.cz-rate-sheet-tool__grid .cz-tf-select {
-  min-width: 88px;
-}
 
 /* The Unit Price cell's own Default/Option editor — standalone drawer's
    active row only. A plain Edit button (`cz-admin-btn`, the same button
@@ -3769,345 +2260,34 @@ button.cz-station-status-pill {
    wrap — never a detached drawer/modal), using this sheet's own station
    tokens rather than the drawer kit's private palette (feature CSS here
    may not reference --admin-* tokens). */
-.cz-rate-sheet-tool__price-popover-wrap {
-  position: relative;
-  display: inline-block;
-}
-
-.cz-rate-sheet-tool__price-popover {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 4px);
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 320px;
-  max-width: fit-content;
-  padding: 10px;
-  background: var(--station-surface);
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-control-radius);
-  box-shadow: var(--station-shadow);
-}
-
-.cz-rate-sheet-tool__price-popover-close {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 20px;
-  height: 20px;
-  line-height: 1;
-  background: transparent;
-  border: none;
-  color: var(--station-text-muted);
-  cursor: pointer;
-}
-
-.cz-rate-sheet-tool__price-popover-close:hover {
-  color: var(--station-text);
-}
-
-.cz-rate-sheet-tool__price-popover-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.cz-rate-sheet-tool__price-popover-table td {
-  padding: 3px 4px 3px 0;
-  vertical-align: middle;
-}
-
-.cz-rate-sheet-tool__price-popover-title {
-  padding: 0 24px 6px 0;
-  text-align: left;
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  color: var(--station-text-muted);
-}
-
-.cz-rate-sheet-tool__price-popover-table .cz-tf-input {
-  min-width: 84px;
-}
-
-.cz-rate-sheet-tool__price-popover-price-cell {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.cz-rate-sheet-tool__price-popover-remove {
-  flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  line-height: 1;
-  background: transparent;
-  border: none;
-  color: var(--station-text-muted);
-  cursor: pointer;
-}
-
-.cz-rate-sheet-tool__price-popover-remove:hover {
-  color: var(--station-field-error);
-}
-
-.cz-rate-sheet-tool__price-popover-add {
-  align-self: flex-start;
-  padding: 0;
-  background: transparent;
-  border: none;
-  color: var(--station-accent);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.cz-rate-sheet-tool__price-popover-footer {
-  display: flex;
-  justify-content: flex-end;
-}
 
 /* A locked row's own read-only Price Options list — the same Unit Price cell,
    no chips/tabs, nothing clickable. Deliberately its own class family, never
    reusing `__price-options-tab*` (that grammar is interactive-only). */
-.cz-rate-sheet-tool__price-options-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 140px;
-}
-
-.cz-rate-sheet-tool__price-options-summary-title {
-  margin: 0;
-  font-size: var(--station-text-xs);
-  font-weight: 600;
-  color: var(--station-text-muted);
-}
-
-.cz-rate-sheet-tool__price-options-summary-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.cz-rate-sheet-tool__price-options-summary-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: var(--station-text-sm);
-}
-
-.cz-rate-sheet-tool__price-options-summary-label {
-  color: var(--station-text-muted);
-}
-
-.cz-rate-sheet-tool__price-options-summary-value {
-  color: var(--station-text);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.cz-rate-sheet-tool__picker-note {
-  margin: 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
 
 /* The unified "+ Add Service" picker (RateSheetServiceImportPicker) — its own
    card, distinct from `.cz-rate-sheet-tool__picker` (the retired single-list
    Browse Services/Add Row pickers) since it hosts a 3-column browse layout
    AND a staging table inside the same shell. */
-.cz-rate-sheet-tool__import {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface);
-}
-
-.cz-rate-sheet-tool__import-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.cz-rate-sheet-tool__import-columns {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-@media (max-width: 900px) {
-  .cz-rate-sheet-tool__import-columns {
-    grid-template-columns: 1fr;
-  }
-}
-
-.cz-rate-sheet-tool__import-column {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.cz-rate-sheet-tool__import-column-label {
-  margin: 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.cz-rate-sheet-tool__import-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 6px;
-  max-height: 260px;
-  overflow-y: auto;
-}
 
 /* Same pill/active grammar as `.cz-rate-sheet-tool__price-options-tab` —
    toggle-to-select, "×" appears inline when active, never a checkbox. */
-.cz-rate-sheet-tool__import-chip {
-  flex: 0 0 auto;
-  padding: 5px 10px;
-  background: transparent;
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-pill-radius);
-  font-size: var(--station-text-xs);
-  font-weight: 600;
-  color: var(--station-text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.cz-rate-sheet-tool__import-chip:hover:not(:disabled) {
-  color: var(--station-text);
-}
-
-.cz-rate-sheet-tool__import-chip:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.cz-rate-sheet-tool__import-chip--active {
-  background: var(--station-accent-soft-bg);
-  border-color: var(--station-accent-border);
-  color: var(--station-accent-fg);
-}
-
-.cz-rate-sheet-tool__import-chip-note {
-  color: var(--station-text-muted);
-  font-weight: 400;
-}
-
-.cz-rate-sheet-tool__import-actions {
-  display: flex;
-  justify-content: flex-end;
-}
 
 /* The Rate Sheet source browse is two columns, not three — the caller's own
    trigger already chose the source, so nothing here browses a catalogue the
    admin did not ask for. */
-.cz-rate-sheet-tool__import-columns--pair {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-@media (max-width: 900px) {
-  .cz-rate-sheet-tool__import-columns--pair {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* The running basket: full width BENEATH the browse columns, so the selection
    has room to read instead of being squeezed into a third column beside two
    scrolling lists. */
-.cz-rate-sheet-tool__import-basket {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--station-border);
-}
 
 /* One origin heading plus its chips — what keeps rows from several Rate Sheets
    legible in one list. */
-.cz-rate-sheet-tool__import-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-.cz-rate-sheet-tool__import-group-title {
-  margin: 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  font-weight: 600;
-}
-
-.cz-rate-sheet-tool__import-group-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
 
 /* The grid's optional extra column, sitting between the name and the price.
    The Bundle editor's `Supplied content` is its only user today: the ONE place
    a Bundle's compiled content appears, read-only apart from taking an entry
    out, which only the unlocked row offers. */
-.cz-rate-sheet-tool__cell-extra {
-  min-width: 200px;
-}
-
-.cz-rate-sheet-tool__supplied-empty {
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
-
-.cz-rate-sheet-tool__supplied-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.cz-rate-sheet-tool__supplied-item {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-}
-
-.cz-rate-sheet-tool__supplied-remove {
-  flex: 0 0 auto;
-  padding: 0 4px;
-  background: transparent;
-  border: 0;
-  color: var(--station-text-muted);
-  font-size: var(--station-text-xs);
-  line-height: 1;
-  cursor: pointer;
-}
-
-.cz-rate-sheet-tool__supplied-remove:hover {
-  color: var(--station-text);
-}
 
 /* Admin Station login gate / access-denied — logged-out or unauthorized
    visitor to the Admin Station shortcode. Rendered outside the React shell,

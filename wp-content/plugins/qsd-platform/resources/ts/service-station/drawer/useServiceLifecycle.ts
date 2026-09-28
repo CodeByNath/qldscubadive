@@ -8,7 +8,7 @@
 // removed from the surface.
 
 import { useCallback } from 'preact/hooks';
-import type { ServiceItem, PlatformStatus } from '@/api/types/cost-builder';
+import type { ServiceItem, PlatformStatus } from '@/api/types/service';
 import type { ServiceStation } from '@/service-station';
 
 // Nullable: a pending Service (no backing post yet) has no ServiceItem to

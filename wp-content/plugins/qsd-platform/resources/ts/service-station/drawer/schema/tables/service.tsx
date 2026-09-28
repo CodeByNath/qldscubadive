@@ -9,20 +9,16 @@
 // this file is their definition home, the manifest is their address.
 
 import type { ServiceSummary } from '@/service-station';
-import { ModuleStatusPill } from '@/drawer-kit/ui/ModuleStatusPill';
 import { stationStatusLabel } from '@/drawer-kit/utils/moduleStatus';
-import type { StationCommercialSummary } from '@/drawer-kit/utils/moduleStatus';
 import { TRAVEL_PILL } from '@/drawer-kit/schema/presentation';
 import type { ColumnDef, RowActionDef, TableSchema } from '@/drawer-kit/schema/types';
-import { TIER_KEYS, TIER_LABELS } from '@/package-station';
 
 // ── Catalog table ─────────────────────────────────────────────────────────────
-// Rows are assembled by the station as station + pre-resolved commercial
-// summary (the summary needs the surface-package list, which is row-external).
+// Rows wrap the Service summary so a future Station-owned projection can be
+// added beside it without changing the column contract.
 
 export interface ServiceCatalogRow {
   station: ServiceSummary;
-  summary: StationCommercialSummary;
 }
 
 export const serviceCatalogTable: TableSchema<ServiceCatalogRow> = {
@@ -31,16 +27,6 @@ export const serviceCatalogTable: TableSchema<ServiceCatalogRow> = {
       id: 'service', label: 'Service Title',
       className: 'cz-sc-table__service', cellClassName: 'cz-sc-table__service cz-sc-table__name',
       cell: (r) => r.station.title,
-    },
-    ...TIER_KEYS.map((tierId): ColumnDef<ServiceCatalogRow> => ({
-      id: `tier-${tierId}`, label: TIER_LABELS[tierId],
-      className: 'cz-sc-table__tier',
-      cell: (r) => <ModuleStatusPill status={r.summary.tiers[tierId]} notes={[]} />,
-    })),
-    {
-      id: 'promotions', label: 'Promotions',
-      className: 'cz-sc-table__tier',
-      cell: (r) => <ModuleStatusPill status={r.summary.promoStatus} notes={[]} />,
     },
     {
       id: 'status', label: 'Service Status',

@@ -49,13 +49,6 @@ export const CategoriesIcon: ComponentType<IconProps> = (props) => (
   </Icon>
 );
 
-// Table cells — Rate Sheet rows / Inclusions.
-export const RateSheetIcon: ComponentType<IconProps> = (props) => (
-  <Icon {...props}>
-    <path fillRule="evenodd" d="M3.75 3A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21h16.5a2.25 2.25 0 002.25-2.25V5.25A2.25 2.25 0 0020.25 3H3.75zM3 9h5.25V4.5h-4.5A.75.75 0 003 5.25V9zm6.75-4.5V9H21V5.25a.75.75 0 00-.75-.75H9.75zM21 10.5H9.75v4.25H21V10.5zm0 5.75H9.75v3.25h10.5a.75.75 0 00.75-.75v-2.5zm-12.75 3.25v-3.25H3v2.5c0 .414.336.75.75.75h4.5zM3 14.75h5.25V10.5H3v4.25z" clipRule="evenodd" />
-  </Icon>
-);
-
 // Stacked layers — Tiers.
 export const TiersIcon: ComponentType<IconProps> = (props) => (
   <Icon {...props}>
@@ -69,21 +62,6 @@ export const TiersIcon: ComponentType<IconProps> = (props) => (
 export const PackagesIcon: ComponentType<IconProps> = (props) => (
   <Icon {...props}>
     <path d="M12.378 1.602a.75.75 0 00-.756 0L3.366 6.39a.75.75 0 000 1.298l8.256 4.768a.75.75 0 00.756 0l8.256-4.768a.75.75 0 000-1.298L12.378 1.602zM3 9.46v7.788a.75.75 0 00.378.65l8.25 4.764V13.41L3 9.46zm9.75 13.452l8.25-4.764a.75.75 0 00.378-.65V9.46l-8.628 4.984v8.468z" />
-  </Icon>
-);
-
-// Star (repo `featured`) — Promotions.
-export const PromotionsIcon: ComponentType<IconProps> = (props) => (
-  <Icon {...props}>
-    <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-  </Icon>
-);
-
-// Envelope (Heroicons v2 solid) — Requests.
-export const RequestsIcon: ComponentType<IconProps> = (props) => (
-  <Icon {...props}>
-    <path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z" />
-    <path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z" />
   </Icon>
 );
 
@@ -183,11 +161,3 @@ export const RestoreIcon: ComponentType<IconProps> = (props) => (
   </Icon>
 );
 
-// Printer — CRM-1C's Request drawer header Print / Save PDF action.
-export const PrintIcon: ComponentType<IconProps> = (props) => (
-  <Icon {...props}>
-    <path fillRule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25V9h12V5.25a1.5 1.5 0 00-1.5-1.5h-9z" clipRule="evenodd" />
-    <path fillRule="evenodd" d="M4.5 10.5A1.5 1.5 0 003 12v4.5a1.5 1.5 0 001.5 1.5H6v-3a.75.75 0 01.75-.75h10.5a.75.75 0 01.75.75v3h1.5a1.5 1.5 0 001.5-1.5V12a1.5 1.5 0 00-1.5-1.5h-15z" clipRule="evenodd" />
-    <path fillRule="evenodd" d="M7.5 15.75a.75.75 0 01.75-.75h7.5a.75.75 0 01.75.75v4.5a.75.75 0 01-.75.75h-7.5a.75.75 0 01-.75-.75v-4.5z" clipRule="evenodd" />
-  </Icon>
-);

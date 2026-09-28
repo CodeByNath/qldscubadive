@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 import path from 'path';
 
+// Builds the Admin Station only. Output lands in dist/ at stable paths that
+// Core\AssetLoader enqueues on the /station/ route.
 export default defineConfig({
   plugins: [preact()],
   resolve: {
@@ -11,18 +13,13 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: false,
+    emptyOutDir: true,
     rollupOptions: {
       input: {
-        core:             'resources/ts/core/core.ts',
-        'cost-builder':  'resources/ts/modules/cost-builder.ts',
-        homepage:        'resources/ts/modules/homepage.ts',
         'admin-station': 'resources/ts/modules/admin-station.ts',
         // The shared drawer stylesheet is its own entry so it emits at a stable
-        // path (dist/css/drawer-kit.css) for the Admin Station to enqueue.
-        // Importing it from the JS entry instead would make Rollup attach it to
-        // a shared chunk and emit it under a chunk-derived name that nothing
-        // enqueues.
+        // path (dist/css/drawer-kit.css), enqueued as a dependency of the
+        // Admin Station stylesheet.
         'drawer-kit':    'resources/css/modules/drawer-kit.css',
       },
       output: {

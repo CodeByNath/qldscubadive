@@ -1,24 +1,11 @@
 import { apiClient } from '../client';
 import type {
-  AdminOverview,
-  AdminRequestsResponse,
-  ServicePromotionStationResponse,
-  ServicePromotionSaveResponse,
-  PromotionTierPayload,
-  PromotionModuleKey,
-  PromotionOverviewDraft,
-  PromotionLifecycleResponse,
-  PromotionTransitionResponse,
-  PromotionDeleteResponse,
   CategoryDeleteResponse,
   CategoryListResponse,
   CategoryMutationResponse,
   CategoryOverviewDraft,
   CategoryOverviewSaveResponse,
-  RequestEntry,
-  RequestStatus,
 } from '../types/admin';
-import type { InclusionItem } from '../types/pools';
 
 type WirePlatformId<T extends { platformId: string }> = Omit<T, 'platformId'> & { platform_id: string };
 type WireCategoryListResponse = Omit<CategoryListResponse, 'categories'> & {
@@ -43,12 +30,6 @@ function mapCategoryMutation(response: WireCategoryMutationResponse): CategoryMu
 // Service endpoint functions are owned by the Service Station and are NOT
 // re-exported here. Import them from '@/service-station'.
 
-// Package contracts/endpoints are owned by Package Station and are NOT
-// re-exported here. Import them from '@/package-station'.
-
-export function fetchAdminOverview(): Promise<AdminOverview> {
-  return apiClient.get<AdminOverview>('admin/overview');
-}
 
 // Service category inline creation.
 export async function createServiceCategory(payload: {
@@ -164,138 +145,4 @@ export async function permanentDeleteCategory(categoryId: number): Promise<Categ
   const response = await apiClient.delete<WireCategoryDeleteResponse>(`admin/categories/${categoryId}`);
   const { platform_id, ...rest } = response;
   return { ...rest, platformId: platform_id };
-}
-
-// Promotions — child collection of the independent Package Station. The
-// serviceId in these URLs is navigation context only; storage is always the
-// single qsd_package_station authority.
-export function fetchServicePromotionStation(serviceId: number): Promise<ServicePromotionStationResponse> {
-  return apiClient.get<ServicePromotionStationResponse>(`admin/services/${serviceId}/package-station/promotions`);
-}
-
-export function createServicePromotion(
-  serviceId: number,
-  payload:   PromotionTierPayload,
-): Promise<ServicePromotionSaveResponse> {
-  return apiClient.post<ServicePromotionSaveResponse>(
-    `admin/services/${serviceId}/package-station/promotions`,
-    payload,
-  );
-}
-
-export function archiveServicePromotion(
-  serviceId: number,
-  promoId:   string,
-): Promise<{ success: boolean; promo_id: string; status: string }> {
-  return apiClient.post(
-    `admin/services/${serviceId}/package-station/promotions/${promoId}/archive`,
-  );
-}
-
-// Engine C2 — per-module promotion draft save. Persists lifecycle.drafts[module]
-// and marks the module pending without touching settled fields or travel status.
-// Body keying mirrors the tier module endpoint: overview → the draft fields
-// themselves; features → { inclusions }; faqs → { faq_refs }.
-export function saveServicePromotionModule(
-  serviceId: number,
-  promoId:   string,
-  module:    PromotionModuleKey,
-  payload:   PromotionOverviewDraft | { inclusions: InclusionItem[] } | { faq_refs: string[] },
-): Promise<PromotionLifecycleResponse> {
-  return apiClient.post<PromotionLifecycleResponse>(
-    `admin/services/${serviceId}/package-station/promotions/${promoId}/modules/${module}`,
-    payload,
-  );
-}
-
-// Engine C2 — settle an instance: commit draft-preferred state into the settled
-// fields, clear drafts. No-ops backend-side when there are no drafts.
-export function settleServicePromotion(
-  serviceId: number,
-  promoId:   string,
-): Promise<PromotionLifecycleResponse> {
-  return apiClient.post<PromotionLifecycleResponse>(
-    `admin/services/${serviceId}/package-station/promotions/${promoId}/settle`,
-    {},
-  );
-}
-
-// Engine C2 — per-module revert: discard the draft; module_status re-derives
-// from the settled content.
-export function revertServicePromotionModule(
-  serviceId: number,
-  promoId:   string,
-  module:    PromotionModuleKey,
-): Promise<PromotionLifecycleResponse> {
-  return apiClient.post<PromotionLifecycleResponse>(
-    `admin/services/${serviceId}/package-station/promotions/${promoId}/modules/${module}/revert`,
-    {},
-  );
-}
-
-// Engine C3 — travel transitions. The only status writes for promotion
-// instances; publish composes settle + activate.
-export function publishServicePromotion(
-  serviceId: number,
-  promoId:   string,
-): Promise<PromotionTransitionResponse> {
-  return apiClient.post<PromotionTransitionResponse>(
-    `admin/services/${serviceId}/package-station/promotions/${promoId}/publish`,
-  );
-}
-
-export function toggleServicePromotion(
-  serviceId: number,
-  promoId:   string,
-): Promise<PromotionTransitionResponse> {
-  return apiClient.post<PromotionTransitionResponse>(
-    `admin/services/${serviceId}/package-station/promotions/${promoId}/toggle`,
-  );
-}
-
-export function trashServicePromotion(
-  serviceId: number,
-  promoId:   string,
-): Promise<PromotionTransitionResponse> {
-  return apiClient.post<PromotionTransitionResponse>(
-    `admin/services/${serviceId}/package-station/promotions/${promoId}/trash`,
-  );
-}
-
-export function restoreServicePromotion(
-  serviceId: number,
-  promoId:   string,
-): Promise<PromotionTransitionResponse> {
-  return apiClient.post<PromotionTransitionResponse>(
-    `admin/services/${serviceId}/package-station/promotions/${promoId}/restore`,
-  );
-}
-
-// Engine C3 — permanent removal, trashed-only; the sole operation that removes
-// an instance from the station array.
-export function permanentDeleteServicePromotion(
-  serviceId: number,
-  promoId:   string,
-): Promise<PromotionDeleteResponse> {
-  return apiClient.delete<PromotionDeleteResponse>(
-    `admin/services/${serviceId}/package-station/promotions/${promoId}`,
-  );
-}
-
-
-export function fetchAdminRequests(): Promise<AdminRequestsResponse> {
-  return apiClient.get<AdminRequestsResponse>('admin/requests');
-}
-
-export function fetchAdminRequest(ref: string): Promise<{ success: boolean; request: RequestEntry }> {
-  return apiClient.get<{ success: boolean; request: RequestEntry }>(`admin/requests/${ref}`);
-}
-
-// CRM-1C: the only two admin-driven lifecycle moves — pending is never a
-// write target, only ever the starting state.
-export function updateRequestStatus(
-  ref: string,
-  status: Extract<RequestStatus, 'approved' | 'cancelled'>,
-): Promise<{ success: boolean; request: RequestEntry }> {
-  return apiClient.patch<{ success: boolean; request: RequestEntry }>(`admin/requests/${ref}/status`, { status });
 }

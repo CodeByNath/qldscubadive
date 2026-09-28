@@ -6,8 +6,7 @@
 // Centre host nor the Admin Station shell, so both mount the same composition
 // through a thin adapter.
 
-import type { Category, ServiceItem } from '@/api/types/cost-builder';
-import type { SurfacePackageSummary } from '@/package-station';
+import type { Category, ServiceItem } from '@/api/types/service';
 import type { DrawerTabId } from '@/drawer-kit/DrawerTabs';
 import type { EntityDrawerHostBridge } from '@/drawer-kit/entityDrawerHost';
 
@@ -27,7 +26,6 @@ import type { EntityDrawerHostBridge } from '@/drawer-kit/entityDrawerHost';
 // ServiceItem.id to carry it).
 export interface ServiceDrawerContentProps {
   service:       ServiceItem | null;
-  packages:      SurfacePackageSummary[];
   allCategories: Category[];
   // Opening intent, carried from the surface that dispatched the drawer.
   initialTab?:  DrawerTabId;      // 'details' | 'connections'

@@ -6,11 +6,6 @@ export interface ServiceCatalogueCategory {
   slug: string;
 }
 
-export interface ServiceCataloguePackageFamily {
-  id:   string;
-  name: string;
-}
-
 /**
  * Browse-first Service row consumed by the Service Catalogue template kit.
  *
@@ -26,7 +21,6 @@ export interface ServiceCatalogueItem {
   description:        string;
   createdAt:          string | null;
   categories:         ServiceCatalogueCategory[];
-  packageFamilies:    ServiceCataloguePackageFamily[];
   inclusionCount:     number;
   faqCount:           number;
   platformStatus:     'active' | 'disabled' | 'archived';

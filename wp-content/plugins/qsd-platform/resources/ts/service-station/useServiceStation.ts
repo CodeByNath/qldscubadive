@@ -31,7 +31,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'preact/hooks';
-import type { Category, ServiceItem, ServiceInclusion, ServiceFaq, PlatformStatus } from '@/api/types/cost-builder';
+import type { Category, ServiceItem, ServiceInclusion, ServiceFaq, PlatformStatus } from '@/api/types/service';
 import {
   archiveService,
   createService as createServiceApi,
@@ -56,7 +56,6 @@ import type {
   FaqsDraft,
   CreateServiceResponse,
 } from './types';
-import type { SurfacePackageSummary } from '@/package-station';
 import { resolveOverviewStatus } from '@/drawer-kit/utils/moduleStatus';
 import { getOverviewNotes, getInclusionsNotes, getFaqsNotes } from '@/drawer-kit/utils/moduleNotifications';
 import type { NoteContext, ModuleState, ModuleNote } from '@/drawer-kit/utils/moduleNotifications';
@@ -70,7 +69,6 @@ import {
   derivePendingOverviewNotes,
   derivePendingChildNotes,
   deriveCanPublish,
-  derivePackageSummary,
   deriveInclusionsSummary,
   deriveFaqsSummary,
 } from './derive';
@@ -139,19 +137,11 @@ function buildCreatedPendingService(response: CreateServiceResponse): ServiceIte
     categories:   response.service.categories,
     inclusions:   [],
     faqs:         [],
-    availability: { is_available: true, message: '' },
     meta: {
       platform_status:           response.service.platform_status as PlatformStatus,
       previous_platform_status:  (response.service.previous_platform_status ?? '') as '' | 'active' | 'disabled',
       module_status:             response.service.module_status as unknown as ServiceItem['meta']['module_status'],
-      short_description: '', long_description: '', billing_cycle: '', sla: '', uptime: '', notes: '',
-      popular_tier: null, popular_label: null, sort_order: 0,
     },
-    pricing: {
-      tiers:  {} as ServiceItem['pricing']['tiers'],
-      bundle: { title: '', description: '', price: null },
-    },
-    promotion_tiers: [],
   };
 }
 
@@ -195,9 +185,6 @@ export interface ServiceStation {
   hasInclusionsDraft: boolean;
   hasFaqsDraft:       boolean;
 
-  // ── Package registry ───────────────────────────────────────────────────────
-  relatedPkg: SurfacePackageSummary | null;
-
   // ── Resolved module computed state ────────────────────────────────────────
   // Per-module lifecycle: full { status, notes } per module — the station
   // modules shape shared with usePackageStation / usePromotionStation (S4).
@@ -207,13 +194,6 @@ export interface ServiceStation {
     faqs:       ModuleState;
   };
   canPublish: boolean;
-
-  // ── Surface layer ─────────────────────────────────────────────────────────
-  pkgSummaryStatus:      string;
-  pkgSummaryCount:       string;
-  pkgSummaryDesc:        string;
-  pkgSummaryDescPending: boolean;
-  configuredTierCount:   number;
 
   // ── Publish modal summaries ────────────────────────────────────────────────
   inclSummary: { text: string; orange: boolean };
@@ -243,7 +223,6 @@ export interface ServiceStation {
 
 export function useServiceStation(
   service:    ServiceItem | null,
-  packages:   SurfacePackageSummary[],
   onRefresh?: () => void,
   onPendingServiceCreated?: (created: ServiceItem) => void,
 ): ServiceStation {
@@ -347,10 +326,6 @@ export function useServiceStation(
     : ((adminDetail?.module_status ?? service?.meta?.module_status) as Record<string, string> | undefined);
   const { hasPendingModules, pendingModuleNames } = derivePendingModules(moduleStatus, isActive);
 
-  // ── Derived: package registry ──────────────────────────────────────────────
-  // No package can reference an id that does not exist yet.
-  const relatedPkg = service ? (packages.find((p) => p.service_refs.includes(service.id)) ?? null) : null;
-
   // ── Derived: module status resolvers ──────────────────────────────────────
   // Authoritative settled overview source: prefer adminDetail's settled fields
   // (refreshed on settle/publish below) over the passed-in CostBuilder service,
@@ -430,10 +405,7 @@ export function useServiceStation(
   // Save establishes that draft identity; Publish never creates one.
   const canPublish = !isNew && deriveCanPublish({ overviewStatus, inclusionsStatus, faqsStatus, isActive, hasContentDraft });
 
-  // ── Derived: surface layer + publish modal summaries (pure, in ./derive) ──
-  const { configuredTierCount, pkgSummaryStatus, pkgSummaryCount, pkgSummaryDesc, pkgSummaryDescPending } =
-    derivePackageSummary(relatedPkg, isActive);
-
+  // ── Derived: publish modal summaries (pure, in ./derive) ──
   const inclSummary = deriveInclusionsSummary(inclusions, inclusionsStatus);
   const faqsSummary = deriveFaqsSummary(faqs, faqsStatus);
 
@@ -707,18 +679,12 @@ export function useServiceStation(
     pendingModuleNames,
     hasInclusionsDraft: adminDetail?.drafts.inclusions != null,
     hasFaqsDraft:       adminDetail?.drafts.faqs != null,
-    relatedPkg,
     modules: {
       overview:   { status: overviewStatus,   notes: overviewNotes },
       inclusions: { status: inclusionsStatus, notes: inclusionsNotes },
       faqs:       { status: faqsStatus,       notes: faqsNotes },
     },
     canPublish,
-    pkgSummaryStatus,
-    pkgSummaryCount,
-    pkgSummaryDesc,
-    pkgSummaryDescPending,
-    configuredTierCount,
     inclSummary,
     faqsSummary,
     loading: { status: statusSaving, creating: creatingPkg },

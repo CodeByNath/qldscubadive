@@ -6,13 +6,8 @@
 // graph: it imports './types' and the neutral drawer-kit resolvers directly,
 // never the station barrel (which would close a cycle through useServiceStation).
 
-import type { TierId } from '@/api/types/cost-builder';
-import type { SurfacePackageSummary } from '@/package-station';
-import { resolvePackageStatus } from '@/drawer-kit/utils/moduleStatus';
 import type { ModuleNote } from '@/drawer-kit/utils/moduleNotifications';
 import type { ServiceInclusionItem, ServiceFaqItem, OverviewDraft } from './types';
-
-const TIER_KEYS: TierId[] = ['basic', 'standard', 'premium', 'enterprise', 'ultimate'];
 
 // ── Module status (inclusions / FAQs) ─────────────────────────────────────────
 // The service overview resolves through resolveOverviewStatus (draft-aware);
@@ -136,48 +131,6 @@ export function deriveCanPublish(args: {
     (args.overviewStatus === 'active' && hasModulePendingChanges) ||
     (args.isActive && args.hasContentDraft)
   );
-}
-
-// ── Surface layer (package summary card) ──────────────────────────────────────
-
-export interface PackageSummaryDerivation {
-  configuredTierCount:   number;
-  pkgSummaryStatus:      string;
-  pkgSummaryCount:       string;
-  pkgSummaryDesc:        string;
-  pkgSummaryDescPending: boolean;
-}
-
-export function derivePackageSummary(
-  relatedPkg: SurfacePackageSummary | null,
-  isActive: boolean,
-): PackageSummaryDerivation {
-  // Count the tiers actually live in the package — configured (has a price/cycle
-  // or overrides) AND enabled. `relatedPkg.tiers[t]` is always a present summary
-  // object for every tier key (empty shells included), so a bare presence check
-  // always returned 4; disabling or clearing a tier must move this number.
-  const configuredTierCount = relatedPkg
-    ? TIER_KEYS.filter((t) => relatedPkg.tiers[t]?.configured && relatedPkg.tiers[t]?.enabled).length
-    : 0;
-
-  const pkgSummaryStatus = resolvePackageStatus(relatedPkg);
-
-  const allTiersEnabled = relatedPkg != null &&
-    TIER_KEYS.every((t) => relatedPkg.tiers[t]?.enabled === true);
-
-  const pkgSummaryCount = relatedPkg
-    ? `${configuredTierCount} tier${configuredTierCount !== 1 ? 's' : ''} configured`
-    : '0 tiers configured';
-
-  const pkgSummaryDesc = pkgSummaryStatus === 'active'
-    ? 'Package Overview includes a full summary view of pricing and tiers.'
-    : isActive && !relatedPkg
-      ? 'View Package Overview and manage pricing and tiers.'
-      : 'Pricing and tiers not available.';
-
-  const pkgSummaryDescPending = isActive && pkgSummaryStatus === 'active' && !allTiersEnabled;
-
-  return { configuredTierCount, pkgSummaryStatus, pkgSummaryCount, pkgSummaryDesc, pkgSummaryDescPending };
 }
 
 // ── Publish modal summaries ───────────────────────────────────────────────────
