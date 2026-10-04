@@ -1,6 +1,6 @@
 # Phase 6.1 — Bin / Archive Surface
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.1 — Bin / Archive surface
 
 ## Authority
@@ -299,3 +299,22 @@ Make only this documentation correction on the existing topic branch:
 6. Stop.
 
 No other correction is requested.
+
+
+## Builder correction handoff — Code Map consistency
+
+Executor: Claude Code. Documentation-only correction.
+
+Topic branch: `phase-6-1/bin-archive-surface`
+Corrected SHA: `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d` (verified with `git ls-remote`; previous candidate `a08fb69…`)
+Remote branches: `main`, `staging`, `Project-work-instructions`, `phase-6-1/bin-archive-surface` (4).
+
+Changed: only `docs/code-map/service-catalogue.md` (`git diff --name-only a08fb69 8d19492`). No source, lifecycle, UI or filter change.
+
+The stale sentence under **Data boundaries** now reads:
+"In `Details`, archived rows contribute to the overview count only; archived and trashed Services (and Categories) are browsed and acted on in the `Bin` lane (see Lifecycle#bin-travel-surface)."
+The link now points at the existing `## Bin travel surface` heading in `lifecycle-system.md` instead of `#known-gaps`. I searched `docs/` and `resources/` for other "not browsable from Home" wording and found none. The map is 588 words, within the 600 limit.
+
+Evidence: `npm run docs:check` passed (41 Markdown files, 18 Code Maps). `npm test` was not re-run because the change is documentation-only and the work file requires only `docs:check` for this step.
+
+Builder stops here for Reviewer review.
