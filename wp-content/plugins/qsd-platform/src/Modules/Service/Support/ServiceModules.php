@@ -124,6 +124,16 @@ final class ServiceModules
         return $key !== null && !empty(get_post_meta($id, $key, true));
     }
 
+    /**
+     * Publish readiness (Phase 6.3): the canonical Overview is complete and its
+     * module is settled. Optional child modules (Inclusions/FAQs) never gate it.
+     */
+    public static function isPublishReady(\WP_Post $post, array $meta): bool
+    {
+        return self::isOverviewComplete($post)
+            && (($meta['module_status']['overview'] ?? null) === 'settled');
+    }
+
     public static function isOverviewComplete(\WP_Post $post): bool
     {
         // Overview completeness = title + category + content. Excerpt is intentionally

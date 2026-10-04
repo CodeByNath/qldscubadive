@@ -43,11 +43,10 @@ Service Home's Bin lane ([ServiceBinLane.tsx](../../wp-content/plugins/qsd-platf
 
 ## Backend authority
 
-Domain controllers apply the engine at their own REST boundaries: [ServiceController.php](../../wp-content/plugins/qsd-platform/src/Modules/Service/Http/ServiceController.php) and [AdminCategoriesController.php](../../wp-content/plugins/qsd-platform/src/Modules/Admin/Http/AdminCategoriesController.php).
+Domain controllers apply the engine at their own REST boundaries: [ServiceController.php](../../wp-content/plugins/qsd-platform/src/Modules/Service/Http/ServiceController.php) and [AdminCategoriesController.php](../../wp-content/plugins/qsd-platform/src/Modules/Admin/Http/AdminCategoriesController.php). Each `/status` route resolves its target through `StationLifecycle::statusRouteTransition` whatever the caller: `active` is Publish (a live record stays active) and also requires the entity's complete, settled Overview (`ServiceModules::isPublishReady`, `CategoryMeta::isPublishReady`); `archived`/`trashed` follow archive/trash. A direct `disabled` is refused in favour of `action: disable|enable`, Service's legacy `is_active` follows the same rules, and every refusal is a 422 that writes nothing.
 
 ## Known gaps
 
-- The `/status` route applies any valid target (`StationLifecycle::applyStatus`); strict per-action transitions are enforced by the UI only.
 - Service Publish sends settle and activate as two requests.
 
 ## Validation

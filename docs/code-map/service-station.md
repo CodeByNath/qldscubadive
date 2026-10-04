@@ -55,7 +55,7 @@ Save creates the record. The returned ID is seeded into the mounted drawer and
 Overview becomes Pending full. Child saves become Pending full; Publish settles
 eligible drafts and activates them. Empty children remain Pending dim.
 
-Disable/Enable use `/status` with `action: disable|enable`; they never settle, activate, or rewrite module status. `previous_platform_status` is the explicit Disable mask: while stored `platform_status` is `disabled`, a non-empty value means Disabled; empty means unmasked Pending. Disable makes all module pills Disabled. Enable clears the mask and returns configured modules to visual Pending full, while empty children remain Pending dim; it creates no new drafts. Restore lives on Service Home's Bin lane, not the drawer, and follows the same unmasked Pending re-entry, preserving module status and drafts/data. Publish is the only activation action.
+Disable/Enable use `/status` with `action: disable|enable`; they never settle, activate, or rewrite module status. `previous_platform_status` is the explicit Disable mask: while stored `platform_status` is `disabled`, a non-empty value means Disabled; empty means unmasked Pending. Disable makes all module pills Disabled. Enable clears the mask and returns configured modules to visual Pending full, while empty children remain Pending dim; it creates no new drafts. Restore lives on Service Home's Bin lane, not the drawer, and follows the same unmasked Pending re-entry, preserving module status and drafts/data. Publish is the only activation action; the backend refuses `active` unless the Overview is complete and settled, and refuses a direct `disabled` (Lifecycle map).
 
 ## Contract baseline
 

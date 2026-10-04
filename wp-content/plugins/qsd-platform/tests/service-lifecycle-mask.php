@@ -364,6 +364,7 @@ echo "\nGuard — Enable/Disable reject illegal transitions\n";
 
 $created3 = createTestService($controller, 503);
 $id3 = $created3['service']['id'];
+$controller->settleAll(new WP_REST_Request(['id' => $id3]));
 $controller->updateStatus(new WP_REST_Request(['id' => $id3, 'platform_status' => 'active']));
 $illegalEnable = $controller->updateStatus(new WP_REST_Request(['id' => $id3, 'action' => 'enable']));
 check_lifecycle($illegalEnable->get_status() === 422, 'Enable on an already-active Service is rejected (422)');
@@ -405,6 +406,7 @@ $liveDelete = $controller->permanentDeleteService(new WP_REST_Request(['id' => $
 check_lifecycle($liveDelete->get_status() === 422, 'permanent delete of a live (Pending) Service is still rejected (422)');
 check_lifecycle(get_post($id4) !== null, 'the rejected live delete leaves the Service in place');
 
+$controller->settleAll(new WP_REST_Request(['id' => $id4]));
 $controller->updateStatus(new WP_REST_Request(['id' => $id4, 'platform_status' => 'active']));
 $archived4 = $controller->updateStatus(new WP_REST_Request(['id' => $id4, 'platform_status' => 'archived']))->get_data();
 check_lifecycle($archived4['service']['platform_status'] === 'archived', 'the Service enters the Bin as archived');
@@ -430,5 +432,93 @@ foreach (['archived', 'trashed'] as $binStatus) {
     check_lifecycle($restored5['service']['module_status'] === $beforeBin5, "restore from {$binStatus} preserves module status exactly");
     check_lifecycle($restored5['service']['platform_id'] === $created5['service']['platform_id'], "restore from {$binStatus} preserves permanent identity");
 }
+
+// ── Phase 6.3: server-side transition enforcement ───────────────────────────
+// The /status route applies only strict engine transitions (active = Publish,
+// archived = archive, trashed = trash), Publish requires a complete + settled
+// Overview, a direct 'disabled' is refused, and the deprecated is_active input
+// resolves through the same rules. Every refusal must write nothing.
+echo "\nPhase 6.3 — strict Service status transitions\n";
+
+$matrix = [
+    // [current, target, expected status or null]
+    ['disabled', 'active', 'active'],   ['active', 'active', 'active'],
+    ['archived', 'active', null],       ['trashed', 'active', null],
+    ['active', 'archived', 'archived'], ['disabled', 'archived', 'archived'],
+    ['archived', 'archived', null],     ['trashed', 'archived', null],
+    ['active', 'trashed', 'trashed'],   ['disabled', 'trashed', 'trashed'],
+    ['archived', 'trashed', 'trashed'], ['trashed', 'trashed', null],
+    ['active', 'disabled', null],       ['disabled', 'disabled', null],
+    ['archived', 'disabled', null],     ['active', 'draft', null],
+];
+foreach ($matrix as [$from, $to, $expected]) {
+    $change = StationLifecycle::statusRouteTransition($from, $to, null);
+    check_lifecycle(($change['status'] ?? null) === $expected, "engine: {$from} → {$to} " . ($expected === null ? 'is refused' : "resolves to {$expected}"));
+}
+
+function serviceSnapshot(int $id): string
+{
+    global $__wpPosts, $__wpPostMeta, $__wpPostTerms;
+    $post = $__wpPosts[$id] ?? null;
+    return serialize([
+        $__wpPostMeta[$id] ?? [],
+        $post ? [$post->post_title, $post->post_excerpt, $post->post_content, $post->post_status] : null,
+        $__wpPostTerms[$id] ?? [],
+    ]);
+}
+
+function expectServiceRefusal(ServiceController $controller, int $id, array $params, string $label): void
+{
+    $before   = serviceSnapshot($id);
+    $response = $controller->updateStatus(new WP_REST_Request(['id' => $id] + $params));
+    check_lifecycle($response->get_status() === 422 && $response->get_data()['success'] === false, "{$label} is refused (422)");
+    check_lifecycle(serviceSnapshot($id) === $before, "{$label} leaves status, mask, modules, drafts, canonical data and identity untouched");
+}
+
+// Pending: complete Overview content, but the Overview draft is not settled.
+$pending = createTestService($controller, 506)['service']['id'];
+expectServiceRefusal($controller, $pending, ['platform_status' => 'active'], 'Publish with a pending (unsettled) Overview');
+expectServiceRefusal($controller, $pending, ['is_active' => true], 'legacy is_active=true with a pending Overview');
+
+// Incomplete: settled, but the canonical Overview has no content.
+$__wpTerms[507] = ['name' => 'Cloud', 'slug' => 'cloud'];
+$incomplete = $controller->createService(new WP_REST_Request(['title' => 'No content', 'content' => '', 'category_ids' => [507]]))->get_data()['service']['id'];
+$controller->settleAll(new WP_REST_Request(['id' => $incomplete]));
+check_lifecycle((get_post_meta($incomplete, ServiceSchema::META_KEY, true)['module_status']['overview'] ?? null) === 'not-configured', 'an incomplete Overview settles to not-configured');
+expectServiceRefusal($controller, $incomplete, ['platform_status' => 'active'], 'Publish with an incomplete Overview');
+expectServiceRefusal($controller, $incomplete, ['is_active' => true], 'legacy is_active=true with an incomplete Overview');
+
+// Complete + settled: Publish is accepted with no Inclusions/FAQs configured.
+$controller->settleAll(new WP_REST_Request(['id' => $pending]));
+$published = $controller->updateStatus(new WP_REST_Request(['id' => $pending, 'platform_status' => 'active']))->get_data();
+check_lifecycle($published['service']['platform_status'] === 'active', 'Publish is accepted once the Overview is complete and settled');
+check_lifecycle($published['service']['module_status']['inclusions'] === 'not-configured', 'optional Inclusions/FAQs never gate Publish');
+
+$legacy = createTestService($controller, 508)['service']['id'];
+$controller->settleAll(new WP_REST_Request(['id' => $legacy]));
+$legacyResult = $controller->updateStatus(new WP_REST_Request(['id' => $legacy, 'is_active' => true]));
+check_lifecycle($legacyResult->get_status() === 200 && $legacyResult->get_data()['service']['platform_status'] === 'active', 'legacy is_active=true is accepted only through the same Publish rules');
+
+// Republish of a live record: a new pending Overview draft blocks it; settling allows it.
+$controller->updateOverview(new WP_REST_Request(['id' => $pending, 'title' => 'Managed Backup Pro', 'content' => 'Updated.', 'category_ids' => [506]]));
+expectServiceRefusal($controller, $pending, ['platform_status' => 'active'], 'republishing an active Service with an unsettled Overview draft');
+$controller->settleAll(new WP_REST_Request(['id' => $pending]));
+$republished = $controller->updateStatus(new WP_REST_Request(['id' => $pending, 'platform_status' => 'active']));
+check_lifecycle($republished->get_status() === 200 && $republished->get_data()['service']['platform_status'] === 'active', 'republishing a settled active Service keeps it active');
+
+// A direct 'disabled' never bypasses the explicit Disable/Enable mask.
+expectServiceRefusal($controller, $pending, ['platform_status' => 'disabled'], 'a direct disabled target');
+expectServiceRefusal($controller, $pending, ['is_active' => false], 'legacy is_active=false');
+check_lifecycle($controller->updateStatus(new WP_REST_Request(['id' => $pending, 'action' => 'disable']))->get_data()['service']['previous_platform_status'] === 'active', 'explicit action=disable still applies the mask');
+$controller->updateStatus(new WP_REST_Request(['id' => $pending, 'action' => 'enable']));
+
+// Archive/trash refuse illegal source states; Publish refuses Bin states.
+$controller->updateStatus(new WP_REST_Request(['id' => $pending, 'platform_status' => 'archived']));
+expectServiceRefusal($controller, $pending, ['platform_status' => 'archived'], 'archive from archived');
+expectServiceRefusal($controller, $pending, ['platform_status' => 'active'], 'Publish from archived (Restore is the only way out)');
+$controller->updateStatus(new WP_REST_Request(['id' => $pending, 'platform_status' => 'trashed']));
+expectServiceRefusal($controller, $pending, ['platform_status' => 'trashed'], 'trash from trashed');
+expectServiceRefusal($controller, $pending, ['platform_status' => 'archived'], 'archive from trashed');
+expectServiceRefusal($controller, $pending, ['is_active' => true], 'legacy is_active=true from trashed');
 
 echo "\nAll Service Disable/Enable lifecycle checks passed.\n";

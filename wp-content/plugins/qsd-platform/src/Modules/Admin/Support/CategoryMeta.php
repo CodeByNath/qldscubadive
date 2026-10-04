@@ -180,7 +180,7 @@ final class CategoryMeta
      * Persist an engine-computed transition result
      * (['status' => ..., 'previous_status' => ...] from StationLifecycle).
      * Callers compute the transition first — e.g.
-     * StationLifecycle::applyStatus(CategoryMeta::status($id), $target, CategoryMeta::previousStatus($id)).
+     * StationLifecycle::statusRouteTransition(CategoryMeta::status($id), $target, CategoryMeta::previousStatus($id)).
      */
     public static function applyStatusChange(int $termId, array $change): array
     {
@@ -236,6 +236,16 @@ final class CategoryMeta
     public static function isOverviewComplete(string $name, string $description): bool
     {
         return trim($name) !== '';
+    }
+
+    /**
+     * Publish readiness (Phase 6.3): the settled Category Overview is complete
+     * and its module is settled — a pending draft must be settled first.
+     */
+    public static function isPublishReady(int $termId): bool
+    {
+        return self::deriveOverviewStatus($termId) === StationLifecycle::MODULE_SETTLED
+            && (self::read($termId)['module_status']['overview'] ?? null) === StationLifecycle::MODULE_SETTLED;
     }
 
     /** Settled-state derivation: settled when complete, not-configured otherwise. */

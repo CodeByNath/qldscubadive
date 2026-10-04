@@ -17,7 +17,8 @@ namespace QSD\Platform\Modules\Admin\Support;
  *   archived  in the bin, restorable, permanently deletable
  *   trashed   in the bin, restorable, permanently deletable
  *
- * Transition table (the only legal status writes anywhere):
+ * Transition table (the only legal status writes anywhere; a Station's
+ * `/status` route resolves through statusRouteTransition()):
  *   publish : draft|disabled → active
  *   toggle  : active ⇄ disabled
  *   archive : active|disabled → archived          (captures previous_status; drafts are
@@ -184,19 +185,27 @@ final class StationLifecycle
     }
 
     /**
-     * Permissive status application — the canonical Service `/status` endpoint's
-     * historical semantics: any valid target may be requested directly; the engine
-     * computes the previous_status capture for bin entries and leaves it untouched
-     * otherwise. The strict per-action transitions above are the target model for
-     * new stations; this exists so the canonical station's endpoint behaviour
-     * stays byte-identical through the engine extraction.
+     * Strict `/status` route resolution (Phase 6.3) — the only status-target
+     * writes a Station's status route may make:
+     *   active   → publish()  (an already-active record stays active: Publish
+     *              is settle + activate, so republishing a live record with
+     *              newly settled modules is a no-op status write)
+     *   archived → archive()
+     *   trashed  → trash()
+     * Every other target — including a direct 'disabled', which belongs to the
+     * explicit Disable/Enable mask request shape — resolves to null, as does an
+     * illegal source state. Publish readiness (complete + settled Overview)
+     * is entity-owned and checked by the Station before applying this.
      */
-    public static function applyStatus(string $current, string $target, ?string $previous = null): array
+    public static function statusRouteTransition(string $current, string $target, ?string $previous = null): ?array
     {
-        $nextPrevious = in_array($target, self::BIN_STATUSES, true)
-            ? self::capturePrevious($current, $previous)
-            : $previous;
-
-        return ['status' => $target, 'previous_status' => $nextPrevious];
+        return match ($target) {
+            self::STATUS_ACTIVE   => $current === self::STATUS_ACTIVE
+                ? ['status' => self::STATUS_ACTIVE, 'previous_status' => $previous]
+                : self::publish($current, $previous),
+            self::STATUS_ARCHIVED => self::archive($current, $previous),
+            self::STATUS_TRASHED  => self::trash($current, $previous),
+            default               => null,
+        };
     }
 }

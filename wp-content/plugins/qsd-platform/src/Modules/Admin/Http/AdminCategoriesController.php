@@ -433,8 +433,11 @@ class AdminCategoriesController
     }
 
     /**
-     * Engine transition via StationLifecycle::applyStatus, with explicit
-     * Disable/Enable kept as a separate mask request shape.
+     * Strict engine transition via StationLifecycle::statusRouteTransition
+     * (Phase 6.3): active = Publish (complete + settled Overview), archived =
+     * archive, trashed = trash. Explicit Disable/Enable stays a separate mask
+     * request shape; a direct 'disabled' target is refused. A rejected call
+     * returns before anything is written.
      */
     public function updateStatus(\WP_REST_Request $request): \WP_REST_Response
     {
@@ -455,12 +458,18 @@ class AdminCategoriesController
         if (!in_array($target, CategoryMeta::ALLOWED_PLATFORM_STATUSES, true)) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Invalid platform_status.'], 422);
         }
+        if ($target === StationLifecycle::STATUS_DISABLED) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Use action "disable" or "enable" to change the Disable mask.'], 422);
+        }
 
-        $change = StationLifecycle::applyStatus(
-            CategoryMeta::status($termId),
-            $target,
-            CategoryMeta::previousStatus($termId)
-        );
+        $current = CategoryMeta::status($termId);
+        $change  = StationLifecycle::statusRouteTransition($current, $target, CategoryMeta::previousStatus($termId));
+        if ($change === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => "A {$current} Category cannot move to {$target}."], 422);
+        }
+        if ($target === StationLifecycle::STATUS_ACTIVE && !CategoryMeta::isPublishReady($termId)) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Publish requires a complete, settled Overview.'], 422);
+        }
         CategoryMeta::applyStatusChange($termId, $change);
 
         return rest_ensure_response([

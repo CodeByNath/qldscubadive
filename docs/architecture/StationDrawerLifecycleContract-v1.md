@@ -180,11 +180,10 @@ If the source does not yet meet one of these points, mark the Station and its
   `lifecycle-system.md`) lists archived and trashed Services and Categories
   and offers Restore, Move to Trash (archived only), and Permanently delete
   through each owning Station's existing actions (§5).
-
-### Known gaps (tracked, not exceptions)
-
-- **Transition enforcement:** the `/status` routes accept any valid target;
-  strict per-action transitions are currently enforced by the drawer only.
+- **Transition enforcement:** each owning backend Station's `/status` route
+  applies only the strict lifecycle transitions (Publish needs a complete,
+  settled Overview; a direct `disabled` is refused in favour of explicit
+  Disable/Enable), regardless of caller (`lifecycle-system.md`).
 
 Every new Station implements this contract from the start; there is no
 pending-migration inventory in this repository.

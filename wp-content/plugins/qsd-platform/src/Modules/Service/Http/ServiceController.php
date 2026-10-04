@@ -791,19 +791,31 @@ class ServiceController
                 return new \WP_REST_Response(['success' => false, 'message' => 'Invalid platform_status.'], 422);
             }
         } elseif ($request->has_param('is_active')) {
+            // Deprecated input: resolved through the same strict rules below.
             $platformStatus = $request->get_param('is_active') ? 'active' : 'disabled';
         } else {
             return new \WP_REST_Response(['success' => false, 'message' => 'No status parameter provided.'], 422);
         }
 
-        // Engine-computed transition: previous_platform_status is captured when
-        // entering a bin state from active/disabled and preserved on bin→bin moves
-        // (StationLifecycle::capturePrevious owns that rule).
-        $change = StationLifecycle::applyStatus(
-            (string) ($meta['platform_status'] ?? 'disabled'),
+        // Strict engine transition (Phase 6.3): active = Publish, archived =
+        // archive, trashed = trash. A direct 'disabled' is never a transition —
+        // Disable/Enable is the explicit mask request shape above. A rejected
+        // call returns before anything is written.
+        if ($platformStatus === StationLifecycle::STATUS_DISABLED) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Use action "disable" or "enable" to change the Disable mask.'], 422);
+        }
+        $current = ServiceSchema::resolvePlatformStatus($meta, $post->post_status);
+        $change  = StationLifecycle::statusRouteTransition(
+            $current,
             $platformStatus,
             isset($meta['previous_platform_status']) ? (string) $meta['previous_platform_status'] : null
         );
+        if ($change === null) {
+            return new \WP_REST_Response(['success' => false, 'message' => "A {$current} Service cannot move to {$platformStatus}."], 422);
+        }
+        if ($platformStatus === StationLifecycle::STATUS_ACTIVE && !ServiceModules::isPublishReady($post, $meta)) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Publish requires a complete, settled Overview.'], 422);
+        }
 
         if ($change['previous_status'] !== null) {
             $meta['previous_platform_status'] = $change['previous_status'];

@@ -240,4 +240,54 @@ check_category($binDeleted->get_status() !== 422, 'permanent delete from archive
 check_category($binDeleted->get_data()['platform_id'] === $binPlatformId, 'archived permanent delete returns the deleted Category identifier');
 check_category($platformIdentifiers->resolve($binPlatformId)?->isDeleted() === true, 'archived permanent delete retains the Category identifier tombstone');
 
+echo "\nPhase 6.3 — strict Category status transitions\n";
+
+function categorySnapshot(int $id): string
+{
+    global $__categoryTerms, $__categoryMeta;
+    $term = $__categoryTerms[$id] ?? null;
+    return serialize([$__categoryMeta[$id] ?? [], $term ? [$term->name, $term->slug] : null]);
+}
+
+function expectCategoryRefusal(AdminCategoriesController $controller, int $id, string $target, string $label): void
+{
+    $before   = categorySnapshot($id);
+    $response = $controller->updateStatus(new WP_REST_Request(['id' => $id, 'platform_status' => $target]));
+    check_category($response->get_status() === 422 && $response->get_data()['success'] === false, "{$label} is refused (422)");
+    check_category(categorySnapshot($id) === $before, "{$label} leaves status, mask, module state, draft, canonical data and identity untouched");
+}
+
+// Pending: the Overview Save draft has not been settled.
+$strict = $controller->createCategory(new WP_REST_Request(['name' => 'Wreck Dives', 'description' => '']))->get_data()['category']['id'];
+expectCategoryRefusal($controller, $strict, 'active', 'Publish with a pending (unsettled) Overview');
+
+// Incomplete: a settled Category whose canonical name is empty.
+$incomplete = $controller->createCategory(new WP_REST_Request(['name' => 'Legacy']))->get_data()['category']['id'];
+$controller->settleOverview(new WP_REST_Request(['id' => $incomplete]));
+$__categoryTerms[$incomplete]->name = '';
+expectCategoryRefusal($controller, $incomplete, 'active', 'Publish with an incomplete Overview');
+
+// Complete + settled: Publish is accepted; republishing a settled live record stays active.
+$controller->settleOverview(new WP_REST_Request(['id' => $strict]));
+$strictActive = $controller->updateStatus(new WP_REST_Request(['id' => $strict, 'platform_status' => 'active']));
+check_category($strictActive->get_status() === 200 && $strictActive->get_data()['category']['platform_status'] === 'active', 'Publish is accepted once the Overview is complete and settled');
+$controller->saveOverview(new WP_REST_Request(['id' => $strict, 'name' => 'Wreck Diving', 'description' => '']));
+expectCategoryRefusal($controller, $strict, 'active', 'republishing an active Category with an unsettled Overview draft');
+$controller->settleOverview(new WP_REST_Request(['id' => $strict]));
+check_category($controller->updateStatus(new WP_REST_Request(['id' => $strict, 'platform_status' => 'active']))->get_data()['category']['platform_status'] === 'active', 'republishing a settled active Category keeps it active');
+
+// A direct 'disabled' never bypasses the explicit Disable/Enable mask.
+expectCategoryRefusal($controller, $strict, 'disabled', 'a direct disabled target');
+check_category($controller->updateStatus(new WP_REST_Request(['id' => $strict, 'action' => 'disable']))->get_data()['category']['previous_platform_status'] === 'active', 'explicit action=disable still applies the mask');
+$controller->updateStatus(new WP_REST_Request(['id' => $strict, 'action' => 'enable']));
+
+// Archive/trash refuse illegal source states; Publish refuses Bin states.
+$controller->updateStatus(new WP_REST_Request(['id' => $strict, 'platform_status' => 'archived']));
+expectCategoryRefusal($controller, $strict, 'archived', 'archive from archived');
+expectCategoryRefusal($controller, $strict, 'active', 'Publish from archived (Restore is the only way out)');
+$controller->updateStatus(new WP_REST_Request(['id' => $strict, 'platform_status' => 'trashed']));
+expectCategoryRefusal($controller, $strict, 'trashed', 'trash from trashed');
+expectCategoryRefusal($controller, $strict, 'archived', 'archive from trashed');
+expectCategoryRefusal($controller, $strict, 'disabled', 'a direct disabled target from trashed');
+
 echo "\nAll Category pending lifecycle checks passed.\n";
