@@ -150,3 +150,12 @@ No implementation correction is required.
 6. Verify the final remote branch list is exactly those three permanent branches.
 7. Update this same work file with resulting `main` SHA, CI run/result, final branch list, confirmation no deployment occurred, set `Status: AWAITING REVIEWER REVIEW`, set `Actor: Reviewer`, and stop.
 8. Do not begin Phase 6.3 until Reviewer closes Phase 6.2.
+
+
+## Builder promotion attempt — blocked by executor permission
+
+Status remains `BUILDER ACTION REQUIRED`; no promotion step was partially advanced.
+
+- Preflight passed: `origin/main` `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d` is an ancestor of accepted head `087a76965d89ec9994ff82e8d7fba3a3f24c24f7`, so promotion is a pure fast-forward. A `main` push does not run `deploy-staging`.
+- Blocked: Claude Code's auto-mode classifier refused `git push origin 087a769…:refs/heads/main` ("Merge Without Review"). `main` is unchanged, the topic branch was kept, and nothing was deployed.
+- Required execution surface: the Owner allows the fast-forward `main` push on this executor (as for Phase 6.1), then Builder completes the CI verification, topic-branch deletion and evidence steps.
