@@ -79,3 +79,35 @@ Builder must first map those labels to existing legal Station actions. If archiv
 - regression results;
 - `npm test` and `npm run docs:check` results;
 - explicit confirmation no Phase 6.2+, Settings, deployment, or lifecycle redesign was included.
+
+
+## Owner UI clarification — row and action grammar
+
+Use one compact row per record in the single Bin surface:
+
+`Item name/label | Platform ID | state pill | one split-action control`
+
+State pill:
+- Archived
+- Trash
+
+There must not be separate Restore/Delete buttons scattered across the row. Use one shared split/dropdown action control.
+
+Action order requested by Owner:
+
+Archived row:
+1. Restore
+2. Move to Trash
+3. Permanently delete
+
+Trash row:
+1. Restore
+2. Permanently delete
+
+Restore is always the first/default action.
+
+Important lifecycle safeguard:
+- Current locked lifecycle/backend only permits permanent delete for a trashed record.
+- Therefore Builder must NOT make Archived -> Permanently delete work by changing lifecycle/backend legality.
+- If the Owner intends direct permanent delete from Archived to become legal, that is a separate explicit lifecycle decision and must be reviewed before implementation.
+- Until such a decision exists, implement only actions already legal under current lifecycle authority.
