@@ -176,3 +176,11 @@ Deviations and limitations for Reviewer:
 Not included: Phase 6.2+, Settings/Connections/Rezdy, deployment, or lifecycle redesign.
 
 Builder stops here for Reviewer review.
+
+## Builder handoff addendum
+
+Three items I raised only in chat, now recorded here:
+
+- **Work-file length:** this file is about 1,330 words, against the roughly 600-word guidance in `project-work/AGENTS.md`. It was already over before the Builder handoff was added. Reviewer may condense or archive earlier sections when recording the verdict.
+- **Executor environment (not a source defect):** the Builder clone lives under an iCloud-synced `~/Documents`, and iCloud kept creating "* 2" duplicate folders inside the git-ignored `node_modules`. That broke the first local `tsc` run until `npm ci` reinstalled; the final `npm test` and `docs:check` results above came from a clean reinstall. No tracked file is affected (checked: no "* 2" paths outside `node_modules`). Local results should be read with this in mind; CI on GitHub is unaffected.
+- **Project History (Owner decision pending):** per `AGENTS.md`, Phase 6.1 may qualify as a milestone (Bin surface plus the Owner's unified-Bin delete decision). The Builder has asked the Owner and has not created a history document. Record the Owner's answer here once accepted.
