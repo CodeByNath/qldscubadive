@@ -1,6 +1,6 @@
 # Phase 6.1 — Bin / Archive Surface
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Phase 6.1 — Bin / Archive surface
 
 ## Authority
@@ -184,3 +184,46 @@ Three items I raised only in chat, now recorded here:
 - **Work-file length:** this file is about 1,330 words, against the roughly 600-word guidance in `project-work/AGENTS.md`. It was already over before the Builder handoff was added. Reviewer may condense or archive earlier sections when recording the verdict.
 - **Executor environment (not a source defect):** the Builder clone lives under an iCloud-synced `~/Documents`, and iCloud kept creating "* 2" duplicate folders inside the git-ignored `node_modules`. That broke the first local `tsc` run until `npm ci` reinstalled; the final `npm test` and `docs:check` results above came from a clean reinstall. No tracked file is affected (checked: no "* 2" paths outside `node_modules`). Local results should be read with this in mind; CI on GitHub is unaffected.
 - **Project History (Owner decision pending):** per `AGENTS.md`, Phase 6.1 may qualify as a milestone (Bin surface plus the Owner's unified-Bin delete decision). The Builder has asked the Owner and has not created a history document. Record the Owner's answer here once accepted.
+
+
+## Reviewer decision
+
+Verdict: Proceed with safeguards
+
+Independent review of candidate `9b0800ec8b872f598bb21807835b0ca9352a5902` confirms the core Phase 6.1 implementation is correctly bounded:
+
+- one Bin lane exists on Service Home;
+- Service and Category archived/trashed records share that one surface;
+- rows show name, Platform ID, travel state, and one split-action control;
+- Restore is the primary action;
+- Archived actions are Restore / Move to Trash / Permanently delete;
+- Trash actions are Restore / Permanently delete;
+- permanent delete legality is widened only to the two Bin states;
+- restore remains archived|trashed -> unmasked Pending;
+- owning Station APIs, dependency guards, confirmation, and Platform ID tombstoning are preserved;
+- no Phase 6.2+, Settings/Rezdy, or deployment work was included.
+
+### Required Builder correction
+
+The Owner required the single Bin to include a simple state filter. The pushed implementation has no filter control; it always renders all rows.
+
+Make only this bounded correction on the existing topic branch:
+
+1. Add one compact Bin filter with exactly:
+   - All
+   - Archived
+   - Trash
+2. Default to All.
+3. Filter the already-loaded unified Bin rows in presentation/state only. Do not create a second surface, storage path, lifecycle path, or duplicate endpoint set.
+4. Keep one row grammar:
+   `Item name | Platform ID | state pill | split actions`.
+5. The Bin-visible state label should read `Archived` or `Trash`. Do not globally change another surface's lifecycle wording if that would create unrelated scope; localise the Bin presentation label if needed.
+6. Extend `service-home-bin-regression.mjs` to prove:
+   - default All shows both states;
+   - Archived shows only archived rows;
+   - Trash shows only trashed rows;
+   - switching filters does not trigger lifecycle mutations or create a second fetch/storage path.
+7. Re-run `npm test` and `npm run docs:check`.
+8. Push the corrected exact SHA, update this same work file to `AWAITING REVIEWER REVIEW` with evidence, and stop.
+
+Do not alter the accepted lifecycle/delete work or widen scope while making this correction.
