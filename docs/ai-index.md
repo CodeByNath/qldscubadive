@@ -13,6 +13,12 @@ The QSD Platform is the Queensland Scuba Diving business platform. WordPress is 
 
 For current open work and standing decisions, read the [Roadmap and handover](roadmap.md).
 
+## Workflow and repository governance
+
+Controlled Builder/Reviewer work is coordinated from `origin/Project-work-instructions`. That branch is workflow authority only; QSD product/system authority remains on `main`.
+
+Durable repository-operability rules live under [Foundation](foundation/README.md). `docs/roadmap.md` remains the current platform state and roadmap authority. The Google Drive chat handover is continuity context only and never replaces repository authority.
+
 ## Peer Station model
 
 - [Station Manager](code-map/station-manager.md) is coordinator-only. It owns registration contracts/resolvers, ordering and availability coordination, boot/finalize, generic surface composition, native record-identity transport, and retained-collection infrastructure. It owns no presentation primitive, domain logic, persistence, lifecycle rule, or drawer editor.
