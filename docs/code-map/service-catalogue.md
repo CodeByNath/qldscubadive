@@ -29,7 +29,7 @@ The Catalogue is no longer a wall of its own. [ServiceLowerDeck.tsx](../../wp-co
 
 - [ServiceController.php](../../wp-content/plugins/qsd-platform/src/Modules/Service/Http/ServiceController.php) owns Service REST reads and WordPress post/meta mutations.
 
-The Category filter uses the Service's direct Category slug. Archived rows contribute to the overview count only; archived and trashed Services are not browsable from Home yet (see [Lifecycle](lifecycle-system.md#known-gaps)).
+The Category filter uses the Service's direct Category slug. In `Details`, archived rows contribute to the overview count only; archived and trashed Services (and Categories) are browsed and acted on in the `Bin` lane (see [Lifecycle](lifecycle-system.md#bin-travel-surface)).
 
 ## Validation
 
