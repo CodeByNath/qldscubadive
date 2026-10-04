@@ -1,6 +1,6 @@
 # Phase 6.1 — Bin / Archive Surface
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.1 — Bin / Archive surface
 
 ## Authority
@@ -360,3 +360,19 @@ Status remains `BUILDER ACTION REQUIRED` (no step of the promotion was partially
 - Preflight passed: `origin/main` `aa59eff28c768f11d54f9e2d70444ea92af14951` is an ancestor of accepted head `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d`, so promotion is a pure fast-forward. `ci-deploy.yml` runs `deploy-staging` only for `refs/heads/staging` or `workflow_dispatch`, so a `main` push does not deploy.
 - Blocked: Claude Code's auto-mode safety classifier refused `git push origin 8d19492…:refs/heads/main` ("Merge Without Review"). The Owner must allow it on this executor. `main` is unchanged, the topic branch was not deleted, and nothing was deployed.
 - Required execution surface: the Owner approves the fast-forward push to `main` in Claude Code (or performs it), after which Builder verifies the `main` SHA and post-merge CI, deletes only `phase-6-1/bin-archive-surface`, verifies three remote branches, and records the evidence here.
+
+
+## Builder promotion result
+
+The Owner allowed the push on the executor; the earlier block is cleared.
+
+- Promoted accepted head `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d` to `main` by fast-forward (`aa59eff..8d19492`). No new commit and no scope change.
+- Resulting `main` SHA: `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d` — identical to the accepted candidate (verified with `git ls-remote`).
+- Post-merge CI: GitHub Actions run `37207072950` (`Test and deploy`, run 21, push to `main` on `8d19492`) completed with `success`. The `test` job passed `npm ci`, `npm test` and the built Admin Station artifact upload. `deploy-staging` was `skipped`.
+- No staging or production deployment occurred.
+- Topic branch `phase-6-1/bin-archive-surface` was deleted after `git merge-base --is-ancestor` confirmed it is contained in `main`.
+- Final remote branches: `main` (`8d19492…`), `staging` (`69f68ca…`), `Project-work-instructions` — 3.
+- Executor note: the first CI polling script had a syntax error. The run result above comes from a direct GitHub API lookup of the run and its jobs.
+- Project History remains an Owner decision pending.
+
+Builder stops here for Reviewer closeout. Phase 6.2 not started.
