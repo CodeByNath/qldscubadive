@@ -1,8 +1,8 @@
 # Phase 6.3 — Server-side transition enforcement
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.3 — Server-side transition enforcement
-Actor: Builder
+Actor: Reviewer
 
 ## Authority
 
@@ -85,3 +85,49 @@ Do not require optional child modules (Inclusions/FAQs) to be configured or sett
 ## Required handoff evidence
 
 Exact branch/SHA, changed files, transition matrix tested, proof rejected calls are mutation-free, unchanged route baseline unless intentionally required, `npm test`, `npm run docs:check`, and explicit confirmation Phase 6.4+ and deployment were not included.
+
+## Builder handoff
+
+Branch `phase-6-3/server-side-transitions` at `6ac7535a65e3b2e1bcbff36ad32fc92e31346b65` (one commit on `main` `087a769`; remote SHA verified). Remote heads: 3 permanent + this topic.
+
+**Changed files (12):**
+- `StationLifecycle.php`: the permissive `applyStatus` is replaced by `statusRouteTransition(current, target, previous)`. `active` resolves via `publish()`, `archived` via `archive()`, `trashed` via `trash()`; every other target returns null. No new vocabulary.
+- `ServiceController::updateStatus` / `AdminCategoriesController::updateStatus` check, in order:
+  1. a direct `disabled` gets a 422;
+  2. an engine-illegal transition gets a 422;
+  3. `active` without readiness gets a 422;
+  4. otherwise the existing write.
+  Every refusal returns before any write. `action: disable|enable`, Restore and Delete are untouched. Service's current status now comes from `ServiceSchema::resolvePlatformStatus` (as Restore does), instead of `platform_status ?? 'disabled'`.
+- Readiness: `ServiceModules::isPublishReady` (existing `isOverviewComplete` + `module_status.overview === settled`) and `CategoryMeta::isPublishReady` (`deriveOverviewStatus` settled + `module_status.overview === settled`). Inclusions/FAQs never gate.
+- Legacy `is_active`: still accepted by the schema. `true` follows the Publish rules; `false` maps to `disabled` and gets the same 422.
+- Tests: `tests/service-lifecycle-mask.php`, `tests/category-pending-lifecycle.php`.
+- Docs: lifecycle-system (Backend authority; resolved Known-gap bullet removed), service-station, categories, roadmap (item 2 accepted, item 3 built), and the contract §8 Known-gap note (now a conformance bullet).
+
+**Transition matrix tested:**
+- Engine: 16 cases.
+- Service and Category through the real controllers, each refused case with a before/after snapshot:
+  - pending Overview → active refused;
+  - incomplete Overview → active refused;
+  - complete + settled → accepted;
+  - active with an unsettled draft → refused, and → stays active once settled;
+  - direct `disabled` refused;
+  - archived → archived/active refused;
+  - trashed → trashed/archived refused.
+- Service only: `is_active` true/false is checked in the same cases.
+- The snapshot covers status, mask, `module_status`, drafts, canonical post/term data, terms and Platform ID meta, and is byte-identical after every refusal.
+- The existing Service test fixtures for ids 3/4 published without settling, so they now `settleAll` first.
+
+**Route baseline:** `tests/service-route-baseline.php` reports 26 routes unchanged. Paths, methods and args are unchanged.
+
+**Checks** (from `wp-content/plugins/qsd-platform/`):
+- `npm test` exit 0 (typecheck, PHP, build, 20/20 JS).
+- `npm run docs:check` passed (41 files, 18 Code Maps).
+
+**Decisions for the Reviewer:**
+1. `active → active` is accepted as a no-op status write when ready. Both drawers' Publish (settle, then `platform_status: active`) is offered on live records with pending drafts; refusing it would break Publish. Rejecting it instead needs a UI change, and UI changes are excluded here.
+2. Publish from a masked Disabled record follows the engine (`disabled → active` is legal). The Category footer still offers Publish while masked, and the mask is left as stored (pre-existing behaviour). Refusing it would add a rule that neither the engine nor the work file states.
+3. Archive from a never-published Pending record stays engine-legal; the UI already disables it.
+
+**Governance:** `ServiceController.php` was already over the 1,000-line cap (1,280 → 1,292). The readiness logic was put in the Support classes to keep the growth small. `AdminCategoriesController.php` grew 874 → 883.
+
+Not included: Phase 6.4 Atomic Publish, settle+activate merging, UI/drawer work, deployment, history document.
