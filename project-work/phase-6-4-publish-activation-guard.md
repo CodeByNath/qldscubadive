@@ -1,8 +1,8 @@
 # Phase 6.4 — Publish activation guard
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.4 — Atomic Publish
-Actor: Builder
+Actor: Reviewer
 
 ## Authority
 
@@ -82,3 +82,34 @@ Restore must remain a neutral return to **unmasked Pending**. It must never choo
 ## Required handoff evidence
 
 Exact branch/SHA, changed files, request-order/failure regressions for Service and Category, confirmation the Phase 6.3 safeguard is preserved, `npm test`, `npm run docs:check`, and explicit confirmation no Phase 6.5+/deployment work was included.
+
+## Builder handoff
+
+Branch `phase-6-4/publish-activation-guard` at `b9192c6abd9deb04c0d1b24a87f70dd4ec99434f`. It is one commit on `main` `6ac7535`; the remote SHA is verified. Remote heads are the 3 permanent branches plus this topic.
+
+**Changed files (6):**
+- `useServiceStation.ts` `publishService()`: `if (!settleResult.success) return null;` now runs before any state update or activation. The success path is unchanged: it applies the settled detail, sends one `platform_status: active`, and returns the result. `settled` is always `true` on a returned result.
+- `useCategoryStation.ts` `publishCategory()`: the same guard. The `next` fallback to the unsettled record is removed.
+- A settle that errors (non-2xx) already threw from `apiClient` before reaching activation; that path is unchanged and is now covered by a test.
+- New `scripts/publish-activation-guard-regression.mjs` (242 lines), registered in `package.json` as `regression:publish-activation-guard`. It mounts the real `useServiceStation` / `useCategoryStation` in a probe against a fetch mock that records every request in order.
+- Docs: lifecycle-system (Domain state line, Known-gap wording) and roadmap (item 3 accepted, item 4 built).
+
+**Request-order / failure evidence**, per Station (10 scenarios, 50 checks):
+- settle `success:false` → only the settle request; no activation; `null` result; record unchanged.
+- settle 422 → the same; the hook rejects and the existing drawer runner reports the error.
+- Pending + settle ok → settle, then exactly one `active`; success.
+- already-active with pending changes + settle ok → settle, then one idempotent `active`.
+- already-active + settle failure → no activation.
+- every scenario: no `/restore`, `action: disable` or `action: enable` request.
+
+Against the pre-fix hooks the same script fails: settle then `active` is sent, and success is reported after a failed settle. The guard is therefore proven to detect the defect.
+
+**Phase 6.3 safeguard:** `active → active` is sent only after a successful settle. No server code changed, and no same-state transition was widened.
+
+**Observation for the Reviewer:** both drawer controllers already route an *already-active* record's Publish to `settleModules` only (`useServiceDrawerController.ts:118`, `useCategoryDrawerController.ts:133`). So in the drawer, idempotent `active → active` currently arises only through a direct hook call. No change was made.
+
+**Known gap (left honest in the lifecycle map):** Publish is still two requests. An activation failure after a successful settle leaves the record settled but not active. This was not addressed because a single server route is behind a decision gate.
+
+**Checks** (from `wp-content/plugins/qsd-platform/`): `npm test` exit 0 (typecheck, PHP, build, 21/21 JS); `npm run docs:check` passed.
+
+Not included: new publish endpoint, server/transaction changes, Restore/Disable/Enable/Archive/Trash/Delete changes, drawer/footer redesign, Phase 6.5 Trash confirmation, deployment.
