@@ -7,7 +7,7 @@ One record-list surface for the whole Admin Station, declared in `resources/ts/a
 ## The two shapes
 
 - **Table** — the Service Catalogue, `resources/ts/service-station/presentation/ServiceCatalogue.tsx`. Its `<thead>` supplies the column labels, so its cells carry none.
-- **List** — Service Home's Connections and Settings lanes, `resources/ts/service-station/presentation/ServiceConnectionsLane.tsx` and `ServiceSettingsLane.tsx`. A list has no header row, so each cell carries its own label through `.cz-service-deck__field-label`. A future Station's list lane adds its own `.cz-<station>-deck__field-label`.
+- **List** — Service Home's Connections, Settings, and Bin lanes, `resources/ts/service-station/presentation/ServiceConnectionsLane.tsx`, `ServiceSettingsLane.tsx`, and `ServiceBinLane.tsx`. A list has no header row, so each cell carries its own label through `.cz-service-deck__field-label`. A future Station's list lane adds its own `.cz-<station>-deck__field-label`.
 
 A list stays a list. No table markup crosses into a lane, and nothing that is not already a list is turned into one.
 

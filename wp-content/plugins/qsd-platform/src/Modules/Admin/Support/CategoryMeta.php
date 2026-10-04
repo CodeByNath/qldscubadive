@@ -35,7 +35,7 @@ namespace QSD\Platform\Modules\Admin\Support;
  *     existing key), read here for projection/derivation only.
  *   - Delete guard (D6): permanent delete is blocked while any qsd_service
  *     post — in any status — is assigned to the term. The count predicate
- *     lives here; status legality (trashed-only) stays with
+ *     lives here; status legality (archived or trashed) stays with
  *     StationLifecycle::canDelete.
  */
 final class CategoryMeta

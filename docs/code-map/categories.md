@@ -33,9 +33,9 @@ Admin Station contributes only host/registration; placement does not transfer
 domain ownership.
 
 **Service Home Connections is the active Category entry point** and opens this
-drawer by native ID; Settings → Create Category opens it at `'new'`. A Category
-with no assigned Services is not listed anywhere yet, so it cannot be reopened
-until a Service uses it (see [Lifecycle](lifecycle-system.md#known-gaps)). The
+drawer by native ID; Settings → Create Category opens it at `'new'`; the Bin lane
+lists archived/trashed Categories. An unassigned live Category is listed
+nowhere yet (see [Lifecycle](lifecycle-system.md#known-gaps)). The
 registered `ServiceCategoryCarousel` data source is currently unplaced.
 
 ## State and persistence

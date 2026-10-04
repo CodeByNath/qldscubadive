@@ -14,7 +14,7 @@ namespace QSD\Platform\Modules\Admin\Support;
  *   draft     never published (pre-live)
  *   active    live
  *   disabled  published-capable but off (also the universal restore landing state)
- *   archived  in the bin, restorable
+ *   archived  in the bin, restorable, permanently deletable
  *   trashed   in the bin, restorable, permanently deletable
  *
  * Transition table (the only legal status writes anywhere):
@@ -28,7 +28,9 @@ namespace QSD\Platform\Modules\Admin\Support;
  *   restore : archived|trashed → disabled         (never to active; clears previous_status.
  *             A trashed draft restores to disabled like everything else — restore
  *             does not resurrect draft-ness)
- *   delete  : legal only from trashed             (engine validates; station removes)
+ *   delete  : archived|trashed                    (either Bin state — Owner decision,
+ *             Phase 6.1 unified Bin; engine validates; station removes and
+ *             keeps its own dependency guards)
  *
  * The module layer (drafts / module_status: not-configured → pending → settled)
  * is orthogonal to the travel state and remains station-owned; the engine only
@@ -112,7 +114,7 @@ final class StationLifecycle
 
     public static function canDelete(string $current): bool
     {
-        return $current === self::STATUS_TRASHED;
+        return self::isBinned($current);
     }
 
     // ── Transition computations ───────────────────────────────────────────────

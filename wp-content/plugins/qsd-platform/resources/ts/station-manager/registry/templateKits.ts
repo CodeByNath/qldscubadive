@@ -10,6 +10,11 @@ export interface TemplateKitProps {
   loading: boolean;
   error: string | null;
   onIntent: StationIntentDispatch;
+  // This surface's own data-source refresh — the same handle a dispatched
+  // intent already carries to its drawer. A kit calls it after an in-place
+  // owning-Station mutation (e.g. a Bin restore) so the wall it renders stays
+  // current; it never reaches another surface.
+  refetch?: () => void;
 }
 
 export type TemplateKit = (props: TemplateKitProps) => VNode;

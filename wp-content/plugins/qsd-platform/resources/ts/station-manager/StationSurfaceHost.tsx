@@ -54,6 +54,7 @@ export function StationSurfaceHost({ binding, onDispatch }: Props): VNode {
       items={items}
       loading={loading}
       error={error}
+      refetch={refetch}
       onIntent={(recordId, intentId) => {
         const intent = binding.actionIntents.find((i) => i.id === intentId);
         // An unmatched action dispatches nothing rather than guessing a target.

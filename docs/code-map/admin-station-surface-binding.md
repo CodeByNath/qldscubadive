@@ -18,7 +18,7 @@ It uses `placement: 'presentation'` and `conditions.scope: 'current'`. The polic
 
 Service Categories and Service cards have registered sources, and the `category-group-cards` card grid and Category carousel are registered kits, but none is currently bound to a presentation wall.
 
-`service-lower-deck` is a Service-owned kit that composes lanes rather than a list: it reads the same `service-catalogue` source and opens the same `service` drawer, and renders the existing Service Catalogue inside its `Details` lane. Composition inside one kit is not a second binding; Connections and Settings hold declared empty states with no source, kit, or drawer of their own.
+`service-lower-deck` is a Service-owned kit that composes lanes rather than a list: it reads the same `service-catalogue` source and opens the same `service` drawer, and renders the existing Service Catalogue inside its `Details` lane. Composition inside one kit is not a second binding; Connections, Settings, and Bin read through Service's own surface hooks and add no source, kit, or drawer binding of their own.
 
 ## Finalization and rendering
 
@@ -36,7 +36,7 @@ active station + presentation placement
   → Admin drawer shell hosts the owning Station's contract
 ```
 
-`StationSurfaceHost` mounts with a key containing the data-source key so the selected hook stays stable for that mount. It passes record identity through without parsing or coercion. Its dispatch carries that wall's `refetch` handle; a successful save therefore refreshes only the originating wall.
+`StationSurfaceHost` mounts with a key containing the data-source key so the selected hook stays stable for that mount. It passes record identity through without parsing or coercion. Its dispatch carries that wall's `refetch` handle; a successful save therefore refreshes only the originating wall. The same handle is also passed to the kit as the optional `TemplateKitProps.refetch`, so an in-place owning-Station mutation inside the kit (the Service Bin lane) refreshes only its own wall.
 
 ## Invariants
 

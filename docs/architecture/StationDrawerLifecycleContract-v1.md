@@ -119,7 +119,7 @@ sibling modules, pills, notifications, and the record footer remain mounted.
 | Enable | Clear the explicit mask; do not create, settle, or activate. | Configured/pending data returns to its Pending full state; empty children return to Pending dim. Existing drafts/data are preserved. |
 | Archive / Move to Trash | Owning Station travel operation (Archive/Trash may be offered by the record footer where legal). | The drawer closes through its guarded terminal path; the record and its pending/settled data remain recoverable according to Station rules. |
 | Restore | Bin/archive travel-surface operation, not available inside the drawer. | Returns to the unmasked Pending re-entry state, preserving module data/drafts; it does not auto-activate. |
-| Permanently delete | Legal only for a trashed record and guarded by the owning Station's dependency rules. | Removes the record; no drawer or module may fake a successful delete. |
+| Permanently delete | Legal from either Bin state (archived or trashed — Owner decision for the unified Bin, Phase 6.1) and guarded by the owning Station's dependency rules. Never legal from a live state. | Removes the record and leaves its Platform ID tombstone; no drawer or module may fake a successful delete. |
 
 For a local `new` drawer with no persisted ID, Move to Trash is simply discard/
 close of local authoring state; it is not a status write against a nonexistent
@@ -176,13 +176,13 @@ If the source does not yet meet one of these points, mark the Station and its
 - **Shared drawer ownership:** `drawer-system.md` and
   `admin-station-drawer.md`; the host is generic and the Station is the write
   boundary.
+- **Bin travel surface:** Service Home's Bin lane (`service-catalogue.md`,
+  `lifecycle-system.md`) lists archived and trashed Services and Categories
+  and offers Restore, Move to Trash (archived only), and Permanently delete
+  through each owning Station's existing actions (§5).
 
 ### Known gaps (tracked, not exceptions)
 
-- **Travel surfaces:** Restore and Permanent delete are implemented by both
-  Stations' backends and API clients, and Service declares its bin tables,
-  but no Admin Station surface lists archived or trashed records yet (§5
-  places Restore on a bin/archive travel surface).
 - **Transition enforcement:** the `/status` routes accept any valid target;
   strict per-action transitions are currently enforced by the drawer only.
 

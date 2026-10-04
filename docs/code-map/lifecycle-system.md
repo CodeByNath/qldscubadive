@@ -24,7 +24,7 @@ WordPress `post_status` is never written after creation. A raw unmasked `disable
 
 ## Shared mechanics and presentation
 
-- [StationLifecycle.php](../../wp-content/plugins/qsd-platform/src/Modules/Admin/Support/StationLifecycle.php) is shared transition/readiness infrastructure (live/bin sets, restore, delete guards).
+- [StationLifecycle.php](../../wp-content/plugins/qsd-platform/src/Modules/Admin/Support/StationLifecycle.php) is shared transition/readiness infrastructure (live/bin sets, restore, delete guards). Permanent delete is legal from either Bin state (archived or trashed), never from a live state.
 - [stationPrimitives.ts](../../wp-content/plugins/qsd-platform/resources/ts/hooks/stationPrimitives.ts) provides shared mutation loading/error wrappers and patch/result helpers.
 - [moduleStatus.tsx](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/utils/moduleStatus.tsx) derives completeness, the Service overview status, catalogue buckets, and status presentation.
 - [moduleNotifications/](../../wp-content/plugins/qsd-platform/resources/ts/drawer-kit/utils/moduleNotifications/index.ts) contains the generic evaluator plus the Service and Category rule groups. Rules derive notes/readiness and render nothing. A new Station adds its own rule file.
@@ -37,15 +37,19 @@ WordPress `post_status` is never written after creation. A raw unmasked `disable
 
 A complete Overview Save creates the persisted Pending record, preserves the mounted drawer during native-ID handoff, and leaves Publish to settle/activate that existing identity. Enable and Restore return to Pending, preserving data and drafts.
 
+## Bin travel surface
+
+Service Home's Bin lane ([ServiceBinLane.tsx](../../wp-content/plugins/qsd-platform/resources/ts/service-station/presentation/ServiceBinLane.tsx)) is the one place Restore and Permanent delete are offered (contract §5). [serviceHomeBin.ts](../../wp-content/plugins/qsd-platform/resources/ts/service-station/surface/serviceHomeBin.ts) reads the archived/trashed lists and maps Restore, Move to Trash, and Permanently delete 1:1 onto each owning Station's existing endpoint function; it decides no legality. Destructive actions are `useInlineConfirm`-armed in place.
+
 ## Backend authority
 
 Domain controllers apply the engine at their own REST boundaries: [ServiceController.php](../../wp-content/plugins/qsd-platform/src/Modules/Service/Http/ServiceController.php) and [AdminCategoriesController.php](../../wp-content/plugins/qsd-platform/src/Modules/Admin/Http/AdminCategoriesController.php).
 
 ## Known gaps
 
-- Restore and Permanent delete exist in the backend, API client, and bin table schemas, but no Admin Station surface lists archived/trashed records yet.
 - The `/status` route applies any valid target (`StationLifecycle::applyStatus`); strict per-action transitions are enforced by the UI only.
 - Service Publish sends settle and activate as two requests.
+- A live Category with no assigned Services is listed on no surface (roadmap Phase 6.2); archived/trashed Categories are reachable through the Bin.
 
 ## Validation
 

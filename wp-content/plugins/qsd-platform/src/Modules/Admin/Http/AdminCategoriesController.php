@@ -161,7 +161,7 @@ class AdminCategoriesController
             ],
         ]);
 
-        // ── Permanent delete (trashed only + D6 guard) ────────────────────────
+        // ── Permanent delete (archived or trashed + D6 guard) ─────────────────
         register_rest_route('qsd/v1', '/admin/categories/(?P<id>\d+)', [
             'methods'             => 'DELETE',
             'callback'            => [$this, 'permanentDeleteCategory'],
@@ -495,7 +495,7 @@ class AdminCategoriesController
     }
 
     /**
-     * Permanent delete: legal only from trashed (StationLifecycle::canDelete)
+     * Permanent delete: legal only from archived or trashed (StationLifecycle::canDelete)
      * AND with zero assigned services (D6 — wp_delete_term would silently sever
      * the relationships, so detachment must happen first, service-side).
      */
@@ -512,7 +512,7 @@ class AdminCategoriesController
         $termId = (int) $term->term_id;
 
         if (!StationLifecycle::canDelete(CategoryMeta::status($termId))) {
-            return new \WP_REST_Response(['success' => false, 'message' => 'Only trashed categories can be permanently deleted.'], 422);
+            return new \WP_REST_Response(['success' => false, 'message' => 'Only archived or trashed categories can be permanently deleted.'], 422);
         }
 
         $assignedCount = CategoryMeta::assignedServiceCount($termId);

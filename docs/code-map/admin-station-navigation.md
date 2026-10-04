@@ -29,7 +29,7 @@ header or slide-menu row
   → presentation bindings for that station
 ```
 
-With no selection or an unmapped key, the body uses the registered default home, `services`. Services renders the Service lower deck (Details, Connections, Settings).
+With no selection or an unmapped key, the body uses the registered default home, `services`. Services renders the Service lower deck (Details, Connections, Settings, Bin).
 
 There is no URL router in this chain. An activation key is not a route. Destination resolution and surface-binding resolution are separate axes: the former chooses a station context; the latter chooses ordered live presentation surfaces.
 

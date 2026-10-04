@@ -151,7 +151,7 @@ class ServiceController
             'args'                => ServiceSchema::identity(),
         ]);
 
-        // ── Permanent delete (only when platform_status = trashed) ────────────
+        // ── Permanent delete (only from a Bin state: archived or trashed) ─────
         register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)', [
             'methods'             => 'DELETE',
             'callback'            => [$this, 'permanentDeleteService'],
@@ -945,9 +945,10 @@ class ServiceController
     }
 
     /**
-     * Permanently delete a trashed service and clean up all related platform data.
-     * Only callable when platform_status === 'trashed'. Uses wp_delete_post with force=true
-     * (bypasses WordPress Trash) and leaves a permanent Platform ID tombstone.
+     * Permanently delete a binned service and clean up all related platform data.
+     * Only callable when platform_status is archived or trashed (StationLifecycle::canDelete).
+     * Uses wp_delete_post with force=true (bypasses WordPress Trash) and leaves a
+     * permanent Platform ID tombstone.
      */
     public function permanentDeleteService(\WP_REST_Request $request): \WP_REST_Response
     {
@@ -966,7 +967,7 @@ class ServiceController
         $platformStatus = ServiceSchema::resolvePlatformStatus($meta, $post->post_status);
 
         if (!StationLifecycle::canDelete($platformStatus)) {
-            return new \WP_REST_Response(['success' => false, 'message' => 'Only trashed services can be permanently deleted.'], 422);
+            return new \WP_REST_Response(['success' => false, 'message' => 'Only archived or trashed services can be permanently deleted.'], 422);
         }
 
         try {

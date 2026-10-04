@@ -227,4 +227,17 @@ check_category($platformIdentifiers->resolve($platformId)?->isDeleted() === true
 $deletedDetail = $controller->fetchCategoryByPlatformId(new WP_REST_Request(['platform_id' => $platformId]));
 check_category($deletedDetail->get_status() === 404, 'Category Platform-ID route does not expose a deleted tombstone');
 
+echo "\nPhase 6.1 — Category permanent delete from the unified Bin\n";
+$binCreated = $controller->createCategory(new WP_REST_Request(['name' => 'Bin candidate']))->get_data();
+$binId = $binCreated['category']['id'];
+$binPlatformId = $binCreated['category']['platform_id'];
+$liveDelete = $controller->permanentDeleteCategory(new WP_REST_Request(['id' => $binId]));
+check_category($liveDelete->get_status() === 422, 'permanent delete of a live (Pending) Category is still rejected (422)');
+$binArchived = $controller->updateStatus(new WP_REST_Request(['id' => $binId, 'platform_status' => 'archived']))->get_data();
+check_category($binArchived['category']['platform_status'] === 'archived', 'the Category enters the Bin as archived');
+$binDeleted = $controller->permanentDeleteCategory(new WP_REST_Request(['id' => $binId]));
+check_category($binDeleted->get_status() !== 422, 'permanent delete from archived is accepted');
+check_category($binDeleted->get_data()['platform_id'] === $binPlatformId, 'archived permanent delete returns the deleted Category identifier');
+check_category($platformIdentifiers->resolve($binPlatformId)?->isDeleted() === true, 'archived permanent delete retains the Category identifier tombstone');
+
 echo "\nAll Category pending lifecycle checks passed.\n";

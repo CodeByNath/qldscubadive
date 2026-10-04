@@ -1468,6 +1468,50 @@ button.cz-station-status-pill {
   background: var(--station-action-bg-hover);
 }
 
+/* Bin lane (Phase 6.1): the in-place confirm a destructive Bin action arms
+   (useInlineConfirm — contract §11), and the lane's action-failure line. */
+.cz-service-deck__button--danger {
+  border-color: var(--station-status-inactive-fg);
+  background: var(--station-status-inactive-fg);
+  color: var(--station-accent-on);
+}
+
+.cz-service-bin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--station-grid-gap);
+}
+
+.cz-service-bin__confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--station-grid-gap);
+}
+
+.cz-service-bin__confirm .cz-service-deck__button:not(.cz-service-deck__button--danger) {
+  border-color: var(--station-border);
+  background: var(--station-surface);
+  color: var(--station-text);
+}
+
+.cz-service-bin__prompt {
+  color: var(--station-text);
+  font-size: var(--station-text-sm);
+  font-weight: 700;
+}
+
+.cz-service-bin__error {
+  margin: 0;
+  padding: 12px var(--station-card-pad);
+  border: 1px solid var(--station-status-inactive-border);
+  border-radius: var(--station-control-radius);
+  background: var(--station-status-inactive-bg);
+  color: var(--station-status-inactive-fg);
+  font-size: var(--station-text-sm);
+}
+
 .cz-service-deck__button:focus-visible {
   outline: 2px solid var(--station-focus-ring);
   outline-offset: 2px;
@@ -1755,6 +1799,12 @@ button.cz-station-status-pill {
 
 .cz-station-list__row--service-settings {
   grid-template-columns: 1fr;
+}
+
+/* Identity · Platform ID · travel pill · actions — Service Home's Bin row
+   (Phase 6.1), its own four-column shape under the same rule. */
+.cz-station-list__row--service-bin {
+  grid-template-columns: minmax(200px, 1.6fr) minmax(120px, 0.8fr) minmax(120px, 0.7fr) auto;
 }
 
 /* CRM-1B: Requests' own column template — Identity · Customer · Type ·

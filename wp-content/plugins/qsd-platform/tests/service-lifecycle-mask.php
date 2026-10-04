@@ -209,6 +209,7 @@ if (!class_exists('WP_REST_Response')) {
 
 require_once __DIR__ . '/autoload.php';
 
+use QSD\Platform\Modules\Admin\Support\StationLifecycle;
 use QSD\Platform\Modules\Service\Http\ServiceController;
 use QSD\Platform\Modules\Service\Support\ServiceSchema;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
@@ -382,5 +383,52 @@ check_lifecycle($deleted['platform_id'] === $created3['service']['platform_id'],
 check_lifecycle($platformIdentifiers->resolve($deleted['platform_id'])?->isDeleted() === true, 'permanent deletion retains the Platform identifier tombstone');
 $deletedDetail = $controller->fetchDetailByPlatformId(new WP_REST_Request(['platform_id' => $deleted['platform_id']]));
 check_lifecycle($deletedDetail->get_status() === 404, 'Service Platform-ID route does not expose a deleted tombstone');
+
+// ── Phase 6.1 unified Bin: permanent delete from either Bin state ───────────
+// Owner decision: Archived and Trash share one Bin surface, so permanent delete
+// is legal from archived as well as trashed. No live state is widened, and
+// restore semantics are unchanged.
+echo "\nPhase 6.1 — permanent delete legality across the unified Bin\n";
+
+check_lifecycle(StationLifecycle::canDelete('archived') === true, 'canDelete allows archived (unified Bin)');
+check_lifecycle(StationLifecycle::canDelete('trashed') === true, 'canDelete still allows trashed');
+foreach (['draft', 'active', 'disabled'] as $liveStatus) {
+    check_lifecycle(StationLifecycle::canDelete($liveStatus) === false, "canDelete still refuses {$liveStatus}");
+}
+check_lifecycle(StationLifecycle::restore('archived') === ['status' => 'disabled', 'previous_status' => null], 'restore from archived is unchanged: unmasked disabled/Pending');
+check_lifecycle(StationLifecycle::restore('trashed') === ['status' => 'disabled', 'previous_status' => null], 'restore from trashed is unchanged: unmasked disabled/Pending');
+
+$created4 = createTestService($controller, 504);
+$id4 = $created4['service']['id'];
+$platformId4 = $created4['service']['platform_id'];
+$liveDelete = $controller->permanentDeleteService(new WP_REST_Request(['id' => $id4]));
+check_lifecycle($liveDelete->get_status() === 422, 'permanent delete of a live (Pending) Service is still rejected (422)');
+check_lifecycle(get_post($id4) !== null, 'the rejected live delete leaves the Service in place');
+
+$controller->updateStatus(new WP_REST_Request(['id' => $id4, 'platform_status' => 'active']));
+$archived4 = $controller->updateStatus(new WP_REST_Request(['id' => $id4, 'platform_status' => 'archived']))->get_data();
+check_lifecycle($archived4['service']['platform_status'] === 'archived', 'the Service enters the Bin as archived');
+check_lifecycle($archived4['service']['platform_id'] === $platformId4, 'archive preserves permanent identity');
+
+$archivedDelete = $controller->permanentDeleteService(new WP_REST_Request(['id' => $id4]));
+check_lifecycle($archivedDelete->get_status() !== 422, 'permanent delete from archived is accepted');
+check_lifecycle($archivedDelete->get_data()['platform_id'] === $platformId4, 'archived permanent delete returns the deleted permanent identity');
+check_lifecycle(get_post($id4) === null, 'archived permanent delete removes the native Service');
+check_lifecycle($platformIdentifiers->resolve($platformId4)?->isDeleted() === true, 'archived permanent delete retains the Platform identifier tombstone');
+
+$created5 = createTestService($controller, 505);
+$id5 = $created5['service']['id'];
+$controller->settleAll(new WP_REST_Request(['id' => $id5]));
+$controller->updateStatus(new WP_REST_Request(['id' => $id5, 'platform_status' => 'active']));
+$beforeBin5 = get_post_meta($id5, ServiceSchema::META_KEY, true)['module_status'] ?? null;
+foreach (['archived', 'trashed'] as $binStatus) {
+    $controller->updateStatus(new WP_REST_Request(['id' => $id5, 'platform_status' => 'active']));
+    $controller->updateStatus(new WP_REST_Request(['id' => $id5, 'platform_status' => $binStatus]));
+    $restored5 = $controller->restoreService(new WP_REST_Request(['id' => $id5]))->get_data();
+    check_lifecycle($restored5['service']['platform_status'] === 'disabled', "restore from {$binStatus} lands on raw disabled storage, never active");
+    check_lifecycle((get_post_meta($id5, ServiceSchema::META_KEY, true)['previous_platform_status'] ?? null) === '', "restore from {$binStatus} clears the mask — unmasked Pending, not Disabled");
+    check_lifecycle($restored5['service']['module_status'] === $beforeBin5, "restore from {$binStatus} preserves module status exactly");
+    check_lifecycle($restored5['service']['platform_id'] === $created5['service']['platform_id'], "restore from {$binStatus} preserves permanent identity");
+}
 
 echo "\nAll Service Disable/Enable lifecycle checks passed.\n";

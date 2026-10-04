@@ -139,7 +139,7 @@ export async function restoreCategory(categoryId: number): Promise<CategoryMutat
   return mapCategoryMutation(response);
 }
 
-// Trashed-only. A D6 guard failure is an HTTP 409 (apiClient throws; the error
+// Archived or trashed only. A D6 guard failure is an HTTP 409 (apiClient throws; the error
 // text carries { message, assigned_count }).
 export async function permanentDeleteCategory(categoryId: number): Promise<CategoryDeleteResponse> {
   const response = await apiClient.delete<WireCategoryDeleteResponse>(`admin/categories/${categoryId}`);

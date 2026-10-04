@@ -280,7 +280,7 @@ export function useCategoryStation(
     }
   }, [created, onRefresh]);
 
-  // Trashed-only + D6 guard. A guard failure surfaces as a thrown error
+  // Archived or trashed only + D6 guard. A guard failure surfaces as a thrown error
   // (HTTP 409, body { message, assigned_count }) for the caller's
   // inline-confirm error path — it is not swallowed here.
   const deleteStation = useCallback(async (): Promise<boolean> => {

@@ -9,7 +9,7 @@
 //   1. The primitive stays generic — no station, entity, drawer route, data
 //      source, or lane meaning inside it, and no station's class names.
 //   2. Service Home's deck stays Service-owned — the existing catalogue
-//      inside `Details`, Connections and Settings as Service's own lane
+//      inside `Details`, Connections, Settings, and Bin as Service's own lane
 //      components, and no other Station's presentation anywhere in it.
 //
 // This reads composition and registration. It does not execute Preact, so it
@@ -114,8 +114,10 @@ check(
 check(
   /id: 'details',\s+label: 'Details'/.test(serviceDeck)
     && /id: 'connections',\s+label: 'Connections'/.test(serviceDeck)
-    && /id: 'settings',\s+label: 'Settings'/.test(serviceDeck),
-  'the deck presents Details, Connections, and Settings in that order',
+    && /id: 'settings',\s+label: 'Settings'/.test(serviceDeck)
+    && /id: 'bin',\s+label: 'Bin'/.test(serviceDeck)
+    && /'details'[\s\S]*'connections'[\s\S]*'settings'[\s\S]*'bin'/.test(serviceDeck.slice(serviceDeck.indexOf('const TABS'))),
+  'the deck presents Details, Connections, Settings, and Bin in that order',
 );
 check(
   serviceDeck.includes("useState<ServiceDeckTab>('details')"),
@@ -128,8 +130,13 @@ check(
 );
 check(
   (serviceDeck.match(/<ServiceConnectionsLane /g) ?? []).length === 1
-    && (serviceDeck.match(/<ServiceSettingsLane /g) ?? []).length === 1,
-  'Connections and Settings each render exactly once',
+    && (serviceDeck.match(/<ServiceSettingsLane /g) ?? []).length === 1
+    && (serviceDeck.match(/<ServiceBinLane /g) ?? []).length === 1,
+  'Connections, Settings, and Bin each render exactly once',
+);
+check(
+  serviceDeck.includes("<ServiceBinLane active={activeTab === 'bin'} onChanged={props.refetch} />"),
+  'Bin reloads when selected and refreshes only the surface host\'s own data source',
 );
 check(
   serviceDeck.includes('<ServiceConnectionsLane onIntent={props.onIntent} />')
@@ -151,6 +158,7 @@ check(
     './ServiceCatalogue',
     './ServiceConnectionsLane',
     './ServiceSettingsLane',
+    './ServiceBinLane',
   ].includes(from)),
   `the deck imports beyond its lanes: ${deckImports.join(', ')}`,
 );

@@ -10,6 +10,11 @@
 // relationship or fetches through the Details lane's catalogue props, and
 // neither names a Package or Tier presentation.
 //
+// Bin is the one travel surface for archived and trashed Service and Category
+// records (Phase 6.1): Restore, Move to Trash, and Permanently delete through
+// each owning Station's existing actions. It reloads when selected and hands
+// the surface's own refresh back so Details reflects what left the Bin.
+//
 // The lanes are the shared station tab set's; only which lanes exist and what
 // each one holds is Service's.
 //
@@ -26,11 +31,12 @@ import {
   type StationTabSetClasses,
 } from '@/admin-station/presentation/StationTabSet';
 import { ServicesIcon } from '@/admin-station/shell/icons';
+import { ServiceBinLane } from './ServiceBinLane';
 import { ServiceCatalogue } from './ServiceCatalogue';
 import { ServiceConnectionsLane } from './ServiceConnectionsLane';
 import { ServiceSettingsLane } from './ServiceSettingsLane';
 
-export type ServiceDeckTab = 'details' | 'connections' | 'settings';
+export type ServiceDeckTab = 'details' | 'connections' | 'settings' | 'bin';
 
 // The deck opts into the shared strip and adds only what its frame needs: the
 // inset that lines the tabs up with the context bar, and the panel spacing the
@@ -45,6 +51,7 @@ const TABS: { id: ServiceDeckTab; label: string }[] = [
   { id: 'details',     label: 'Details' },
   { id: 'connections', label: 'Connections' },
   { id: 'settings',    label: 'Settings' },
+  { id: 'bin',         label: 'Bin' },
 ];
 
 export function ServiceLowerDeck(props: TemplateKitProps): VNode {
@@ -70,7 +77,9 @@ export function ServiceLowerDeck(props: TemplateKitProps): VNode {
             ? <ServiceCatalogue {...props} />
             : tab === 'connections'
               ? <ServiceConnectionsLane onIntent={props.onIntent} />
-              : <ServiceSettingsLane onIntent={props.onIntent} />
+              : tab === 'settings'
+                ? <ServiceSettingsLane onIntent={props.onIntent} />
+                : <ServiceBinLane active={activeTab === 'bin'} onChanged={props.refetch} />
         }
       />
     </section>
