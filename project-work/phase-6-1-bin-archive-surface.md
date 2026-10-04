@@ -1,6 +1,6 @@
 # Phase 6.1 — Bin / Archive Surface
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.1 — Bin / Archive surface
 
 ## Authority
@@ -140,3 +140,39 @@ Implementation requirements:
 - preserve drafts/data/identity until permanent delete actually succeeds;
 - update the locked lifecycle contract, lifecycle Code Map, relevant Station/controller tests, and any delete guard that currently hard-codes Trash-only legality so repository authority matches the Owner decision;
 - no other lifecycle transitions are widened.
+
+
+## Builder handoff
+
+Executor: Claude Code (local clone, Owner-authorised Git credentials).
+
+Topic branch: `phase-6-1/bin-archive-surface`
+Pushed SHA: `9b0800ec8b872f598bb21807835b0ca9352a5902` (verified with `git ls-remote`)
+Base `main`: `aa59eff28c768f11d54f9e2d70444ea92af14951`
+Remote branches: `main`, `staging`, `Project-work-instructions`, `phase-6-1/bin-archive-surface` (4).
+
+Changed files (28): backend `StationLifecycle.php`, `ServiceController.php`, `AdminCategoriesController.php`, `CategoryMeta.php`; frontend new `service-station/surface/serviceHomeBin.ts` and `presentation/ServiceBinLane.tsx`, edited `ServiceLowerDeck.tsx`, `station-manager/registry/templateKits.ts`, `StationSurfaceHost.tsx`, `admin-station.css`, comments in `api/endpoints/admin.ts` and `useCategoryStation.ts`; tests `service-lifecycle-mask.php`, `category-pending-lifecycle.php`, new `scripts/service-home-bin-regression.mjs`, `station-tabset-contract.ts`, `package.json`; docs: lifecycle contract §5/§8, lifecycle, Service Station, Categories, Service Catalogue, station tab set, list system, navigation and surface binding Code Maps, `service-station/CLAUDE.md`, roadmap.
+
+Where it is mounted: a fourth `Bin` lane in Service Home's lower deck (`ServiceLowerDeck.tsx`, after Details/Connections/Settings). Services and Categories share that one Bin. `serviceHomeBin.ts` reads `fetchAdminCatalog('archived'|'trashed')` and `fetchAdminCategories('archived'|'trashed')` and maps each action 1:1 onto the existing endpoint functions: `restoreService`/`restoreCategory`, `trashService`/`updateCategoryStatus(id,'trashed')`, and `permanentDeleteService`/`permanentDeleteCategory`. The lane reloads when selected.
+
+Row and action behaviour: each row shows `name (Service|Category) | Platform ID | Archived/Trashed pill | one StationSplitAction`. Restore is the primary half. Archived rows show Move to Trash, then Permanently delete; Trash rows show Permanently delete only. Move to Trash and Permanently delete are armed and confirmed in place (`useInlineConfirm`); while armed, the split control is replaced by the prompt plus Confirm/Cancel. Owner guard messages (Category assigned-Services 409) are shown and the row stays.
+
+Lifecycle change (Owner decision): `StationLifecycle::canDelete` now returns `isBinned()` (archived or trashed). Controller messages and comments are updated. No other transition is widened; restore and Platform ID tombstoning are unchanged.
+
+Evidence:
+- Restore → Pending: PHP restore from archived and from trashed gives `platform_status=disabled`, an empty `previous_platform_status`, identical `module_status`, and the same `platform_id` (Service; the Category restore test already existed). The mounted regression shows Restore calls only `/restore`, makes no `/status` write, never sends `active`, and the row leaves the Bin.
+- Platform IDs: displayed in every row (regression). Archive, restore and archived delete keep or return the same ID, and the tombstone resolves as deleted (PHP, Service and Category).
+- Delete legality: archived and trashed are accepted; draft, active and disabled are rejected, and a live Pending delete returns 422 (PHP).
+- `npm test`: exit 0, with typecheck, all PHP tests, the 26-route baseline unchanged, the build, and 19/19 JS checks including the new `regression:service-home-bin`.
+- `npm run docs:check`: passed (41 Markdown files, 18 Code Maps).
+
+Deviations and limitations for Reviewer:
+- Added optional `TemplateKitProps.refetch`, passed by `StationSurfaceHost` (the same handle the drawer already receives), so a Bin action refreshes Details. This is a small additive Station Manager contract change.
+- The pill label is the existing `TRAVEL_PILL` "Trashed", not "Trash". I did not change the contract chokepoint without a decision.
+- The Bin is a deck lane, not `FocusedTaskShell`; §9 scopes that shell to drawer detours, and the roadmap calls for a Service Home lane.
+- `admin-station.css` was already over the size limit (2,440 lines) and is now 2,490 (+50 Bin rules, next to the Service deck rules). `ServiceController.php` gained +1 comment line. Both are flagged under the file-size governance rule rather than split in this phase.
+- No browser, WordPress-runtime, CI or staging check was performed. No PR was opened.
+
+Not included: Phase 6.2+, Settings/Connections/Rezdy, deployment, or lifecycle redesign.
+
+Builder stops here for Reviewer review.
