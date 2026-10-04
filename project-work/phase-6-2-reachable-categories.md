@@ -1,8 +1,8 @@
 # Phase 6.2 — Reachable Categories
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.2 — Reachable Categories
-Actor: Builder
+Actor: Reviewer
 
 ## Authority
 
@@ -74,3 +74,45 @@ Each visible Category continues to use the established row grammar, Platform ID,
 ## Required handoff evidence
 
 Provide exact topic branch/SHA, changed files, regression evidence, `npm test`, `npm run docs:check`, and explicit confirmation that no persistence/lifecycle/identity/API/deployment scope was widened.
+
+
+## Builder handoff
+
+Executor: Claude Code (local clone, Owner-authorised Git credentials).
+
+Topic branch: `phase-6-2/reachable-categories`
+Pushed SHA: `087a76965d89ec9994ff82e8d7fba3a3f24c24f7` (verified with `git ls-remote`)
+Base `main`: `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d`
+Remote branches: `main`, `staging`, `Project-work-instructions`, `phase-6-2/reachable-categories` (4).
+
+Changed files (13):
+- Source: `service-station/surface/serviceHomeConnections.ts` (the projection no longer drops `assigned_count === 0`), `service-station/presentation/ServiceConnectionsLane.tsx` (adds the filter), `admin-station/styles/admin-station.css` (+12 lines: `.cz-service-connections`, `__toolbar`).
+- Tests: `scripts/service-home-connections-contract.ts` (updated: every live Category is projected), new `scripts/service-home-connections-regression.mjs`, `package.json` (registers the new regression).
+- Docs: `categories.md`, `service-connections.md`, `service-catalogue.md`, `station-tab-set.md`, `lifecycle-system.md` (removed the now-resolved Known gap), `service-station/CLAUDE.md`, `roadmap.md` (item 1 marked accepted, item 2 built).
+
+Implementation:
+- `projectServiceHomeConnectionRows()` maps every live Category from the existing `fetchAdminCategories()` call; no new endpoint.
+- `ServiceConnectionsLane` adds one compact field-system `select` ("Filter Categories by connection") with All / Connected / Unassigned, default All. `filterServiceConnectionRows()` narrows the loaded rows in component state: Connected is `connectedCount > 0`, Unassigned is `connectedCount === 0`. Filter-specific empty states are included.
+- The row grammar is unchanged (identity, Platform ID, Services count, status pill, one View split). View still dispatches `view-category` with the native id, which `admin-station/register.ts` binds to the existing `category` drawer (not changed).
+
+Regression evidence (`regression:service-home-connections`, mounting the real lane):
+- the filter offers exactly `all:All`, `connected:Connected`, `unassigned:Unassigned` and defaults to All; the lane read `GET admin/categories` exactly once;
+- All shows all four live Categories (two connected, two unassigned), each with its Platform ID, count, pill and one View;
+- Connected shows only `assigned_count > 0`; Unassigned shows only `assigned_count === 0`;
+- View on an unassigned Category dispatched `{ recordId: 43 (number), intentId: 'view-category' }`, and the binding to the `category` drawer is asserted from `register.ts`;
+- switching filters and clicking View made zero requests; no request other than the single list read was ever made.
+
+Validation:
+- `npm test`: exit 0, with typecheck, all PHP tests, the 26-route baseline unchanged, the build, and 20/20 JS checks (including the updated contract and new regression).
+- `npm run docs:check`: passed (41 Markdown files, 18 Code Maps). Changed maps stay within 600 words (largest: `service-catalogue.md` at 597).
+
+Scope confirmation: no Category persistence, lifecycle, identity, endpoint, relationship, Platform ID family, Service-assignment, Phase 6.3+, Settings/Rezdy or deployment change. No PHP or backend file touched.
+
+Notes for Reviewer:
+- `admin-station.css` grows from 2,495 to 2,507 lines (already over the file-size rule before Phase 6.1); flagged, not split in this phase.
+- Fixed a missing comma I introduced in Phase 6.1 in `station-tab-set.md` ("lane `Settings`" → "lane (…), `Settings`") while editing that same sentence.
+- iCloud executor note: no `node_modules` "* 2" duplicates were present before this `npm test` run.
+- No browser, WordPress runtime, CI or staging check was performed. No PR was opened.
+- Project History for Phase 6.1 is still an Owner decision pending.
+
+Builder stops here for Reviewer review.
