@@ -100,3 +100,30 @@ No architectural correction is required.
 4. After successful promotion verification, delete only `docs/qsd-cycle-bootstrap`; preserve `main`, `staging`, and `Project-work-instructions`.
 5. Update this same work file with promotion SHA, CI evidence, and final remote branch list, then set `AWAITING REVIEWER REVIEW`.
 6. Stop. Do not begin Settings/Connections/Rezdy architecture work until bootstrap closeout is accepted.
+
+
+## Owner standing decision — Phase 6 Bin / Archive surface
+
+Do not redesign lifecycle. Reuse the existing QSD lifecycle exactly.
+
+Bin/archive presentation is intentionally simple and generic. Every listed item shows its label/name and permanent Platform ID.
+
+Archived item actions:
+- Restore
+- one split action containing:
+  - Move to Bin
+  - Delete, only where existing lifecycle/dependency rules legally permit it
+
+Bin/Trash item actions:
+- Restore
+- Delete, using the existing permanent-delete guard/confirmation convention
+
+Locked restore rule:
+- Restore from ANY archived/trashed state always returns the record to the existing unmasked Pending state.
+- Restore must never return a record directly to Active or Disabled.
+- Preserve existing drafts/data and Platform identity exactly as the current lifecycle contract already requires.
+
+Implementation rule:
+- Plug the Bin/Archive surface into the existing Station lifecycle, APIs, identity, confirmation, status and notification systems.
+- Do not create a new lifecycle, restore path, status interpretation, editor, footer, or identity mechanism.
+- Existing lifecycle authority wins; this phase exposes it rather than changing it.
