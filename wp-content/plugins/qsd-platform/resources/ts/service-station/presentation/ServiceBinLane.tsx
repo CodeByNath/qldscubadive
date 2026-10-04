@@ -3,7 +3,10 @@
 // here, never inside the drawer).
 //
 // One compact row per record in the shared station list system:
-//   name · Platform ID · travel pill (Archived / Trashed) · one split action
+//   name · Platform ID · travel pill (Archived / Trash) · one split action
+// A compact state filter (All / Archived / Trash, default All) narrows the
+// already-loaded rows in presentation state only — no second fetch, surface,
+// or storage path.
 // Restore is always the primary half; the destructive actions live in the same
 // control's menu. A destructive choice is armed first and confirmed in place
 // through `useInlineConfirm` (contract §11) — never an overlay, and never a row
@@ -13,7 +16,7 @@
 // which runs each action through the owning Station's existing endpoint. This
 // file makes no API call and interprets no lifecycle rule.
 
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { VNode } from 'preact';
 import { StationSplitAction } from '@/admin-station/presentation/StationSplitAction';
 import { PackagesIcon, ServicesIcon } from '@/admin-station/shell/icons';
@@ -26,6 +29,7 @@ import {
   type ServiceHomeBinAction,
   type ServiceHomeBinActionId,
   type ServiceHomeBinRow,
+  type ServiceHomeBinState,
 } from '../surface/serviceHomeBin';
 
 // The platform's established visible treatment for an existing record whose
@@ -36,6 +40,30 @@ const KIND_LABEL: Record<ServiceHomeBinRow['kind'], string> = {
   service:  'Service',
   category: 'Category',
 };
+
+// The Bin's own state wording (Owner): "Trash", not the shared "Trashed".
+const BIN_STATE_LABEL: Record<ServiceHomeBinState, string> = {
+  archived: 'Archived',
+  trashed:  'Trash',
+};
+
+export type ServiceBinFilter = 'all' | ServiceHomeBinState;
+
+const FILTER_OPTIONS: Array<{ value: ServiceBinFilter; label: string }> = [
+  { value: 'all',      label: 'All' },
+  { value: 'archived', label: BIN_STATE_LABEL.archived },
+  { value: 'trashed',  label: BIN_STATE_LABEL.trashed },
+];
+
+const FILTER_EMPTY: Record<ServiceBinFilter, string> = {
+  all:      'The Bin is empty.',
+  archived: 'No archived records.',
+  trashed:  'Nothing in Trash.',
+};
+
+export function filterServiceBinRows(rows: ServiceHomeBinRow[], filter: ServiceBinFilter): ServiceHomeBinRow[] {
+  return filter === 'all' ? rows : rows.filter((row) => row.state === filter);
+}
 
 interface RowProps {
   row:       ServiceHomeBinRow;
@@ -62,7 +90,7 @@ function ServiceBinRow({ row, armed, busy, onAction, onConfirm, onCancel }: RowP
         {row.platformId || PLATFORM_ID_FALLBACK}
       </div>
       <span class="cz-station-list__cell">
-        <TravelStatusPill status={row.state} />
+        <TravelStatusPill status={row.state} label={BIN_STATE_LABEL[row.state]} />
       </span>
       <div class="cz-station-list__cell cz-service-deck__row-actions">
         {armed ? (
@@ -106,6 +134,8 @@ export function ServiceBinLane({ active, onChanged }: {
   const { rows, initialLoading, error, actionError, refetch, perform } = useServiceHomeBin(onChanged);
   const confirm = useInlineConfirm<string>();
   const [armed, setArmed] = useState<ServiceHomeBinAction | null>(null);
+  const [filter, setFilter] = useState<ServiceBinFilter>('all');
+  const visibleRows = useMemo(() => filterServiceBinRows(rows, filter), [rows, filter]);
 
   // Records reach the Bin from the drawer while this lane sits hidden, so the
   // lane reloads each time it is selected (its mount already loaded once).
@@ -149,11 +179,24 @@ export function ServiceBinLane({ active, onChanged }: {
           {failedRow ? `${failedRow.name}: ` : ''}{actionError.message}
         </p>
       )}
-      {rows.length === 0 ? (
-        <p class="cz-station-empty">The Bin is empty.</p>
+      <div class="cz-service-bin__toolbar">
+        <select
+          class="cz-tf-control cz-tf-select"
+          aria-label="Filter Bin by state"
+          value={filter}
+          onChange={(event) => {
+            handleCancel();
+            setFilter(event.currentTarget.value as ServiceBinFilter);
+          }}
+        >
+          {FILTER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </div>
+      {visibleRows.length === 0 ? (
+        <p class="cz-station-empty">{rows.length === 0 ? FILTER_EMPTY.all : FILTER_EMPTY[filter]}</p>
       ) : (
         <ul class="cz-station-list">
-          {rows.map((row) => (
+          {visibleRows.map((row) => (
             <ServiceBinRow
               key={row.key}
               row={row}

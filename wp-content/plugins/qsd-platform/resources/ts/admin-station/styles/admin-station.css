@@ -1482,6 +1482,11 @@ button.cz-station-status-pill {
   gap: var(--station-grid-gap);
 }
 
+.cz-service-bin__toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .cz-service-bin__confirm {
   display: inline-flex;
   flex-wrap: wrap;

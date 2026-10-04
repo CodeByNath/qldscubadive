@@ -223,16 +223,17 @@ check('rows are keyed by kind + native id, never label or position',
 console.log('\n2) Every row shows its name, permanent Platform ID, and travel pill');
 const expectations = [
   ['service:801', 'Archived Reef Dive', 'QSDS8A2RC', 'Archived', 'Service'],
-  ['service:802', 'Trashed Night Dive', 'QSDS8B2TW', 'Trashed', 'Service'],
+  ['service:802', 'Trashed Night Dive', 'QSDS8B2TW', 'Trash', 'Service'],
   ['category:31', 'Archived Courses', 'QSDC3A4KZ', 'Archived', 'Category'],
-  ['category:32', 'Trashed Trips', 'QSDC3B2MW', 'Trashed', 'Category'],
+  ['category:32', 'Trashed Trips', 'QSDC3B2MW', 'Trash', 'Category'],
 ];
 for (const [key, name, platformId, pill, kind] of expectations) {
   const el = row(key);
   check(`${key} shows its name`, el?.querySelector('.cz-service-deck__identity-name')?.textContent.trim() === name);
   check(`${key} shows its kind`, el?.querySelector('.cz-service-deck__identity-ref')?.textContent.trim() === kind);
   check(`${key} shows Platform ID ${platformId}`, el?.textContent.includes(platformId));
-  check(`${key} reads the ${pill} travel pill`, el?.querySelector('.cz-module-status-pill')?.textContent.includes(pill), el?.querySelector('.cz-module-status-pill')?.textContent);
+  const pillText = el?.querySelector('.cz-module-status-pill')?.textContent.replace('●', '').trim();
+  check(`${key} reads the ${pill} Bin pill`, pillText === pill, pillText);
 }
 
 console.log('\n3) One split control per row, Restore first, Owner-locked order');
@@ -245,6 +246,28 @@ check('archived menu: Move to Trash, then Permanently delete', JSON.stringify(ar
 const trashedMenu = await menuLabels('service:802');
 check('trashed menu: Permanently delete only', JSON.stringify(trashedMenu) === JSON.stringify(['Permanently delete']), JSON.stringify(trashedMenu));
 check('opening menus called no endpoint', mutationCalls().length === 0, mutationCalls().join(', '));
+
+console.log('\n3b) State filter — All / Archived / Trash over the already-loaded rows');
+const filterSelect = container.querySelector('select[aria-label="Filter Bin by state"]');
+const filterOptions = [...(filterSelect?.querySelectorAll('option') ?? [])].map((o) => `${o.value}:${o.textContent.trim()}`);
+check('one compact filter offers exactly All, Archived, Trash', JSON.stringify(filterOptions) === JSON.stringify(['all:All', 'archived:Archived', 'trashed:Trash']), JSON.stringify(filterOptions));
+check('the filter defaults to All', filterSelect?.value === 'all', filterSelect?.value);
+check('default All shows both states', rowKeys().length === 4);
+const callsBeforeFilter = calls.length;
+const loadsBeforeFilter = binListLoads;
+async function setFilter(value) {
+  filterSelect.value = value;
+  filterSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await sleep(20);
+}
+await setFilter('archived');
+check('Archived shows only archived rows', JSON.stringify(rowKeys().sort()) === JSON.stringify(['category:31', 'service:801']), rowKeys().join(', '));
+await setFilter('trashed');
+check('Trash shows only trashed rows', JSON.stringify(rowKeys().sort()) === JSON.stringify(['category:32', 'service:802']), rowKeys().join(', '));
+check('filtered rows keep the one row grammar (name, Platform ID, pill, one split)', rowKeys().every((k) => row(k)?.querySelector('.cz-service-deck__identity-name') && row(k)?.textContent.includes('QSD') && row(k)?.querySelector('.cz-module-status-pill') && row(k)?.querySelectorAll('.cz-station-split').length === 1));
+await setFilter('all');
+check('back to All shows both states again', rowKeys().length === 4);
+check('switching filters made no request at all — no mutation, no second fetch path', calls.length === callsBeforeFilter && binListLoads === loadsBeforeFilter, calls.slice(callsBeforeFilter).join(', '));
 
 console.log('\n4) Selecting the lane reloads the Bin');
 const loadsBefore = binListLoads;
@@ -275,7 +298,7 @@ await chooseMenu('category:31', 'Move to Trash');
 click(buttonIn('category:31', 'Confirm'));
 await settle();
 check('Confirm sent the existing Category status write (trashed)', mutationCalls().includes('PATCH admin/categories/31/status'), mutationCalls().join(', '));
-check('the Category now reads Trashed in the Bin', row('category:31')?.querySelector('.cz-module-status-pill')?.textContent.includes('Trashed'));
+check('the Category now reads Trash in the Bin', row('category:31')?.querySelector('.cz-module-status-pill')?.textContent.replace('●', '').trim() === 'Trash');
 check('after moving to Trash its menu offers Permanently delete only', JSON.stringify(await menuLabels('category:31')) === JSON.stringify(['Permanently delete']));
 
 console.log('\n7) Guarded permanent delete — the owner\'s dependency guard is surfaced, the row stays');
@@ -314,6 +337,9 @@ click(row('category:32')?.querySelector('.cz-station-split__primary'));
 await settle();
 check('trashed Category restored to unmasked disabled/Pending', categories.get(32).status === 'disabled' && categories.get(32).previous === '');
 check('the Bin shows its empty state', container.textContent.includes('The Bin is empty.'));
+await setFilter('trashed');
+check('an empty Bin under a filter still reads as the empty Bin', container.textContent.includes('The Bin is empty.'));
+await setFilter('all');
 
 console.log('\n10) Only the owning Stations\' existing endpoints were called');
 const allowed = [
