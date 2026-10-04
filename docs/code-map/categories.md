@@ -32,10 +32,10 @@ controller, hook, schema/bindings, and editor are host-neutral.
 Admin Station contributes only host/registration; placement does not transfer
 domain ownership.
 
-**Service Home Connections is the active Category entry point** and opens this
-drawer by native ID; Settings → Create Category opens it at `'new'`; the Bin lane
-lists archived/trashed Categories. An unassigned live Category is listed
-nowhere yet (see [Lifecycle](lifecycle-system.md#known-gaps)). The
+**Service Home Connections is the active Category entry point**: it lists every
+live Category (All / Connected / Unassigned) and opens this drawer by native ID;
+Settings → Create Category opens it at `'new'`; the Bin lane lists
+archived/trashed Categories. The
 registered `ServiceCategoryCarousel` data source is currently unplaced.
 
 ## State and persistence

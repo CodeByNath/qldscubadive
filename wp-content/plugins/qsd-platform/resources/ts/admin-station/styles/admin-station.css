@@ -1476,6 +1476,18 @@ button.cz-station-status-pill {
   color: var(--station-accent-on);
 }
 
+/* Connections lane (Phase 6.2): the lane wrapper and its one filter row. */
+.cz-service-connections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--station-grid-gap);
+}
+
+.cz-service-connections__toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .cz-service-bin {
   display: flex;
   flex-direction: column;

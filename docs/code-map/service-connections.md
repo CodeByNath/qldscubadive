@@ -6,7 +6,7 @@ Maps Service relationships to their current composition and persistence owners. 
 
 ## Current connections
 
-- **Category ↔ Service.** Service assignment is Service-owned: the Service Overview draft carries `category_ids`, and Publish settles them onto the `qsd_service_category` taxonomy. The neutral Category drawer shows assigned Services as a read-only projection. Service Home's Connections lane reads the same authoritative Category list (`fetchAdminCategories`, which carries server-computed `assigned_count`) and presents Categories connected to at least one Service; it invents no second relationship model and performs no mutation. See [Categories](categories.md).
+- **Category ↔ Service.** Service assignment is Service-owned: the Service Overview draft carries `category_ids`, and Publish settles them onto the `qsd_service_category` taxonomy. The neutral Category drawer shows assigned Services as a read-only projection. Service Home's Connections lane reads the same authoritative Category list (`fetchAdminCategories`, which carries server-computed `assigned_count`) and presents every live Category, filterable as All / Connected / Unassigned in presentation state; it invents no second relationship model and performs no mutation. See [Categories](categories.md).
 
 ## Extension point for future Stations
 

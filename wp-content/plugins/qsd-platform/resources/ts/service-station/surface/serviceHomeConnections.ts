@@ -1,5 +1,5 @@
 // Service Home Connections — the authoritative Category projection for the
-// lower deck's Connections lane.
+// lower deck's Connections lane: every live Category (Phase 6.2).
 //
 // Reuses the SAME authoritative Category list endpoint the Admin-owned
 // `ServiceCategoryCarousel` already reads (`fetchAdminCategories`), rather than
@@ -10,10 +10,10 @@
 // `fetchAdminCategories()` with no status filter already excludes archived and
 // trashed Categories (StationLifecycle::isBinned) and already excludes Service
 // Category Group terms (station_role !== 'category'), and already returns
-// `assigned_count` server-computed. This module's only job is: keep only
-// Categories connected to at least one Service (assigned_count > 0), and shape
-// the rest into row data — the "connected to the full Service Catalogue" scope
-// the Connections lane presents.
+// `assigned_count` server-computed. This module's only job is to shape every
+// live Category into row data, connected or not, so an unassigned Category is
+// still reachable. The lane's All / Connected / Unassigned filter narrows these
+// already-loaded rows in presentation state; nothing here drops a Category.
 
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { fetchAdminCategories } from '@/api/endpoints/admin';
@@ -37,13 +37,8 @@ function toConnectionRow(category: CategoryStationItem): ServiceHomeConnectionRo
   };
 }
 
-// Connections shows Categories connected to at least one Service — not every
-// registered Category. An unused Category belongs in Settings/management, not
-// in a lane naming the Service Catalogue's existing relationships.
 export function projectServiceHomeConnectionRows(categories: CategoryStationItem[]): ServiceHomeConnectionRow[] {
-  return categories
-    .filter((category) => category.assigned_count > 0)
-    .map(toConnectionRow);
+  return categories.map(toConnectionRow);
 }
 
 export interface ServiceHomeConnectionsState {

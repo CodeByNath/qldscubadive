@@ -1,5 +1,7 @@
-// Contract: Service Home's Connections lane shows Categories connected to the
-// full Service Catalogue — not every registered Category.
+// Contract: Service Home's Connections lane projects every live Category —
+// connected or unassigned — so each is reachable (Phase 6.2). The lane's
+// All / Connected / Unassigned filter is presentation state, proven by the
+// mounted regression (scripts/service-home-connections-regression.mjs).
 //
 // This is a pure-function contract, not a rendered one: projectServiceHomeConnectionRows
 // is a stateless projection over the SAME authoritative Category list the
@@ -32,7 +34,7 @@ function category(overrides: Partial<CategoryStationItem>): CategoryStationItem 
   };
 }
 
-// ── Categories with at least one connected Service appear ─────────────────────
+// ── Every live Category appears, connected or not ─────────────────────────────
 
 const connected = category({ id: 10, name: 'Connected Active', assigned_count: 3, platform_status: 'active' });
 const connectedDisabled = category({ id: 11, name: 'Connected Disabled', assigned_count: 1, platform_status: 'disabled' });
@@ -40,9 +42,9 @@ const unused = category({ id: 12, name: 'Unused', assigned_count: 0, platform_st
 
 const rows = projectServiceHomeConnectionRows([connected, connectedDisabled, unused]);
 
-check(rows.length === 2, `expected 2 connected rows, got ${rows.length}`);
-check(rows.every((row) => row.connectedCount > 0), 'every rendered row has at least one connected Service');
-check(!rows.some((row) => row.id === unused.id), 'a Category with zero connected Services does not appear in Connections');
+check(rows.length === 3, `expected all 3 live Categories, got ${rows.length}`);
+check(rows.some((row) => row.id === unused.id && row.connectedCount === 0), 'a Category with zero connected Services is still projected (reachable)');
+check(JSON.stringify(rows.map((row) => row.id)) === JSON.stringify([10, 11, 12]), 'the projection keeps the authoritative list order and drops nothing');
 
 // ── Row shape carries identity, count, and status — nothing invented ──────────
 

@@ -49,7 +49,6 @@ Domain controllers apply the engine at their own REST boundaries: [ServiceContro
 
 - The `/status` route applies any valid target (`StationLifecycle::applyStatus`); strict per-action transitions are enforced by the UI only.
 - Service Publish sends settle and activate as two requests.
-- A live Category with no assigned Services is listed on no surface (roadmap Phase 6.2); archived/trashed Categories are reachable through the Bin.
 
 ## Validation
 
