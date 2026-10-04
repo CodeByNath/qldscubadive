@@ -1,8 +1,8 @@
 # Phase 6.2 — Reachable Categories
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.2 — Reachable Categories
-Actor: Builder
+Actor: Reviewer
 
 ## Authority
 
@@ -159,3 +159,18 @@ Status remains `BUILDER ACTION REQUIRED`; no promotion step was partially advanc
 - Preflight passed: `origin/main` `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d` is an ancestor of accepted head `087a76965d89ec9994ff82e8d7fba3a3f24c24f7`, so promotion is a pure fast-forward. A `main` push does not run `deploy-staging`.
 - Blocked: Claude Code's auto-mode classifier refused `git push origin 087a769…:refs/heads/main` ("Merge Without Review"). `main` is unchanged, the topic branch was kept, and nothing was deployed.
 - Required execution surface: the Owner allows the fast-forward `main` push on this executor (as for Phase 6.1), then Builder completes the CI verification, topic-branch deletion and evidence steps.
+
+
+## Builder promotion result
+
+The Owner allowed the push on the executor; the earlier block is cleared.
+
+- Promoted accepted head `087a76965d89ec9994ff82e8d7fba3a3f24c24f7` to `main` by fast-forward (`8d19492..087a769`). No new commit and no scope change.
+- Resulting `main` SHA: `087a76965d89ec9994ff82e8d7fba3a3f24c24f7` — identical to the accepted candidate (verified with `git ls-remote`).
+- Post-push CI: GitHub Actions run `37240166651` (`Test and deploy`, run 22, push to `main` on `087a769`) completed with `success`. The `test` job passed `npm ci`, `npm test` and the built Admin Station upload. `deploy-staging` was `skipped`.
+- No staging or production deployment occurred.
+- Topic branch `phase-6-2/reachable-categories` was deleted after `git merge-base --is-ancestor` confirmed it is contained in `main`.
+- Final remote branches: `main` (`087a769…`), `staging` (`69f68ca…`), `Project-work-instructions` — 3.
+- Project History for Phase 6.1/6.2 is still an Owner decision pending.
+
+Builder stops here for Reviewer closeout. Phase 6.3 not started.
