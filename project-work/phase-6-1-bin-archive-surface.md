@@ -1,6 +1,6 @@
 # Phase 6.1 — Bin / Archive Surface
 
-Status: AWAITING REVIEWER REVIEW
+Status: ACCEPTED
 Phase: Phase 6.1 — Bin / Archive surface
 
 ## Authority
@@ -376,3 +376,23 @@ The Owner allowed the push on the executor; the earlier block is cleared.
 - Project History remains an Owner decision pending.
 
 Builder stops here for Reviewer closeout. Phase 6.2 not started.
+
+
+## Reviewer closeout
+
+Verdict: Proceed
+
+Independent closeout verification confirms:
+
+- accepted Phase 6.1 candidate is now on `main` at `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d`;
+- GitHub Actions run `37207072950` completed successfully on that exact SHA;
+- `npm ci`, `npm test`, and Admin Station artifact upload all passed;
+- `deploy-staging` was skipped;
+- no staging or production deployment occurred;
+- remote branches are exactly `main`, `staging`, and `Project-work-instructions`;
+- the completed topic branch `phase-6-1/bin-archive-surface` is removed;
+- Phase 6.2 has not started.
+
+Phase 6.1 is accepted and closed.
+
+Do not open Phase 6.2 from this file. The next cycle must create a new active work file for the next roadmap item.
