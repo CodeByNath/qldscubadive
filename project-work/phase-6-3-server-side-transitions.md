@@ -1,8 +1,8 @@
 # Phase 6.3 — Server-side transition enforcement
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Phase 6.3 — Server-side transition enforcement
-Actor: Reviewer
+Actor: Builder
 
 ## Authority
 
@@ -131,3 +131,42 @@ Branch `phase-6-3/server-side-transitions` at `6ac7535a65e3b2e1bcbff36ad32fc92e3
 **Governance:** `ServiceController.php` was already over the 1,000-line cap (1,280 → 1,292). The readiness logic was put in the Support classes to keep the growth small. `AdminCategoriesController.php` grew 874 → 883.
 
 Not included: Phase 6.4 Atomic Publish, settle+activate merging, UI/drawer work, deployment, history document.
+
+
+## Reviewer decision
+
+Verdict: Proceed with safeguards
+
+Independent review of candidate `6ac7535a65e3b2e1bcbff36ad32fc92e31346b65` confirms the Phase 6.3 server enforcement is correctly bounded:
+
+- the topic branch is one commit ahead of accepted `main` `087a76965d89ec9994ff82e8d7fba3a3f24c24f7`;
+- permissive `applyStatus()` is removed from the status-route path;
+- `archived` and `trashed` resolve through the existing strict engine operations;
+- direct `disabled` is rejected in favour of the existing `action: disable|enable` mask path;
+- Service legacy `is_active` cannot bypass the same guards;
+- Service and Category activation both require their canonical Overview to be complete and the Overview module to be `settled`;
+- optional Service child modules do not gate activation;
+- refusals occur before persistence and the controller tests snapshot lifecycle/module/draft/canonical/identity state to prove no mutation;
+- route paths, methods and arguments remain unchanged;
+- Restore, permanent delete, identity and Phase 6.4 Atomic Publish are untouched.
+
+### Safeguard — active Publish compatibility
+
+`statusRouteTransition(active, active)` is accepted only as an idempotent status write supporting the repository's existing Publish workflow for already-active records with pending module changes. Current `deriveCanPublish()` explicitly enables that workflow. Rejecting it in Phase 6.3 would break established source behaviour and require an excluded UI/Atomic-Publish change.
+
+This allowance must not be treated as a new travel transition or widened to other same-state targets. Phase 6.4 must re-evaluate it when Publish becomes atomic.
+
+Builder reports `npm test` and `npm run docs:check` passing locally. No GitHub Actions run exists for the topic SHA, which is expected before promotion.
+
+No source correction is required.
+
+## Next Builder action — promote Phase 6.3
+
+1. Promote exact accepted topic head `6ac7535a65e3b2e1bcbff36ad32fc92e31346b65` from `phase-6-3/server-side-transitions` to `main` without changing scope.
+2. Verify resulting `main` contains that exact candidate.
+3. Verify post-push `main` CI completes successfully.
+4. Do not deploy to `staging` or production.
+5. After successful main/CI verification, delete only `phase-6-3/server-side-transitions`; preserve the three permanent branches.
+6. Verify final remote branches are exactly `main`, `staging`, and `Project-work-instructions`.
+7. Update this same work file with main SHA, CI run/result, final branch list, no-deployment confirmation, set `Status: AWAITING REVIEWER REVIEW`, `Actor: Reviewer`, and stop.
+8. Do not begin Phase 6.4 until Reviewer closes Phase 6.3.
