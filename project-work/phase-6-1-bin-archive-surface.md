@@ -111,3 +111,32 @@ Important lifecycle safeguard:
 - Therefore Builder must NOT make Archived -> Permanently delete work by changing lifecycle/backend legality.
 - If the Owner intends direct permanent delete from Archived to become legal, that is a separate explicit lifecycle decision and must be reviewed before implementation.
 - Until such a decision exists, implement only actions already legal under current lifecycle authority.
+
+
+## Owner decision — permanent delete inside unified Bin
+
+Owner has explicitly changed the prior deletion boundary for the unified Bin model.
+
+Because Archived and Trash now live in ONE Bin surface, permanent delete is allowed from either Bin state.
+
+Legal Bin actions are now:
+
+Archived row:
+1. Restore
+2. Move to Trash
+3. Permanently delete
+
+Trash row:
+1. Restore
+2. Permanently delete
+
+This supersedes the earlier safeguard that permanent delete was legal only from Trash.
+
+Implementation requirements:
+- do not create a second lifecycle or separate Archive/Trash destination;
+- extend the existing lifecycle/delete authority only enough to allow permanent delete from `archived` as well as `trashed`;
+- keep the same permanent-delete dependency guards, confirmation convention, Platform ID tombstone behaviour, and owning-Station authority;
+- Restore semantics remain unchanged: Archived/Trash -> unmasked Pending;
+- preserve drafts/data/identity until permanent delete actually succeeds;
+- update the locked lifecycle contract, lifecycle Code Map, relevant Station/controller tests, and any delete guard that currently hard-codes Trash-only legality so repository authority matches the Owner decision;
+- no other lifecycle transitions are widened.
