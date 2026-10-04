@@ -351,3 +351,12 @@ No further implementation correction is required.
    - confirmation no deployment occurred;
    - `Status: AWAITING REVIEWER REVIEW`.
 8. Stop. Do not begin Phase 6.2 until Reviewer closes Phase 6.1.
+
+
+## Builder promotion attempt — blocked by executor permission
+
+Status remains `BUILDER ACTION REQUIRED` (no step of the promotion was partially advanced).
+
+- Preflight passed: `origin/main` `aa59eff28c768f11d54f9e2d70444ea92af14951` is an ancestor of accepted head `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d`, so promotion is a pure fast-forward. `ci-deploy.yml` runs `deploy-staging` only for `refs/heads/staging` or `workflow_dispatch`, so a `main` push does not deploy.
+- Blocked: Claude Code's auto-mode safety classifier refused `git push origin 8d19492…:refs/heads/main` ("Merge Without Review"). The Owner must allow it on this executor. `main` is unchanged, the topic branch was not deleted, and nothing was deployed.
+- Required execution surface: the Owner approves the fast-forward push to `main` in Claude Code (or performs it), after which Builder verifies the `main` SHA and post-merge CI, deletes only `phase-6-1/bin-archive-surface`, verifies three remote branches, and records the evidence here.
