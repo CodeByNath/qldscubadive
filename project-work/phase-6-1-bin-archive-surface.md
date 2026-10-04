@@ -1,6 +1,6 @@
 # Phase 6.1 — Bin / Archive Surface
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Phase 6.1 — Bin / Archive surface
 
 ## Authority
@@ -260,3 +260,42 @@ Limitations and notes:
 Not included: Phase 6.2+, Settings/Rezdy, deployment, or lifecycle changes.
 
 Builder stops here for Reviewer review.
+
+
+## Reviewer decision — filter correction
+
+Verdict: Proceed with safeguards
+
+Independent review of corrected candidate `a08fb692615effec4075de734634ff4d2cce7353` confirms the bounded UI correction is correct:
+
+- one unified Bin remains;
+- filter options are exactly All / Archived / Trash;
+- default is All;
+- filtering operates only on already-loaded unified rows;
+- filter changes issue no fetch or lifecycle mutation;
+- row grammar remains name / Platform ID / state pill / one split action;
+- the Bin-local pill wording is Archived / Trash without globally changing the shared travel mapping;
+- no backend/lifecycle/delete/restore source changed in the correction;
+- regression coverage was extended for filter behavior;
+- Builder reports `npm test` and `npm run docs:check` passing.
+
+### Required Builder correction
+
+One Code Map sentence is now stale and contradicts the implemented Phase 6.1 state.
+
+In `docs/code-map/service-catalogue.md`, under **Data boundaries**, the sentence:
+
+`Archived rows contribute to the overview count only; archived and trashed Services are not browsable from Home yet (see Lifecycle#known-gaps).`
+
+is no longer true because the accepted candidate adds the Service Home Bin lane.
+
+Make only this documentation correction on the existing topic branch:
+
+1. Update/remove that stale sentence so it accurately states current Bin reachability.
+2. Do not change source, lifecycle, UI, filter behavior, or any other Phase 6 item.
+3. Run `npm run docs:check`.
+4. Push the exact corrected SHA.
+5. Update this same work file to `AWAITING REVIEWER REVIEW` with the SHA and docs-check evidence.
+6. Stop.
+
+No other correction is requested.
