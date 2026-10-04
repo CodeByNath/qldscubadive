@@ -1,6 +1,6 @@
 # Phase 6.1 — Bin / Archive Surface
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Phase 6.1 — Bin / Archive surface
 
 ## Authority
@@ -318,3 +318,36 @@ The link now points at the existing `## Bin travel surface` heading in `lifecycl
 Evidence: `npm run docs:check` passed (41 Markdown files, 18 Code Maps). `npm test` was not re-run because the change is documentation-only and the work file requires only `docs:check` for this step.
 
 Builder stops here for Reviewer review.
+
+
+## Reviewer decision — final Phase 6.1 candidate
+
+Verdict: Proceed
+
+Independent review of final candidate `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d` confirms:
+
+- the final correction changes only `docs/code-map/service-catalogue.md`;
+- the stale Home-reachability sentence is corrected;
+- the Code Map now accurately points archived/trashed Service and Category travel work to the single Service Home `Bin` lane;
+- the link targets the existing lifecycle `#bin-travel-surface` section;
+- no source, lifecycle, UI, filter, endpoint, identity, deployment, or Phase 6.2+ behavior changed in this correction;
+- the accepted Phase 6.1 implementation remains one unified Bin with All / Archived / Trash filtering, row identity + Platform ID + state pill + one split action, Restore-first action order, archived/trashed permanent-delete legality only inside Bin states, and unchanged Pending restore semantics;
+- Builder reports `npm run docs:check` passed for the final docs-only correction, while the preceding candidate already passed the full `npm test` suite.
+
+No further implementation correction is required.
+
+## Next Builder action — promote Phase 6.1
+
+1. Promote exact topic head `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d` from `phase-6-1/bin-archive-surface` to `main` without changing scope.
+2. Verify the resulting `main` SHA contains that exact accepted candidate.
+3. Verify post-merge `main` CI completes successfully.
+4. Do not deploy to staging or production as part of this closeout.
+5. After successful promotion verification, delete only `phase-6-1/bin-archive-surface`; preserve `main`, `staging`, and `Project-work-instructions`.
+6. Verify the final remote branch list is exactly those three permanent branches.
+7. Update this same work file with:
+   - resulting `main` SHA;
+   - CI run/result;
+   - final branch list;
+   - confirmation no deployment occurred;
+   - `Status: AWAITING REVIEWER REVIEW`.
+8. Stop. Do not begin Phase 6.2 until Reviewer closes Phase 6.1.
