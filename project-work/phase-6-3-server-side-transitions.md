@@ -1,8 +1,8 @@
 # Phase 6.3 — Server-side transition enforcement
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.3 — Server-side transition enforcement
-Actor: Builder
+Actor: Reviewer
 
 ## Authority
 
@@ -170,3 +170,12 @@ No source correction is required.
 6. Verify final remote branches are exactly `main`, `staging`, and `Project-work-instructions`.
 7. Update this same work file with main SHA, CI run/result, final branch list, no-deployment confirmation, set `Status: AWAITING REVIEWER REVIEW`, `Actor: Reviewer`, and stop.
 8. Do not begin Phase 6.4 until Reviewer closes Phase 6.3.
+
+## Builder promotion result
+
+- `main` fast-forwarded `087a769` → `6ac7535a65e3b2e1bcbff36ad32fc92e31346b65`. Ancestry was checked before the push; the remote `main` SHA is verified as the exact accepted candidate. Scope is unchanged.
+- Post-push `main` CI run `37241389893` (push event) finished `success`. `test` passed, including `npm ci`, `npm test` and the upload. `deploy-staging` was `skipped`.
+- No deployment to staging or production.
+- After the containment check, `phase-6-3/server-side-transitions` was deleted (remote and local).
+- Final remote heads are exactly `main` `6ac7535`, `staging` `69f68ca` and `Project-work-instructions`.
+- The `active → active` safeguard is noted for Phase 6.4 re-evaluation, as directed. Phase 6.4 has not been started.
