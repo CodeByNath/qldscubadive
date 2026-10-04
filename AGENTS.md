@@ -9,6 +9,8 @@ This file is the single source of truth for repository-wide guidance for human c
 - [`docs/ai-index.md`](docs/ai-index.md) provides the shared platform orientation and read order.
 - [`docs/architecture/`](docs/architecture/platform-architecture-standards-v1.md) holds stable platform principles, constraints, and clearly labelled historical or superseded specifications.
 - [`docs/code-map/`](docs/code-map/000-README.md) maps the current implementation and its authoritative files.
+- [`docs/foundation/`](docs/foundation/README.md) routes durable repository-operability rules such as branch capacity and Code Map maintenance.
+- `Project-work-instructions` is workflow coordination only and never QSD product architecture authority.
 - Directory-local `CLAUDE.md` files contain only local ownership, entry points, boundaries, links, and validation.
 - [`docs/project-history/`](docs/project-history/000-README.md) contains immutable architectural and milestone history.
 
@@ -25,12 +27,29 @@ Before proposing or designing any new feature, Station, module, field, or entity
 ## Branches
 
 - `main` — integration. Every push runs the full test suite in CI.
-- `staging` — deploys to the SiteGround staging site (`.github/workflows/ci-deploy.yml`).
-- At most one topic branch for work in flight, deleted once merged (confirm with `git merge-base --is-ancestor <branch> main` first).
+- `staging` — staging deployment only via `.github/workflows/ci-deploy.yml`.
+- `Project-work-instructions` — permanent Builder/Reviewer coordination branch; it owns no QSD product architecture.
+- At most one additional topic/work branch may exist at a time.
+- Normal maximum remote branch count is four. Follow [Repository governance](docs/foundation/repository-governance.md) before creating or deleting branches.
+
+## Project cycle
+
+When the Owner says `run the cycle`, `continue the work`, `review the latest work`, `check the builder`, or equivalent:
+
+1. Verify the target repository is exactly `CodeByNath/qldscubadive`.
+2. Fetch/read `origin/Project-work-instructions` first.
+3. Read `project-work/AGENTS.md`.
+4. Read `project-work/PROJECT-RULES.md` when relevant.
+5. Read the single active work file and follow its Status, Phase, actor, scope, exclusions, evidence requirements, and next action literally.
+6. Then read current `main` authority: this `AGENTS.md`, `docs/ai-index.md`, `docs/roadmap.md` when current state matters, the relevant Code Map, required architecture contract/skill, and authoritative source.
+7. Determine whether Builder or Reviewer owns the next action and perform only that role.
+8. Do not advance to another phase until the current one is accepted or explicitly deferred.
+9. Treat Builder reports as pointers, not proof.
+10. Never treat the coordination branch or Google Drive handover as QSD product architecture authority.
 
 ## Repository workflow
 
-Follow this path, omitting the Claude-specific startup step in tools that do not support it:
+Controlled work first follows the active `Project-work-instructions` work file. Normal source work then follows this path, omitting the Claude-specific startup step in tools that do not support it:
 
 ```text
 Repository
@@ -172,3 +191,4 @@ Before finishing:
 3. Verify canonical paths and Markdown links (`npm run docs:check`).
 4. Ask whether a new Project History document should be created when the completed work qualifies as a major milestone.
 5. Report validation and working-tree status without committing or pushing unless explicitly requested.
+6. For controlled Builder work, push the authorised topic branch and record its exact remote SHA/evidence in the same active `Project-work-instructions` work file before Reviewer review.
