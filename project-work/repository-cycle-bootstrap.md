@@ -152,3 +152,33 @@ The current ChatGPT GitHub connector exposes branch creation/search but no branc
 Builder/user must delete only `docs/qsd-cycle-bootstrap` after confirming it is merged/contained in `main`. Preserve `main`, `staging`, and `Project-work-instructions`.
 
 Do not create a new topic branch until this branch is deleted. After deletion, update this same work file with the final three-branch list and return it for Reviewer closeout.
+
+
+## Claude startup clarification promotion
+
+The Claude Code startup ambiguity has been corrected and promoted.
+
+- Follow-up candidate SHA: `7dd8a50b3b59073762289ef8ba9ed5247e839908`.
+- Follow-up PR: #2, governance-only.
+- Only `CLAUDE.md` changed.
+- PR CI run `37186407633` passed.
+- Merged `main` SHA: `aa59eff28c768f11d54f9e2d70444ea92af14951`.
+- Post-merge CI run `37186475227` passed: `npm ci`, `npm test`, and artifact upload succeeded.
+- `deploy-staging` was skipped as expected for a `main` push.
+- No product/runtime/deployment implementation changed.
+
+Claude Code startup now explicitly defines `run the cycle` as:
+fetch/read `Project-work-instructions` -> read project-work protocol/rules -> read active work file -> determine actor -> perform only that action. It explicitly forbids treating the cycle trigger as "run tests".
+
+## Current next Builder action
+
+Delete only the already-merged remote topic branch `docs/qsd-cycle-bootstrap` after confirming it is contained in current `main` `aa59eff28c768f11d54f9e2d70444ea92af14951`.
+
+Then:
+
+1. verify the remote branch list is exactly `main`, `staging`, and `Project-work-instructions`;
+2. update this same work file with that evidence;
+3. set `Status: AWAITING REVIEWER REVIEW`;
+4. stop.
+
+Do not open the Phase 6 topic branch until this cleanup is complete and Reviewer closes the bootstrap.
