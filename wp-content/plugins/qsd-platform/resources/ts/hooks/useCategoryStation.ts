@@ -203,17 +203,17 @@ export function useCategoryStation(
   }, [created, onRefresh]);
 
   // Publish = settle + activate, mirroring publishService. Settling without a
-  // draft is a harmless re-derivation backend-side.
+  // draft is a harmless re-derivation backend-side. Stop-on-settle-failure
+  // (Phase 6.4): an unsuccessful settle never sends the activation request and
+  // reports no success, leaving the Category as it was for a retry.
   const publishCategory = useCallback(async (): Promise<CategoryStationItem | null> => {
     if (!created) return null;
     setStatusSaving(true);
     try {
       const settleResult = await settleCategoryOverview(created.id);
-      let next = created;
-      if (settleResult.success) {
-        next = settleResult.category;
-        setCreated(next);
-      }
+      if (!settleResult.success) return null;
+      const next = settleResult.category;
+      setCreated(next);
       const statusResult = await updateCategoryStatus(next.id, 'active');
       if (statusResult.success) {
         setCreated(statusResult.category);

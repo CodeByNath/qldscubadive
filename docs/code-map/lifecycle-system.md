@@ -35,7 +35,7 @@ WordPress `post_status` is never written after creation. A raw unmasked `disable
 - [useServiceStation.ts](../../wp-content/plugins/qsd-platform/resources/ts/service-station/useServiceStation.ts) owns Service detail, module drafts, saves/reverts, settle/publish, and travel actions; [derive.ts](../../wp-content/plugins/qsd-platform/resources/ts/service-station/derive.ts) holds pure projections.
 - [useCategoryStation.ts](../../wp-content/plugins/qsd-platform/resources/ts/hooks/useCategoryStation.ts) owns Category's Overview Save hand-off, draft-preferred projection, Publish, explicit Disable/Enable mask, and travel.
 
-A complete Overview Save creates the persisted Pending record, preserves the mounted drawer during native-ID handoff, and leaves Publish to settle/activate that existing identity. Enable and Restore return to Pending, preserving data and drafts.
+A complete Overview Save creates the persisted Pending record, preserves the mounted drawer during native-ID handoff, and leaves Publish to settle/activate that existing identity. Both Stations' Publish settles first and sends the `active` request only after a successful settle; a failed settle stops with no activation request and no success ([publish-activation-guard-regression.mjs](../../wp-content/plugins/qsd-platform/scripts/publish-activation-guard-regression.mjs)). Enable and Restore return to Pending, preserving data and drafts.
 
 ## Bin travel surface
 
@@ -47,7 +47,7 @@ Domain controllers apply the engine at their own REST boundaries: [ServiceContro
 
 ## Known gaps
 
-- Service Publish sends settle and activate as two requests.
+- Publish is still two requests (settle, then activate); there is no single server publish route, so an activation failure after a successful settle leaves the record settled but not active.
 
 ## Validation
 

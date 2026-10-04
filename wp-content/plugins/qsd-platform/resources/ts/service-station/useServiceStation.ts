@@ -528,29 +528,31 @@ export function useServiceStation(
     setStatusSaving(true);
     try {
       const settleResult = await settleAllServiceModules(service.id);
-      if (settleResult.success) {
-        applyAdminDetail(prev => prev ? {
-          ...prev,
-          title:         settleResult.service.title,
-          excerpt:       settleResult.service.excerpt,
-          content:       settleResult.service.content,
-          categories:    settleResult.service.categories,
-          inclusions:    settleResult.inclusions,
-          faqs:          settleResult.faqs,
-          module_status: settleResult.module_status,
-          drafts: { overview: null, inclusions: null, faqs: null },
-        } : prev);
-      }
+      // Stop-on-settle-failure (Phase 6.4): a Publish whose settlement did not
+      // succeed never sends the activation request and reports no success —
+      // the record stays exactly as it was so the user can correct and retry.
+      if (!settleResult.success) return null;
+      applyAdminDetail(prev => prev ? {
+        ...prev,
+        title:         settleResult.service.title,
+        excerpt:       settleResult.service.excerpt,
+        content:       settleResult.service.content,
+        categories:    settleResult.service.categories,
+        inclusions:    settleResult.inclusions,
+        faqs:          settleResult.faqs,
+        module_status: settleResult.module_status,
+        drafts: { overview: null, inclusions: null, faqs: null },
+      } : prev);
       const statusResult = await updateServiceStatus(service.id, { platform_status: 'active' });
       if (statusResult.success) {
         onRefresh?.();
         return {
           platform_status: statusResult.service.platform_status,
           module_status:   statusResult.service.module_status,
-          settled:         settleResult.success,
-          service:         settleResult.success ? settleResult.service : undefined,
-          inclusions:      settleResult.success ? settleResult.inclusions : undefined,
-          faqs:            settleResult.success ? settleResult.faqs : undefined,
+          settled:         true,
+          service:         settleResult.service,
+          inclusions:      settleResult.inclusions,
+          faqs:            settleResult.faqs,
         };
       }
       return null;
