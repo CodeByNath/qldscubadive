@@ -127,3 +127,28 @@ Implementation rule:
 - Plug the Bin/Archive surface into the existing Station lifecycle, APIs, identity, confirmation, status and notification systems.
 - Do not create a new lifecycle, restore path, status interpretation, editor, footer, or identity mechanism.
 - Existing lifecycle authority wins; this phase exposes it rather than changing it.
+
+
+## Promotion result
+
+Promotion completed successfully.
+
+- Reviewed candidate merged to `main`.
+- Resulting `main` SHA: `9d2972ef62af4696fe0360f7fc63710df5b3948a`.
+- Post-merge GitHub Actions run: `37184849575` (`Test and deploy`, run 18).
+- `test` job completed successfully.
+- `npm ci` passed.
+- `npm test` passed.
+- built Admin Station artifact upload passed.
+- `deploy-staging` was skipped, as expected for a `main` push.
+- No production or staging deployment was performed by this bootstrap promotion.
+
+## Remaining closeout action
+
+The merged topic branch `docs/qsd-cycle-bootstrap` still exists remotely.
+
+The current ChatGPT GitHub connector exposes branch creation/search but no branch-deletion mutation, so it cannot complete that final housekeeping action.
+
+Builder/user must delete only `docs/qsd-cycle-bootstrap` after confirming it is merged/contained in `main`. Preserve `main`, `staging`, and `Project-work-instructions`.
+
+Do not create a new topic branch until this branch is deleted. After deletion, update this same work file with the final three-branch list and return it for Reviewer closeout.
