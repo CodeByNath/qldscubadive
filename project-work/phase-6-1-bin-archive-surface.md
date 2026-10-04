@@ -1,6 +1,6 @@
 # Phase 6.1 — Bin / Archive Surface
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.1 — Bin / Archive surface
 
 ## Authority
@@ -227,3 +227,36 @@ Make only this bounded correction on the existing topic branch:
 8. Push the corrected exact SHA, update this same work file to `AWAITING REVIEWER REVIEW` with evidence, and stop.
 
 Do not alter the accepted lifecycle/delete work or widen scope while making this correction.
+
+
+## Builder correction handoff — Bin state filter
+
+Executor: Claude Code. This makes only the bounded correction.
+
+Topic branch: `phase-6-1/bin-archive-surface`
+Corrected SHA: `a08fb692615effec4075de734634ff4d2cce7353` (verified with `git ls-remote`; previous candidate `9b0800e…`)
+Remote branches: `main`, `staging`, `Project-work-instructions`, `phase-6-1/bin-archive-surface` (4).
+
+Changed in this correction (7 files): `ServiceBinLane.tsx`, `drawer-kit/ui/TravelStatusPill.tsx`, `admin-station.css` (+5 lines: `.cz-service-bin__toolbar`), `scripts/service-home-bin-regression.mjs`, `docs/code-map/service-catalogue.md`, `docs/roadmap.md`, `service-station/CLAUDE.md`. No backend, lifecycle, endpoint, delete or restore file changed (`git diff --name-only 9b0800e a08fb69`).
+
+What changed:
+1. **Filter:** one compact `select` (the same shared field-system control the Details catalogue filters with), labelled "Filter Bin by state", with exactly All / Archived / Trash, defaulting to All.
+2. **Filtering:** `filterServiceBinRows(rows, filter)` narrows the already-loaded unified rows in component state. It adds no fetch, surface, storage or lifecycle path. Changing the filter also disarms any open in-place confirm. Empty states: "The Bin is empty." (nothing in the Bin), "No archived records.", or "Nothing in Trash.".
+3. **Row grammar:** unchanged — `name | Platform ID | state pill | one split action`.
+4. **State label:** the Bin pill reads `Archived` / `Trash`. I localised it with a new optional `label` prop on the shared `TravelStatusPill` (it defaults to the existing label). The shared `TRAVEL_PILL` mapping and classes are unchanged, and no other surface's wording changed. Flagged because it is a small additive change to a shared drawer-kit component.
+
+Evidence:
+- `regression:service-home-bin` (new section 3b): the filter offers exactly `all:All`, `archived:Archived`, `trashed:Trash`; it defaults to All; All shows both states; Archived shows only `service:801` and `category:31`; Trash shows only `service:802` and `category:32`; filtered rows keep the one row grammar; switching filters made zero requests (no mutation, no Bin re-fetch). The pill checks now require exactly `Archived` / `Trash`.
+- `npm test`: exit 0, with typecheck, all PHP tests, the 26-route baseline unchanged, the build, and 19/19 JS checks.
+- `npm run docs:check`: passed (41 Markdown files, 18 Code Maps).
+
+Limitations and notes:
+- `admin-station.css` is now 2,495 lines (it was already over the limit at 2,440 before Phase 6.1). Still flagged under the file-size rule.
+- The iCloud "* 2" duplicates reappeared in `node_modules` and broke `tsc` again. This time I deleted only the git-ignored duplicate folders (41) instead of reinstalling, then ran the full suite. No tracked file affected.
+- No browser, WordPress runtime, CI or staging check was performed. No PR was opened.
+- Project History remains an Owner decision pending.
+- The work file is now longer still (well over the ~600-word guidance); Reviewer may condense it.
+
+Not included: Phase 6.2+, Settings/Rezdy, deployment, or lifecycle changes.
+
+Builder stops here for Reviewer review.
