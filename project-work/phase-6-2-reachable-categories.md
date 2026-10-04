@@ -1,8 +1,8 @@
 # Phase 6.2 — Reachable Categories
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Phase 6.2 — Reachable Categories
-Actor: Reviewer
+Actor: Builder
 
 ## Authority
 
@@ -116,3 +116,37 @@ Notes for Reviewer:
 - Project History for Phase 6.1 is still an Owner decision pending.
 
 Builder stops here for Reviewer review.
+
+
+## Reviewer decision
+
+Verdict: Proceed
+
+Independent review of pushed candidate `087a76965d89ec9994ff82e8d7fba3a3f24c24f7` confirms Phase 6.2 is correctly bounded:
+
+- the topic branch is exactly one commit ahead of accepted `main` `8d194929ff9af3d52e290fe4aa8f6b3c593ec66d`;
+- the existing `GET admin/categories` read remains the single Category source;
+- `projectServiceHomeConnectionRows()` now preserves every live Category, including `assigned_count === 0`;
+- the Connections lane adds exactly All / Connected / Unassigned, default All;
+- filtering is over already-loaded rows only;
+- Connected is `connectedCount > 0`; Unassigned is `connectedCount === 0`;
+- row identity, Platform ID, status pill, Services count and View action remain intact;
+- View still dispatches `view-category` with the native numeric Category id and remains bound to the existing Category drawer;
+- the mounted regression directly checks one list read, both filter partitions, native-id View dispatch, and no request on filter/View interaction;
+- no PHP/backend, lifecycle, persistence, Platform ID family, relationship authority, assignment editing, deployment, or Phase 6.3+ work was introduced;
+- Code Maps and roadmap were updated consistently with the candidate.
+
+Builder-reported local validation is `npm test` exit 0 and `npm run docs:check` pass. There are no GitHub Actions runs for the topic SHA, which is expected here because no PR/main push occurred. Browser, WordPress runtime, staging and deployment were not verified and are not required to accept this presentation-only candidate before promotion.
+
+No implementation correction is required.
+
+## Next Builder action — promote Phase 6.2
+
+1. Promote exact accepted topic head `087a76965d89ec9994ff82e8d7fba3a3f24c24f7` from `phase-6-2/reachable-categories` to `main` without changing scope.
+2. Verify resulting `main` contains that exact accepted candidate.
+3. Verify post-push `main` CI completes successfully.
+4. Do not deploy to `staging` or production.
+5. After successful main/CI verification, delete only `phase-6-2/reachable-categories`; preserve `main`, `staging`, and `Project-work-instructions`.
+6. Verify the final remote branch list is exactly those three permanent branches.
+7. Update this same work file with resulting `main` SHA, CI run/result, final branch list, confirmation no deployment occurred, set `Status: AWAITING REVIEWER REVIEW`, set `Actor: Reviewer`, and stop.
+8. Do not begin Phase 6.3 until Reviewer closes Phase 6.2.
