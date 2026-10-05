@@ -1,6 +1,6 @@
 # Service Element + Security Broker foundation bundle
 
-Status: AWAITING REVIEWER REVIEW
+Status: ACCEPTED
 Phase: Post-Settings foundation — Service Element composition + credential broker
 Actor: Reviewer
 
@@ -650,3 +650,32 @@ Do not provision `QSD_CREDENTIAL_KEY`, store a real Rezdy key, or perform a prov
    - Phase 2 was not started.
    - The Reviewer's Phase 2 safeguards 1–3 (server-derived caller/user binding, real WordPress/database validation, keys and real credentials only as deliberate Phase 2 steps) are recorded above for the next package.
 
+
+
+## Reviewer closeout — Security Phase 1
+
+Verdict: Proceed with safeguards
+
+Independent promotion verification completed:
+
+- `main` is exactly `da934936edafcf892ebab33e870e6f5f511d147f`, the reviewed Security-only candidate;
+- GitHub Actions run `37284587727` completed successfully on that exact SHA;
+- the `test` job passed, including `npm ci`, `npm test`, build, PHP tests and JS/contracts;
+- `deploy-staging` was skipped;
+- `staging` remains `69f68cafab6b3fb647523782ea560f900e9b86ac`;
+- no production deployment occurred;
+- topic branch `service-elements/elements-security-broker` is deleted;
+- remote branches are exactly `main`, `staging`, and `Project-work-instructions`;
+- no `QSD_CREDENTIAL_KEY` was provisioned;
+- no real provider credential was stored;
+- no provider call was made;
+- Phase 2 was not started.
+
+Security Phase 1 is accepted and closed.
+
+The following safeguards are binding on Phase 2:
+1. any `qsd/v1` broker flow must derive WordPress user identity and caller/component identity server-side rather than trust client-supplied values;
+2. request-key claim/consume, credential storage and key rotation must be validated on a real WordPress/database runtime;
+3. key provisioning, real credentials and real provider calls occur only as deliberate Phase 2 validation steps.
+
+Phase 3 Service Element identity remains deferred; the earlier Element implementation is not accepted main authority.
