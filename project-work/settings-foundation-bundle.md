@@ -1,6 +1,6 @@
 # Settings foundation bundle — Settings Station + Connections/Security + configurable Meta schema
 
-Status: AWAITING REVIEWER REVIEW
+Status: ACCEPTED
 Phase: Post-Phase-6 Settings foundation
 Actor: Reviewer
 
@@ -293,3 +293,27 @@ No source correction is required for this candidate.
 - Final remote branches: exactly `main` (`17f47b5`), `staging` (`69f68ca`), `Project-work-instructions`.
 - No staging or production deployment; no real provider credentials entered.
 - Service Meta value module and Rezdy importer not started; they wait on Reviewer closeout and Safeguards 1–3 / Owner gates.
+
+
+## Reviewer closeout
+
+Verdict: Proceed with safeguards
+
+Independent promotion verification completed:
+
+- `main` is exactly `17f47b563ee39726003197806bb539d7736e1365`, the accepted Settings foundation candidate;
+- GitHub Actions run `37261129309` completed successfully on that exact SHA;
+- the `test` job passed, including `npm ci`, `npm test`, and Admin Station artifact upload;
+- `deploy-staging` was skipped;
+- no staging or production deployment occurred;
+- topic branch `settings-foundation/settings-connections-meta` is removed;
+- remote branches are exactly `main`, `staging`, and `Project-work-instructions`;
+- no real provider credentials were entered;
+- Service Meta value persistence and Rezdy importer/mapping were not started.
+
+The three accepted safeguards remain binding for the next work:
+1. decide credential encryption/permission/rotating-key security before live credentials;
+2. re-audit Service Meta field identity at the Service value-consumer boundary;
+3. field removal remains retire/restore until a recovery/purge policy is approved.
+
+Settings foundation is accepted and closed. Rezdy importer work remains blocked on the Owner's pre-built importer system.
