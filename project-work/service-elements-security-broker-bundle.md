@@ -1,8 +1,8 @@
 # Service Element + Security Broker foundation bundle
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Post-Settings foundation — Service Element composition + credential broker
-Actor: Builder
+Actor: Reviewer
 
 ## Owner-approved architecture
 
@@ -626,3 +626,27 @@ Do not provision `QSD_CREDENTIAL_KEY`, store a real Rezdy key, or perform a prov
 6. Verify remote branches return to exactly `main`, `staging`, `Project-work-instructions`.
 7. Update this same file with exact main SHA, CI run/result, final branch list and no-deployment/no-key/no-real-credential confirmation; set `Status: AWAITING REVIEWER REVIEW`, `Actor: Reviewer`, then stop.
 8. Do not begin Phase 2 in the same handoff.
+
+
+## Builder promotion record — Security Phase 1
+
+1. **Promoted** the exact candidate `da934936edafcf892ebab33e870e6f5f511d147f` to `main` with no source changes.
+   - `git merge-base --is-ancestor 17f47b5 da93493` was confirmed first.
+   - The push was a fast-forward, `git push origin "da93493…:refs/heads/main"`, giving `17f47b5..da93493`.
+   - Deviation: the first push attempt returned a transient `failed to push some refs` and left `main` unchanged at `17f47b5`. An identical retry succeeded. There was no force and no other ref change.
+2. **`main` is the exact head:** `origin/main` = `da934936edafcf892ebab33e870e6f5f511d147f`.
+3. **Post-push CI:** GitHub Actions run `37284587727` ("Test and deploy", event `push`, branch `main`, head SHA `da934936edafcf892ebab33e870e6f5f511d147f`) **completed with success**. The `test` job succeeded. https://github.com/CodeByNath/qldscubadive/actions/runs/37284587727
+4. **No deployment:**
+   - `deploy-staging` was **skipped**.
+   - `staging` was not pushed and remains `69f68cafab6b3fb647523782ea560f900e9b86ac`.
+   - Nothing was deployed to production.
+5. **Topic branch deleted:** `service-elements/elements-security-broker` was deleted on the remote and locally, after confirming it is contained in `origin/main`. The Phase 3 Element implementation stays recoverable from history at `8ea707b8513564aba457965d275decbb7efe5ee7`.
+6. **Remote branches** are now exactly `main`, `staging` and `Project-work-instructions`.
+7. **Confirmations:**
+   - `QSD_CREDENTIAL_KEY` was not provisioned anywhere.
+   - No real Rezdy or other provider credential was stored.
+   - No provider call was made.
+   - No staging or production deployment took place.
+   - Phase 2 was not started.
+   - The Reviewer's Phase 2 safeguards 1–3 (server-derived caller/user binding, real WordPress/database validation, keys and real credentials only as deliberate Phase 2 steps) are recorded above for the next package.
+
