@@ -1,8 +1,8 @@
 # Phase 6.4 — Publish activation guard
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6.4 — Atomic Publish
-Actor: Builder
+Actor: Reviewer
 
 ## Authority
 
@@ -146,3 +146,13 @@ No source correction is required.
 6. Verify final remote branches are exactly `main`, `staging`, and `Project-work-instructions`.
 7. Update this same work file with main SHA, CI run/result, final branch list, confirmation no deployment occurred, set `Status: AWAITING REVIEWER REVIEW`, set `Actor: Reviewer`, and stop.
 8. Do not begin Phase 6.5 until Reviewer closes Phase 6.4.
+
+## Builder promotion result
+
+- Promoted exact accepted candidate `b9192c6abd9deb04c0d1b24a87f70dd4ec99434f` to `main` by fast-forward (`6ac7535..b9192c6`); ancestry checked before push; no scope change.
+- `main` = `b9192c6abd9deb04c0d1b24a87f70dd4ec99434f`; `git merge-base --is-ancestor b9192c6… origin/main` confirmed.
+- Post-push CI: GitHub Actions run `37250672804` ("Test and deploy") — `completed` / `success`. Jobs: `test` success; `deploy-staging` skipped.
+- No deployment: `staging` unchanged at `69f68cafab6b3fb647523782ea560f900e9b86ac`; nothing deployed to staging or production.
+- Deleted only `phase-6-4/publish-activation-guard` after the containment check.
+- Final remote branches (exactly three): `main` `b9192c6`, `staging` `69f68ca`, `Project-work-instructions`.
+- Phase 6.5 not started; awaiting Reviewer close of Phase 6.4.
