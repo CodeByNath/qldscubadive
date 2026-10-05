@@ -82,14 +82,17 @@ export function useServiceLifecycle({ station, setService, closeBypassingGuard, 
     if (result) closeBypassingGuard();
   }, [archiveStation, closeBypassingGuard, closeSplit]);
 
-  const handleTrash = useCallback(async () => {
+  // Resolves true only when the record actually left the surface, so the
+  // controller's saved-record Trash confirmation can stay open on failure.
+  const handleTrash = useCallback(async (): Promise<boolean> => {
     closeSplit();
     // Nothing is stored yet for a pending Service: discarding it is simply
     // closing, never a status write against an id that does not exist —
     // mirrors Package Family's `group_id === ''` guard on the same action.
-    if (isNew) { closeBypassingGuard(); return; }
+    if (isNew) { closeBypassingGuard(); return true; }
     const result = await trashStation();
     if (result) closeBypassingGuard();
+    return result != null;
   }, [trashStation, closeBypassingGuard, closeSplit, isNew]);
 
   return { handleToggleActive, handleSettleModules, handlePublishService, handleArchive, handleTrash };

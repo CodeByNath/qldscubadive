@@ -106,9 +106,50 @@ export function useServiceDrawerController({
   });
   settleRef.current = lifecycle.handleSettleModules;
 
-  // ── Confirm dialogs (publish/settle, discard-draft) ─────────────────────────
+  // ── Confirm dialogs (publish/settle, discard-draft, saved-record Trash) ─────
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [discardConfirm,   setDiscardConfirm]   = useState<'overview' | 'inclusions' | 'faqs' | null>(null);
+  const [trashConfirm,     setTrashConfirm]     = useState(false);
+  const [trashError,       setTrashError]       = useState<string | null>(null);
+  const trashInFlight = useRef(false);
+  // The footer VNode is re-registered only on its gating inputs, so the Trash
+  // handlers read the latest identity/lifecycle through a ref, never a stale one.
+  const trashTarget = useRef({ isNew: station.isNew, handleTrash: lifecycle.handleTrash });
+  trashTarget.current = { isNew: station.isNew, handleTrash: lifecycle.handleTrash };
+
+  // Footer Move to Trash: a persisted Service arms the confirmation and sends
+  // nothing; the local `new` composition keeps its existing discard-by-close
+  // path (useServiceLifecycle.handleTrash's isNew branch), never a server write.
+  const requestTrash = useCallback(() => {
+    setSplitOpen(false);
+    if (trashTarget.current.isNew) { void trashTarget.current.handleTrash(); return; }
+    setTrashError(null);
+    setTrashConfirm(true);
+  }, []);
+
+  const cancelTrash = useCallback(() => {
+    if (trashInFlight.current) return;
+    setTrashConfirm(false);
+    setTrashError(null);
+  }, []);
+
+  // Confirm invokes the Station's Trash action exactly once. Success closes
+  // through the existing terminal path; failure keeps the dialog open with an
+  // error rather than faking success or closing.
+  const handleConfirmTrash = useCallback(async () => {
+    if (trashInFlight.current) return;
+    trashInFlight.current = true;
+    setTrashError(null);
+    try {
+      const trashed = await trashTarget.current.handleTrash();
+      if (trashed) setTrashConfirm(false);
+      else setTrashError('The Service could not be moved to Trash.');
+    } catch (error) {
+      setTrashError(error instanceof Error ? error.message : 'The Service could not be moved to Trash.');
+    } finally {
+      trashInFlight.current = false;
+    }
+  }, []);
 
   const handleConfirmPublish = useCallback(async () => {
     setShowPublishModal(false);
@@ -207,11 +248,12 @@ export function useServiceDrawerController({
     splitOpen, setSplitOpen, requestClose,
     handleToggleActive: lifecycle.handleToggleActive,
     handleArchive: lifecycle.handleArchive,
-    handleTrash: lifecycle.handleTrash,
+    handleTrash: requestTrash,
     openPublishModal: () => setShowPublishModal(true),
     // dialogs
     showPublishModal, setShowPublishModal, handleConfirmPublish,
     discardConfirm, setDiscardConfirm, handleConfirmDiscard,
+    trashConfirm, trashError, cancelTrash, handleConfirmTrash,
     exitDialog: exitFlow.exitDialog, setExitDialog: exitFlow.setExitDialog,
     exitSaving: exitFlow.exitSaving, displayCategory, stationOverviewDraft,
     newSvcFields: exitFlow.newSvcFields, setNewSvcFields: exitFlow.setNewSvcFields,

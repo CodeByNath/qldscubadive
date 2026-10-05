@@ -1,7 +1,7 @@
 // Service drawer confirm + exit dialogs — pure presentation over the controller.
 //
-// Publish/settle, discard-draft, the unsaved-changes and pending-modules exit
-// prompts, and the new-never-published draft prompt. Each reads controller state
+// Publish/settle, discard-draft, saved-record Move to Trash, the unsaved-changes
+// and pending-modules exit prompts, and the new-never-published draft prompt. Each reads controller state
 // and calls a controller handler; none owns business logic or calls an API.
 
 import type { ServiceDrawerController } from './useServiceDrawerController';
@@ -72,6 +72,31 @@ export function ServiceDrawerDialogs({ c }: { c: ServiceDrawerController }) {
               </button>
               <button type="button" class="cz-admin-btn cz-admin-btn--danger" onClick={c.handleConfirmDiscard}>
                 Discard Draft
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Saved-record Move to Trash confirmation ─────────────────────────── */}
+      {c.trashConfirm && (
+        <div class="cz-publish-confirm-overlay" onClick={(e) => { if (e.target === e.currentTarget) c.cancelTrash(); }}>
+          <div class="cz-publish-confirm" role="dialog" aria-modal="true">
+            <div class="cz-publish-confirm__header">
+              <h3 class="cz-publish-confirm__title">Move {serviceTitle} to Trash?</h3>
+            </div>
+            <div class="cz-publish-confirm__body">
+              <p class="cz-publish-confirm__lead">
+                The Service leaves the catalogue and can be restored from the Bin as Pending.
+              </p>
+              {c.trashError && <p class="cz-admin-error-msg" role="alert">{c.trashError}</p>}
+            </div>
+            <div class="cz-publish-confirm__footer">
+              <button type="button" class="cz-admin-btn cz-admin-btn--secondary" onClick={c.cancelTrash} disabled={loading}>
+                Cancel
+              </button>
+              <button type="button" class="cz-admin-btn cz-admin-btn--danger" onClick={c.handleConfirmTrash} disabled={loading}>
+                {loading ? '…' : 'Move to Trash'}
               </button>
             </div>
           </div>

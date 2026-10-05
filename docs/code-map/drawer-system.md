@@ -58,7 +58,7 @@ mask; Enable and Restore clear it and return to Pending while preserving draft
 data. Service child modules are Edit-locked only until Overview Save has issued
 their ID; afterward child saves are authoritative Station writes.
 
-Enforced by `npm run contract:drawer-module-entry`, which executes each rule and reads the compositions for the wiring they need, and by `node scripts/module-state-snapshot.mjs`, which pins every exported rule's `{ status, notes }`. A new Station adds its shells, empty entry states, and composition checks to that contract.
+Enforced by `npm run contract:drawer-module-entry`, which executes each rule and reads the compositions for the wiring they need, and by `node scripts/module-state-snapshot.mjs`, which pins every exported rule's `{ status, notes }`. The contract also pins that each drawer's footer Move to Trash arms its `<Entity>DrawerDialogs` confirmation (behaviour: `regression:drawer-trash-confirm`). A new Station adds its shells, empty entry states, and composition checks to that contract.
 
 The conformance inventory is in the contract's [conformance table](../architecture/StationDrawerLifecycleContract-v1.md#8-conformance-and-pending-inventory).
 

@@ -20,6 +20,7 @@
     "contract:station-tabset": "tsx scripts/station-tabset-contract.ts",
     "contract:supported-action-footer": "tsx scripts/supported-action-footer-contract.ts",
     "regression:category-create": "node scripts/category-create-regression.mjs",
+    "regression:drawer-trash-confirm": "node scripts/drawer-trash-confirm-regression.mjs",
     "regression:entity-action-footer-menu-only": "node scripts/entity-action-footer-menu-only-regression.mjs",
     "regression:service-create": "node scripts/service-create-regression.mjs",
     "regression:service-create-handoff": "node scripts/service-create-handoff-regression.mjs",

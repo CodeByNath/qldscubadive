@@ -170,4 +170,17 @@ check(
   'Create Service / Create Category open their drawers readable (mode: view), never pre-entered into an editor',
 );
 
+// ── Saved-record Move to Trash goes through the drawer's own dialog ─────────
+// Both conforming drawers arm a confirmation from the footer and run the
+// Station's Trash action only from that dialog's confirm handler; the local
+// `new` composition discards by closing. Behaviour is proven in
+// scripts/drawer-trash-confirm-regression.mjs; this pins the wiring.
+const serviceController = source('resources/ts/service-station/drawer/useServiceDrawerController.ts');
+const serviceDialogs = source('resources/ts/service-station/drawer/ServiceDrawerDialogs.tsx');
+check(serviceController.includes('handleTrash: requestTrash'), 'the Service footer Move to Trash arms the confirmation, never the Trash action directly');
+check(serviceDialogs.includes('c.trashConfirm &&') && serviceDialogs.includes('onClick={c.handleConfirmTrash}'), 'the Service Trash confirmation lives in ServiceDrawerDialogs and confirms through the controller');
+const categoryDialogs = source('resources/ts/entity-drawers/category/CategoryDrawerDialogs.tsx');
+check(categoryController.includes("setConfirmDialog('trash')"), 'the Category footer Move to Trash arms the confirmation');
+check(categoryDialogs.includes('onClick={c.handleConfirmDestructive}'), 'the Category Trash confirmation confirms through the controller');
+
 console.log(`Drawer module entry contract passed: ${SHELLS.length} shells, ${ENTRY_STATES.length} entry states.`);

@@ -180,6 +180,9 @@ If the source does not yet meet one of these points, mark the Station and its
   `lifecycle-system.md`) lists archived and trashed Services and Categories
   and offers Restore, Move to Trash (archived only), and Permanently delete
   through each owning Station's existing actions (§5).
+- **Saved-record Trash confirmation:** Service and Category drawers arm Move
+  to Trash in their `<Entity>DrawerDialogs` (§11) and run the Station's Trash
+  action once on confirm; a local `new` drawer discards by closing.
 - **Transition enforcement:** each owning backend Station's `/status` route
   applies only the strict lifecycle transitions (Publish needs a complete,
   settled Overview; a direct `disabled` is refused in favour of explicit
