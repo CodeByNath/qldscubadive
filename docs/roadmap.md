@@ -6,7 +6,7 @@ Current state, open work, and the decisions behind them. Update this file as wor
 
 - Extracted from CompuZign and renamed to QSD: Service and Category Stations, Platform Identifier Station (`QSDS`/`QSDC`), lifecycle engine, drawer kit and notifications, Station Manager, Admin Station at `/station/`, QSD Shell theme.
 - Verified on a real WordPress (local) and on staging2: login gate, create → Overview Save → children → Publish → Disable/Enable → Archive/Trash, restore and permanent delete through the API.
-- Phase 6 lifecycle completion is accepted on `main`.
+- Phase 6 lifecycle completion and the Settings foundation are accepted on `main`.
 - `npm test` and CI pass. Pushing `staging` deploys to staging2 only.
 
 ## Decisions (do not undo without the owner)
@@ -32,11 +32,11 @@ Current state, open work, and the decisions behind them. Update this file as wor
 
 Owner sequencing: Settings and platform connections come before the Service importer and deeper imported-Service work.
 
-1. **Settings foundation — built (awaiting Reviewer acceptance).** A Settings Station (`src/Modules/Settings/`, `resources/ts/settings-station/`) hosts configuration Tools; it owns no domain record or Platform ID family. See [Settings Station](code-map/settings-station.md).
-2. **Connections/Security — foundation built (awaiting Reviewer acceptance).** Provider-neutral connection store; secrets are saved server-side and never projected back; Connectors read their own values through `ConnectorCredentials`. Open gates: rotating request keys, secret encryption at rest, credential permission level.
-3. **Rezdy Connector — connection seam built (awaiting Reviewer acceptance).** Environment + API key configuration and connection state only; no HTTP calls, no mapping.
+1. **Settings foundation — done (accepted).** A Settings Station (`src/Modules/Settings/`, `resources/ts/settings-station/`) hosts configuration Tools; it owns no domain record or Platform ID family. See [Settings Station](code-map/settings-station.md).
+2. **Connections/Security credential broker — built (awaiting Reviewer acceptance).** Secrets are encrypted at rest under the `QSD_CREDENTIAL_KEY` wp-config key (fail closed without it); consumers get short-lived, single-use, bound request keys and the broker performs the provider operation server-side ([Credential broker contract](architecture/credential-broker-contract.md)). Open gates: credential permission level, key provisioning/rotation. Real provider credentials stay prohibited until reviewed.
+3. **Rezdy Connector — connection seam (accepted).** Environment + API key configuration and connection state only; no brokered scope, no HTTP calls, no mapping.
 4. **Service importer — blocked on Owner input.** Rezdy product/service mapping and the import flow wait for the Owner's pre-built Rezdy importer; review it before any importer design.
-5. **Service Meta — schema built (awaiting Reviewer acceptance); Service value module next.** Settings owns field definitions (text, long text, number, yes/no, select, image, gallery, repeater) with stable `fld_` ids and retire/restore; Service will own values per the [Service Meta schema contract](architecture/service-meta-schema-contract.md). Descriptive Service details (duration, max depth, certification level, photos) arrive through Service Meta, not as hard-coded Overview fields.
+5. **Service Element composition — built (awaiting Reviewer acceptance).** Settings owns Element definitions (text, long text, number, yes/no, select, image, gallery, group, repeater); Service owns every instance as a fourth module, addressed by `QSDS` + a Service-child id, with the same id law for Group children, Repeater rows and gallery entries, retire/detach instead of delete, and draft → settle like every module ([Service Element composition contract](architecture/service-element-composition-contract.md), [Service Elements](code-map/service-elements.md)). Next: required-field enforcement at Publish and the public projection.
 
 ## Later — scuba domain
 

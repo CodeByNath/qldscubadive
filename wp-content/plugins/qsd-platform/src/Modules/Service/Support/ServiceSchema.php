@@ -15,7 +15,7 @@ namespace QSD\Platform\Modules\Service\Support;
  *
  * WHAT LIVES HERE
  *   - the post meta and draft keys the Service owns;
- *   - the module vocabulary (overview/inclusions/faqs) and its default status;
+ *   - the module vocabulary (overview/inclusions/faqs/elements) and its default status;
  *   - the REST argument definitions for the 14 Service routes.
  *
  * WHAT DOES NOT
@@ -39,11 +39,14 @@ final class ServiceSchema
     public const DRAFT_OVERVIEW    = 'qsd_service_overview_draft';
     public const DRAFT_INCLUSIONS  = 'qsd_service_inclusions_draft';
     public const DRAFT_FAQS        = 'qsd_service_faqs_draft';
+    /** Service Element instances (Support\ServiceElements), `{version, elements}`. */
+    public const META_ELEMENTS     = 'qsd_service_elements';
+    public const DRAFT_ELEMENTS    = 'qsd_service_elements_draft';
     public const PLATFORM_ID_META  = 'qsd_platform_id';
 
     // ── Module vocabulary ────────────────────────────────────────────────────
-    /** Settle order is significant: overview settles before the pools. */
-    public const MODULES = ['overview', 'inclusions', 'faqs'];
+    /** Settle order is significant: overview settles before the pools and Elements. */
+    public const MODULES = ['overview', 'inclusions', 'faqs', 'elements'];
 
     /** The modules backed by a Service-owned pool, and so subject to the settle guard. */
     public const POOL_MODULES = ['inclusions', 'faqs'];
@@ -57,10 +60,10 @@ final class ServiceSchema
     /** Accepted on the deprecated post_status parameter of the status route. */
     public const ALLOWED_POST_STATUSES = ['publish', 'draft'];
 
-    /** overview starts pending (a draft is created with the service); pools start empty. */
+    /** overview starts pending (a draft is created with the service); pools and Elements start empty. */
     public static function defaultModuleStatus(): array
     {
-        return ['overview' => 'pending', 'inclusions' => 'not-configured', 'faqs' => 'not-configured'];
+        return ['overview' => 'pending', 'inclusions' => 'not-configured', 'faqs' => 'not-configured', 'elements' => 'not-configured'];
     }
 
     /** The draft meta key backing a module, or null for an unknown module. */
@@ -70,6 +73,7 @@ final class ServiceSchema
             'overview'   => self::DRAFT_OVERVIEW,
             'inclusions' => self::DRAFT_INCLUSIONS,
             'faqs'       => self::DRAFT_FAQS,
+            'elements'   => self::DRAFT_ELEMENTS,
             default      => null,
         };
     }
@@ -139,6 +143,15 @@ final class ServiceSchema
         return self::identity() + [
             'faqs' => ['required' => true, 'type' => 'array',
                        'items' => ['type' => 'object']],
+        ];
+    }
+
+    /** The full Element collection; Support\ServiceElements validates its shape. */
+    public static function updateElementsArgs(): array
+    {
+        return self::identity() + [
+            'elements' => ['required' => true, 'type' => 'array',
+                           'items' => ['type' => 'object']],
         ];
     }
 

@@ -28,6 +28,7 @@ import type {
   ServiceOverviewShellData,
   ServiceInclusionsShellData,
   ServiceFaqsShellData,
+  ServiceElementsShellData,
 } from './schema/bindings/service';
 import type { ShellBinding } from '@/drawer-kit/schema/types';
 import type { DrawerTabId } from '@/drawer-kit/DrawerTabs';
@@ -36,6 +37,7 @@ import { useOutsideClickDismiss } from '@/entity-drawers/shared/drawerChrome';
 import { useServiceModuleEditing } from './useServiceModuleEditing';
 import { useServiceLifecycle } from './useServiceLifecycle';
 import { useServiceExitFlow } from './useServiceExitFlow';
+import { deriveElementLines } from '../derive';
 import type { ServiceDrawerContentProps } from './serviceDrawerTypes';
 
 export type ServiceDrawerControllerArgs = ServiceDrawerContentProps;
@@ -61,11 +63,11 @@ export function useServiceDrawerController({
   const station = useServiceStation(service, bridge.onMutationComplete, setService);
   const {
     platformStatus, isActive, isDisabledMasked, detailLoaded, canPublish, pendingModuleNames, moduleStatus,
-    hasInclusionsDraft, hasFaqsDraft,
+    hasInclusionsDraft, hasFaqsDraft, hasElementsDraft,
     modules,
-    inclusions, faqs, overviewDraft: stationOverviewDraft, settledOverview,
-    inclSummary, faqsSummary,
-    revertOverview, revertInclusions, revertFaqs,
+    inclusions, faqs, elements, elementDefinitions, overviewDraft: stationOverviewDraft, settledOverview,
+    inclSummary, faqsSummary, elementsSummary,
+    revertOverview, revertInclusions, revertFaqs, revertElements,
   } = station;
 
   // "Has this record ever been settled/published" must survive an ordinary
@@ -108,7 +110,7 @@ export function useServiceDrawerController({
 
   // ── Confirm dialogs (publish/settle, discard-draft, saved-record Trash) ─────
   const [showPublishModal, setShowPublishModal] = useState(false);
-  const [discardConfirm,   setDiscardConfirm]   = useState<'overview' | 'inclusions' | 'faqs' | null>(null);
+  const [discardConfirm,   setDiscardConfirm]   = useState<'overview' | 'inclusions' | 'faqs' | 'elements' | null>(null);
   const [trashConfirm,     setTrashConfirm]     = useState(false);
   const [trashError,       setTrashError]       = useState<string | null>(null);
   const trashInFlight = useRef(false);
@@ -165,7 +167,8 @@ export function useServiceDrawerController({
     if (module === 'overview')   await revertOverview();
     if (module === 'inclusions') await revertInclusions();
     if (module === 'faqs')       await revertFaqs();
-  }, [discardConfirm, revertOverview, revertInclusions, revertFaqs]);
+    if (module === 'elements')   await revertElements();
+  }, [discardConfirm, revertOverview, revertInclusions, revertFaqs, revertElements]);
 
   // Tab switch is guarded too: while a dirty module is open, switching raises the
   // unsaved dialog and defers the switch (parity with the old requestExit tab intent).
@@ -216,6 +219,15 @@ export function useServiceDrawerController({
       : { 'discard-draft': () => setDiscardConfirm('faqs') },
   };
 
+  const elementsShellBinding: ShellBinding<ServiceElementsShellData> = {
+    data:  { lines: deriveElementLines(elements, elementDefinitions), serviceTitle: decodedServiceTitle },
+    state: detailLoaded ? modules.elements : { status: 'loading', notes: [] },
+    hasDraft: moduleStatus?.elements === 'pending' && hasElementsDraft,
+    handlers: service
+      ? { edit: editing.openElementsEditor, 'discard-draft': () => setDiscardConfirm('elements') }
+      : { 'discard-draft': () => setDiscardConfirm('elements') },
+  };
+
   // Footer gate: Enable/Disable is meaningful once published at least once.
   // Same durable signal as isNewNeverPublished above — see its comment.
   const hasBeenPublished = modules.overview.status === 'active' || hasSettledOverview;
@@ -223,12 +235,13 @@ export function useServiceDrawerController({
   return {
     // record + station
     service, station, platformStatus, isActive, isDisabledMasked, canPublish, isNewNeverPublished, hasBeenPublished,
-    inclSummary, faqsSummary, pendingModuleNames, displayTitle,
+    inclSummary, faqsSummary, elementsSummary, pendingModuleNames, displayTitle,
     // tabs
     tab, selectServiceTab,
     // panels + bindings
     openPanel, togglePanel: (m: string) => setOpenPanel((p) => (p === m ? null : m)),
-    overviewShellBinding, inclusionsShellBinding, faqsShellBinding,
+    overviewShellBinding, inclusionsShellBinding, faqsShellBinding, elementsShellBinding,
+    elementDefinitions,
     // editing
     editingSection: editing.editingSection,
     editingSectionLabel: editing.editingSectionLabel,
@@ -237,12 +250,14 @@ export function useServiceDrawerController({
     overviewDraft: editing.overviewDraft, setOverviewDraft: editing.setOverviewDraft,
     inclusionsDraft: editing.inclusionsDraft, setInclusionsDraft: editing.setInclusionsDraft,
     faqsDraft: editing.faqsDraft, setFaqsDraft: editing.setFaqsDraft,
+    elementsDraft: editing.elementsDraft, setElementsDraft: editing.setElementsDraft,
     localCategories: editing.localCategories,
     catDesc: editing.catDesc, setCatDesc: editing.setCatDesc,
     createInlineCategory: editing.createInlineCategory,
     handleSaveOverview: editing.handleSaveOverview,
     handleSaveInclusions: editing.handleSaveInclusions,
     handleSaveFaqs: editing.handleSaveFaqs,
+    handleSaveElements: editing.handleSaveElements,
     handleCancelEdit: editing.handleCancelEdit,
     // footer
     splitOpen, setSplitOpen, requestClose,

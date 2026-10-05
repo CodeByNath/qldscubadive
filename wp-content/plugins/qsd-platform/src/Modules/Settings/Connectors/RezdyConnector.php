@@ -46,6 +46,11 @@ final class RezdyConnector
                     'required' => true,
                 ],
             ],
+            // No brokered scope yet: Rezdy operations (and so their scopes and
+            // the provider operation that performs them) arrive only with the
+            // Owner-reviewed importer. Until then no request key can be issued
+            // for Rezdy.
+            [],
         );
     }
 

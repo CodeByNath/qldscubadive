@@ -6,20 +6,20 @@ namespace QSD\Platform\Modules\Settings\Connections;
  * ConnectionStore — the sole reader/writer of the provider connection option.
  *
  * Storage: one non-autoloaded option, keyed by provider:
- *   [provider => ['config' => [field => string], 'secrets' => [field => string], 'updated_at' => ISO-8601]]
+ *   [provider => ['config' => [field => string], 'secrets' => [field => envelope], 'updated_at' => ISO-8601]]
  *
- * Only ConnectorCredentials (server-side consumers) and the Settings
- * Connections controller (write + safe projection) use this class. Nothing
- * else reads the option, and no REST response ever carries `secrets`.
+ * Only ConnectorCredentials and the Settings Connections controller use this
+ * class. Nothing else reads the option, and no REST response ever carries
+ * `secrets`.
  *
- * Secrets are stored as WordPress options store any value; at-rest encryption
- * is an open decision gate (docs/code-map/settings-station.md), not invented here.
+ * Every secret is stored as a Security\CredentialCipher envelope (encrypted at
+ * rest under the wp-config key); this class never sees a plaintext secret.
  */
 final class ConnectionStore
 {
     public const OPTION = 'qsd_settings_connections';
 
-    /** @return array{config: array<string, string>, secrets: array<string, string>, updated_at: ?string} */
+    /** @return array{config: array<string, string>, secrets: array<string, mixed>, updated_at: ?string} */
     public function read(string $provider): array
     {
         $record = $this->all()[$provider] ?? [];
@@ -30,7 +30,7 @@ final class ConnectionStore
         ];
     }
 
-    /** @param array{config: array<string, string>, secrets: array<string, string>} $record */
+    /** @param array{config: array<string, string>, secrets: array<string, mixed>} $record */
     public function write(string $provider, array $record): void
     {
         $all = $this->all();

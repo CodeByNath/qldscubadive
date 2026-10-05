@@ -27,10 +27,12 @@ export const FIELD_TYPE_LABEL: Record<ServiceMetaFieldType, string> = {
   select:   'Select',
   image:    'Image',
   gallery:  'Image gallery',
+  group:    'Group',
   repeater: 'Repeater group',
 };
 
-const SUB_FIELD_TYPES = Object.keys(FIELD_TYPE_LABEL).filter((type) => type !== 'repeater') as ServiceMetaSubFieldType[];
+const isContainer = (type: ServiceMetaFieldType) => type === 'group' || type === 'repeater';
+const SUB_FIELD_TYPES = (Object.keys(FIELD_TYPE_LABEL) as ServiceMetaFieldType[]).filter((type) => !isContainer(type)) as ServiceMetaSubFieldType[];
 
 function toDraft(field: ServiceMetaField | null): ServiceMetaFieldDraft {
   if (!field) return { label: '', type: 'text', help: '', required: false };
@@ -137,7 +139,7 @@ export function ServiceMetaFieldEditor({ field, busy, onSave, onCancel }: {
   const changeType = (type: ServiceMetaFieldType) => set({
     type,
     options: type === 'select' ? [{ label: '' }] : undefined,
-    subFields: type === 'repeater' ? [{ label: '', type: 'text' }] : undefined,
+    subFields: isContainer(type) ? [{ label: '', type: 'text' }] : undefined,
   });
 
   return (
@@ -175,7 +177,7 @@ export function ServiceMetaFieldEditor({ field, busy, onSave, onCancel }: {
       {draft.type === 'select' && (
         <OptionsEditor idPrefix={idPrefix} options={draft.options ?? []} onChange={(options) => set({ options })} />
       )}
-      {draft.type === 'repeater' && (
+      {isContainer(draft.type) && (
         <SubFieldsEditor subFields={draft.subFields ?? []} onChange={(subFields) => set({ subFields })} />
       )}
 

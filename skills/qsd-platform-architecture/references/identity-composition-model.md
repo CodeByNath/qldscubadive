@@ -20,7 +20,12 @@ and only ever read or written alongside that parent. Never composed into a
 different parent, never listed platform-wide except through its parent.
 
 **Current examples:** a Service's Inclusion and FAQ pool items — stable
-string ids, owned and written only by their Service, pruned with it.
+string ids, owned and written only by their Service, pruned with it — and a
+Service's Element instances: each Element, Group child, Repeater row and
+gallery entry carries a server-minted Service-child id (`el_`/`row_`/`ent_`),
+addressed as (`QSDS…`, child id), separate from the Settings definition id
+(`fld_…`) that says what it is. No Platform ID family: nothing outside the
+Service addresses an instance on its own.
 **Illustrative scuba case:** the individual line items of one booking's
 gear hire.
 

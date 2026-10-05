@@ -32,6 +32,16 @@ export type {
   // Pool items
   ServiceInclusionItem,
   ServiceFaqItem,
+  // Service Elements
+  ServiceElementType,
+  ServiceElementStatus,
+  ServiceElementDefinition,
+  ServiceElement,
+  ServiceElementRow,
+  ServiceGalleryEntry,
+  ServiceElementsPayload,
+  ServiceElementsResponse,
+  ServiceElementsRead,
   // Drafts
   OverviewDraftData,
   ServiceModuleDrafts,
@@ -41,6 +51,7 @@ export type {
   InclusionsDraft,
   FaqDraftItem,
   FaqsDraft,
+  ElementsDraft,
   // Module draft I/O
   ServiceOverviewPayload,
   ServiceOverviewResponse,
@@ -73,6 +84,9 @@ export {
   updateServiceOverview,
   updateServiceInclusions,
   updateServiceFaqs,
+  // Service Elements
+  fetchServiceElements,
+  updateServiceElements,
   // Settle / revert
   settleServiceModule,
   settleAllServiceModules,

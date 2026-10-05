@@ -11,7 +11,7 @@
  * Imports Service contracts and endpoints from its siblings ('./api',
  * './types', './derive'), never from the old admin API god modules.
  *
- * The OverviewDraft / InclusionsDraft / FaqsDraft types are part of this hook's
+ * The OverviewDraft / InclusionsDraft / FaqsDraft / ElementsDraft types are part of this hook's
  * public save signatures, so the station owns them in './types' and the editors
  * import them back — the dependency runs UI → state, as intended.
  *
@@ -38,10 +38,12 @@ import {
   disableService,
   enableService,
   fetchAdminServiceDetail,
+  fetchServiceElements,
   revertServiceModule,
   settleAllServiceModules,
   trashService,
   updateServiceFaqs,
+  updateServiceElements,
   updateServiceInclusions,
   updateServiceOverview,
   updateServiceStatus,
@@ -54,15 +56,19 @@ import type {
   OverviewDraft,
   InclusionsDraft,
   FaqsDraft,
+  ElementsDraft,
+  ServiceElement,
+  ServiceElementDefinition,
   CreateServiceResponse,
 } from './types';
 import { resolveOverviewStatus } from '@/drawer-kit/utils/moduleStatus';
-import { getOverviewNotes, getInclusionsNotes, getFaqsNotes } from '@/drawer-kit/utils/moduleNotifications';
+import { getOverviewNotes, getInclusionsNotes, getFaqsNotes, getElementsNotes } from '@/drawer-kit/utils/moduleNotifications';
 import type { NoteContext, ModuleState, ModuleNote } from '@/drawer-kit/utils/moduleNotifications';
 import { patchModuleDraft } from '@/hooks/stationPrimitives';
 import {
   resolveInclusionsStatus,
   resolveFaqsStatus,
+  resolveElementsStatus,
   derivePendingModules,
   derivePendingOverviewComplete,
   derivePendingOverviewStatus,
@@ -71,6 +77,7 @@ import {
   deriveCanPublish,
   deriveInclusionsSummary,
   deriveFaqsSummary,
+  deriveElementsSummary,
 } from './derive';
 
 // ── Result types ───────────────────────────────────────────────────────────────
@@ -121,7 +128,7 @@ function seedDetailFromItem(service: ServiceItem): ServiceDetail {
     platform_status:           service.meta.platform_status,
     previous_platform_status:  service.meta.previous_platform_status ?? '',
     module_status:             service.meta.module_status as unknown as Record<string, string>,
-    drafts:                    { overview: null, inclusions: null, faqs: null },
+    drafts:                    { overview: null, inclusions: null, faqs: null, elements: null },
   };
 }
 
@@ -168,6 +175,10 @@ export interface ServiceStation {
   // ── Module data (draft-preferred) ─────────────────────────────────────────
   inclusions:    ServiceInclusionItem[];
   faqs:          ServiceFaqItem[];
+  // Service Element instances (draft-preferred) and the Settings definitions
+  // they reference, read through Service's own Element route.
+  elements:           ServiceElement[];
+  elementDefinitions: ServiceElementDefinition[];
   overviewDraft: OverviewDraftData | null;
   // Authoritative settled overview fields (from adminDetail), for the display
   // fallback chain: draft → settledOverview → passed CostBuilder service.
@@ -184,6 +195,7 @@ export interface ServiceStation {
   // these booleans are the only caller-visible indicator that a real draft exists.
   hasInclusionsDraft: boolean;
   hasFaqsDraft:       boolean;
+  hasElementsDraft:   boolean;
 
   // ── Resolved module computed state ────────────────────────────────────────
   // Per-module lifecycle: full { status, notes } per module — the station
@@ -192,12 +204,14 @@ export interface ServiceStation {
     overview:   ModuleState;
     inclusions: ModuleState;
     faqs:       ModuleState;
+    elements:   ModuleState;
   };
   canPublish: boolean;
 
   // ── Publish modal summaries ────────────────────────────────────────────────
-  inclSummary: { text: string; orange: boolean };
-  faqsSummary: { text: string; orange: boolean };
+  inclSummary:     { text: string; orange: boolean };
+  faqsSummary:     { text: string; orange: boolean };
+  elementsSummary: { text: string; orange: boolean };
 
   // ── Loading ────────────────────────────────────────────────────────────────
   loading: {
@@ -214,9 +228,11 @@ export interface ServiceStation {
   saveOverview:          (draft: OverviewDraft)   => Promise<Record<string, string>>;
   saveInclusions:        (draft: InclusionsDraft) => Promise<Record<string, string>>;
   saveFaqs:              (draft: FaqsDraft)       => Promise<Record<string, string>>;
+  saveElements:          (draft: ElementsDraft)   => Promise<Record<string, string>>;
   revertOverview:        () => Promise<void>;
   revertInclusions:      () => Promise<void>;
   revertFaqs:            () => Promise<void>;
+  revertElements:        () => Promise<void>;
 }
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
@@ -293,6 +309,19 @@ export function useServiceStation(
       .finally(() => setDetailLoaded(true));
   }, [service?.id]);
 
+  // Element definitions are Settings-owned; Service reads them through its own
+  // Element route (which consults Settings' read capability). Non-fatal: an
+  // empty list only means instances render as unknown until it resolves.
+  const [elementDefinitions, setElementDefinitions] = useState<ServiceElementDefinition[]>([]);
+  useEffect(() => {
+    if (!service) return;
+    let current = true;
+    fetchServiceElements(service.id)
+      .then((result) => { if (current && result.success) setElementDefinitions(result.definitions); })
+      .catch(() => {});
+    return () => { current = false; };
+  }, [service?.id]);
+
   // ── Derived: identity ──────────────────────────────────────────────────────
   const platformStatus = service?.meta?.platform_status ?? 'disabled';
   const isActive        = platformStatus === 'active';
@@ -315,6 +344,7 @@ export function useServiceStation(
   // pool yet — both stay empty until creation.
   const inclusions = (adminDetail?.drafts.inclusions ?? adminDetail?.inclusions ?? service?.inclusions ?? []) as ServiceInclusionItem[];
   const faqs       = (adminDetail?.drafts.faqs       ?? adminDetail?.faqs       ?? service?.faqs       ?? []) as ServiceFaqItem[];
+  const elements   = adminDetail?.drafts.elements ?? adminDetail?.elements ?? [];
 
   // ── Derived: module registry ───────────────────────────────────────────────
   // adminDetail.module_status is authoritative (loaded on drawer open).
@@ -322,7 +352,7 @@ export function useServiceStation(
   // Service has no adminDetail/service meta at all — its module registry is
   // entirely local (Overview only ever advances from 'not-configured').
   const moduleStatus = isNew
-    ? { overview: pendingModuleStatus, inclusions: 'not-configured', faqs: 'not-configured' }
+    ? { overview: pendingModuleStatus, inclusions: 'not-configured', faqs: 'not-configured', elements: 'not-configured' }
     : ((adminDetail?.module_status ?? service?.meta?.module_status) as Record<string, string> | undefined);
   const { hasPendingModules, pendingModuleNames } = derivePendingModules(moduleStatus, isActive);
 
@@ -361,6 +391,13 @@ export function useServiceStation(
     disabled:         isDisabledMasked,
     platformLabel:    'Service',
   };
+  const noteCtxElements: NoteContext = {
+    platformStatus,
+    moduleTransition: moduleStatus?.elements ?? 'not-configured',
+    hasDraft:         adminDetail?.drafts.elements != null,
+    disabled:         isDisabledMasked,
+    platformLabel:    'Service',
+  };
 
   // Overview status/notes: resolveOverviewStatus/getOverviewNotes are hard-typed
   // to a real ServiceItem, so a pending record (no ServiceItem to give them)
@@ -385,6 +422,7 @@ export function useServiceStation(
 
   const inclusionsStatus = resolveInclusionsStatus(inclusions, moduleStatus?.inclusions ?? 'not-configured', isActive, isDisabledMasked);
   const faqsStatus       = resolveFaqsStatus(faqs, moduleStatus?.faqs ?? 'not-configured', isActive, isDisabledMasked);
+  const elementsStatus   = resolveElementsStatus(elements, moduleStatus?.elements ?? 'not-configured', isActive, isDisabledMasked);
 
   // Child modules have no persistence target until Overview Save creates the
   // Service. Keep their ordinary Pending-dim shell visible but direct the
@@ -395,11 +433,15 @@ export function useServiceStation(
   const faqsNotes = !service
     ? derivePendingChildNotes('faqs')
     : getFaqsNotes(faqs as unknown as ServiceFaq[], noteCtxFaqs);
+  const elementsNotes = !service
+    ? derivePendingChildNotes('elements')
+    : getElementsNotes(elements, noteCtxElements);
 
   // ── Derived: can publish ───────────────────────────────────────────────────
   const hasContentDraft =
     adminDetail?.drafts.inclusions != null ||
-    adminDetail?.drafts.faqs != null;
+    adminDetail?.drafts.faqs != null ||
+    adminDetail?.drafts.elements != null;
 
   // A record has to exist before Publish can settle and activate it. Overview
   // Save establishes that draft identity; Publish never creates one.
@@ -408,6 +450,7 @@ export function useServiceStation(
   // ── Derived: publish modal summaries (pure, in ./derive) ──
   const inclSummary = deriveInclusionsSummary(inclusions, inclusionsStatus);
   const faqsSummary = deriveFaqsSummary(faqs, faqsStatus);
+  const elementsSummary = deriveElementsSummary(elements, elementsStatus);
 
   // ── Actions ────────────────────────────────────────────────────────────────
   // Every action below that addresses an existing post is a no-op while
@@ -506,8 +549,9 @@ export function useServiceStation(
           categories:    result.service.categories,
           inclusions:    result.inclusions,
           faqs:          result.faqs,
+          elements:      result.elements ?? prev.elements,
           module_status: result.module_status,
-          drafts: { overview: null, inclusions: null, faqs: null },
+          drafts: { overview: null, inclusions: null, faqs: null, elements: null },
         } : prev);
         onRefresh?.();
         return {
@@ -540,8 +584,9 @@ export function useServiceStation(
         categories:    settleResult.service.categories,
         inclusions:    settleResult.inclusions,
         faqs:          settleResult.faqs,
+        elements:      settleResult.elements ?? prev.elements,
         module_status: settleResult.module_status,
-        drafts: { overview: null, inclusions: null, faqs: null },
+        drafts: { overview: null, inclusions: null, faqs: null, elements: null },
       } : prev);
       const statusResult = await updateServiceStatus(service.id, { platform_status: 'active' });
       if (statusResult.success) {
@@ -637,6 +682,18 @@ export function useServiceStation(
     return result.module_status;
   }, [service, onRefresh, applyAdminDetail]);
 
+  // The full collection goes up; the server merges by id, mints ids for new
+  // instances, and keeps anything omitted as detached. The returned collection
+  // (with its server-minted ids) becomes the draft.
+  const saveElements = useCallback(async (draft: ElementsDraft): Promise<Record<string, string>> => {
+    if (!service) throw new Error('Save a complete Service Overview before saving elements.');
+    const result = await updateServiceElements(service.id, { elements: draft.items });
+    if (!result.success) throw new Error('Failed to save elements.');
+    applyAdminDetail(prev => prev ? patchModuleDraft(prev, 'elements', result.elements, result.module_status) : prev);
+    onRefresh?.();
+    return result.module_status;
+  }, [service, onRefresh, applyAdminDetail]);
+
   const revertOverview = useCallback(async (): Promise<void> => {
     if (!service) return;
     const result = await revertServiceModule(service.id, 'overview');
@@ -664,6 +721,15 @@ export function useServiceStation(
     }
   }, [service, onRefresh, applyAdminDetail]);
 
+  const revertElements = useCallback(async (): Promise<void> => {
+    if (!service) return;
+    const result = await revertServiceModule(service.id, 'elements');
+    if (result.success) {
+      applyAdminDetail(prev => prev ? patchModuleDraft(prev, 'elements', null, result.module_status) : prev);
+      onRefresh?.();
+    }
+  }, [service, onRefresh, applyAdminDetail]);
+
   return {
     platformStatus,
     isActive,
@@ -672,6 +738,8 @@ export function useServiceStation(
     isNew,
     inclusions,
     faqs,
+    elements,
+    elementDefinitions,
     overviewDraft,
     settledOverview: adminDetail
       ? { title: adminDetail.title, excerpt: adminDetail.excerpt, content: adminDetail.content, categories: adminDetail.categories }
@@ -681,14 +749,17 @@ export function useServiceStation(
     pendingModuleNames,
     hasInclusionsDraft: adminDetail?.drafts.inclusions != null,
     hasFaqsDraft:       adminDetail?.drafts.faqs != null,
+    hasElementsDraft:   adminDetail?.drafts.elements != null,
     modules: {
       overview:   { status: overviewStatus,   notes: overviewNotes },
       inclusions: { status: inclusionsStatus, notes: inclusionsNotes },
       faqs:       { status: faqsStatus,       notes: faqsNotes },
+      elements:   { status: elementsStatus,   notes: elementsNotes },
     },
     canPublish,
     inclSummary,
     faqsSummary,
+    elementsSummary,
     loading: { status: statusSaving, creating: creatingPkg },
     toggleActive,
     archiveStation,
@@ -698,8 +769,10 @@ export function useServiceStation(
     saveOverview,
     saveInclusions,
     saveFaqs,
+    saveElements,
     revertOverview,
     revertInclusions,
     revertFaqs,
+    revertElements,
   };
 }

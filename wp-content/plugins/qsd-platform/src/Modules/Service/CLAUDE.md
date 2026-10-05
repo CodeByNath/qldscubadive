@@ -4,12 +4,13 @@ Global policy is defined by [AGENTS.md](../../../../../../AGENTS.md).
 
 ## Ownership and entry points
 
-This module owns `qsd_service` lifecycle, Service meta/drafts, category relationships written by its handlers, and Service inclusion/FAQ pools.
+This module owns `qsd_service` lifecycle, Service meta/drafts, category relationships written by its handlers, Service inclusion/FAQ pools, and Service Element instances.
 
 - `ServiceModule.php` — module wiring.
 - `Http/ServiceController.php` — Service routes and validation/orchestration,
   including authenticated Platform-ID read delegation to numeric detail.
 - `Support/ServiceSchema.php` — Service keys, module vocabulary, sanitization, and route arguments.
+- `Support/ServiceElements.php` — the Element instance value model: one identity law for Elements, Group children, Repeater rows and gallery entries (server-minted `el_`/`row_`/`ent_` ids, match by id only, omitted = detached, retired-definition instances frozen). Definitions are read only through Settings' `ServiceElementDefinitions`; never construct `ServiceMetaSchema` here.
 - `Support/ServicePools.php` — the one public pool-write contract; a future Station that adds pool items uses it and reports references through the `qsd_service_pool_references` filter.
 - `Core\Plugin` injects the shared `PlatformIdentifierStation`; Service owns
   the `qsd_platform_id` post-meta callbacks and `platform_id` projections while
@@ -23,8 +24,8 @@ The Service frontend peer — contracts, state, presentation, and the Service dr
 Backend `platform_id` is mapped by the Service endpoint boundary to application
 `platformId`; it is output-only and never belongs in a writable payload.
 
-Read [Service Station](../../../../../../docs/code-map/service-station.md) and [Service Catalogue](../../../../../../docs/code-map/service-catalogue.md).
+Read [Service Station](../../../../../../docs/code-map/service-station.md), [Service Elements](../../../../../../docs/code-map/service-elements.md), and [Service Catalogue](../../../../../../docs/code-map/service-catalogue.md).
 
 ## Validation
 
-From the plugin root: `npm test` (includes `tests/service-lifecycle-mask.php`, `tests/service-route-baseline.php`, and the Service regressions) and `npm run docs:check`.
+From the plugin root: `npm test` (includes `tests/service-lifecycle-mask.php`, `tests/service-elements.php`, `tests/service-route-baseline.php`, and the Service regressions) and `npm run docs:check`.

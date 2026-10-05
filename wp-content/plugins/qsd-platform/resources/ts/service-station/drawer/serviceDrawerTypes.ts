@@ -36,7 +36,7 @@ export interface ServiceDrawerContentProps {
 
 // Which module editor is open (null = every module readable — the module-level
 // edit model). Named here because the controller, footer, and dialogs all read it.
-export type ServiceEditingSection = 'overview' | 'inclusions' | 'faqs' | null;
+export type ServiceEditingSection = 'overview' | 'inclusions' | 'faqs' | 'elements' | null;
 
 // Which exit dialog the close-guard has raised, if any.
 export type ServiceExitDialog = 'unsaved' | 'pending' | 'new-service-draft' | null;

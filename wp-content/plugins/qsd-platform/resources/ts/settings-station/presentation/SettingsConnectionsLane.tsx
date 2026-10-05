@@ -132,8 +132,13 @@ export function SettingsConnectionsLane(): VNode {
   return (
     <div class="cz-settings-lane">
       <p class="cz-settings-muted">
-        Provider credentials are kept on the server. Saved secrets are never sent back to this screen.
+        Provider credentials are kept on the server, encrypted. Saved secrets are never sent back to this screen.
       </p>
+      {tools.encryptionAvailable === false && (
+        <p class="cz-settings-error" role="alert">
+          This server has no credential encryption key yet, so secret values cannot be saved. Ask the site administrator to configure it.
+        </p>
+      )}
       <ul class="cz-settings-list">
         {tools.connections.map((connection) => (
           <ConnectionCard key={connection.provider} connection={connection} tools={tools} confirm={confirm} />

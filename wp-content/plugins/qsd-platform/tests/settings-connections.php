@@ -55,6 +55,7 @@ use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
 use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
 use QSD\Platform\Modules\Settings\Connectors\RezdyConnector;
 use QSD\Platform\Modules\Settings\Http\SettingsConnectionsController;
+use QSD\Platform\Modules\Settings\Security\CredentialCipher;
 
 function check_settings(bool $condition, string $message): void
 {
@@ -68,9 +69,10 @@ function check_settings(bool $condition, string $message): void
 const SECRET = 'rz-live-SECRET-9f3a7c';
 
 $store = new ConnectionStore();
-$controller = new SettingsConnectionsController($store);
+$cipher = new CredentialCipher(random_bytes(32));
+$controller = new SettingsConnectionsController($store, $cipher);
 $controller->registerRoutes();
-$credentials = new ConnectorCredentials($store);
+$credentials = new ConnectorCredentials($store, $cipher);
 $rezdy = new RezdyConnector($credentials);
 
 $encoded = static fn(WP_REST_Response $response): string => json_encode($response->get_data());
@@ -109,6 +111,23 @@ $savedKey = array_values(array_filter($saved->get_data()['connection']['fields']
 check_settings($savedKey['configured'] === true && !array_key_exists('value', $savedKey), 'the saved secret projects configured:true and no value');
 check_settings(!str_contains($encoded($controller->listConnections(new WP_REST_Request())), SECRET), 'the list projection never contains the secret');
 check_settings(($__settingsOptions[ConnectionStore::OPTION]['autoload'] ?? null) === 'no', 'the connection option is not autoloaded');
+check_settings($list->get_data()['encryption'] === ['available' => true], 'the list reports that this server can seal secrets');
+
+// ── Encrypted at rest ────────────────────────────────────────────────────
+$storedEnvelope = $__settingsOptions[ConnectionStore::OPTION]['value']['rezdy']['secrets']['api_key'];
+check_settings(is_array($storedEnvelope) && $storedEnvelope['alg'] === 'xchacha20poly1305-ietf' && $storedEnvelope['kid'] === $cipher->keyId(), 'the stored secret is an XChaCha20-Poly1305 envelope under the current key id');
+check_settings(!str_contains(serialize($__settingsOptions), SECRET) && !str_contains(serialize($__settingsOptions), 'rz-live'), 'no plaintext secret exists anywhere in stored options');
+check_settings(strlen(base64_decode($storedEnvelope['nonce'])) === 24, 'each envelope carries a 24-byte random nonce');
+$resealed = $cipher->seal(SECRET, CredentialCipher::context('rezdy', 'api_key'));
+check_settings($resealed['nonce'] !== $storedEnvelope['nonce'] && $resealed['ct'] !== $storedEnvelope['ct'], 'sealing the same secret twice never produces the same ciphertext');
+check_settings($cipher->open($storedEnvelope, CredentialCipher::context('rezdy', 'other_field')) === null, 'a sealed value moved to another provider/field slot does not open');
+$tampered = $storedEnvelope;
+$tampered['ct'] = base64_encode(substr(base64_decode($storedEnvelope['ct']), 0, -1) . 'x');
+check_settings($cipher->open($tampered, CredentialCipher::context('rezdy', 'api_key')) === null, 'a tampered ciphertext does not open');
+$otherKey = new CredentialCipher(random_bytes(32));
+check_settings($otherKey->open($storedEnvelope, CredentialCipher::context('rezdy', 'api_key')) === null && (new ConnectorCredentials($store, $otherKey))->secret('rezdy', 'api_key') === null, 'a different server key cannot read the secret');
+check_settings((new SettingsConnectionsController($store, $otherKey))->listConnections(new WP_REST_Request())->get_data()['connections'][0]['state'] === 'incomplete', 'a secret sealed under another key does not count as configured');
+check_settings($cipher->open(SECRET, CredentialCipher::context('rezdy', 'api_key')) === null, 'a plaintext (non-envelope) value is never accepted as a secret');
 
 check_settings($credentials->secret('rezdy', 'api_key') === SECRET, 'ConnectorCredentials returns the trimmed secret server-side');
 check_settings($rezdy->connectionState() === ['configured' => true, 'environment' => 'staging', 'base_url' => 'https://api.rezdy-staging.com/v1/'], 'Rezdy seam reports configured staging and its base URL, without the key');
@@ -126,6 +145,17 @@ check_settings($controller->saveConnection(new WP_REST_Request(['provider' => 'r
 check_settings($controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['environment' => 'x']]))->get_status() === 422, 'configuration sent as a secret is refused');
 check_settings($controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'moon']]))->get_status() === 422, 'a select value outside its options is refused');
 check_settings($controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['unknown' => 'x']]))->get_status() === 422, 'an unknown field is refused');
+
+// ── No key: fail closed, never plaintext ─────────────────────────────────
+$noKey = new CredentialCipher(null);
+$noKeyController = new SettingsConnectionsController($store, $noKey);
+check_settings($noKeyController->listConnections(new WP_REST_Request())->get_data()['encryption'] === ['available' => false], 'without QSD_CREDENTIAL_KEY the list reports encryption unavailable');
+$before = serialize($__settingsOptions);
+check_settings($noKeyController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => SECRET]]))->get_status() === 409, 'without a key a secret save is refused (409)');
+check_settings(serialize($__settingsOptions) === $before, 'a refused secret save writes nothing');
+check_settings($noKeyController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'staging']]))->get_status() === 200, 'non-secret configuration still saves without a key');
+check_settings(!(new CredentialCipher('too-short'))->isAvailable(), 'a key that is not 32 bytes is treated as no key');
+check_settings(!CredentialCipher::fromEnvironment()->isAvailable(), 'no QSD_CREDENTIAL_KEY constant means encryption is unavailable');
 
 // ── Disconnect ───────────────────────────────────────────────────────────
 $controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => SECRET]]));

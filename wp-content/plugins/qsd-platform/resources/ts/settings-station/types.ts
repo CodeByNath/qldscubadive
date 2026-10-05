@@ -53,9 +53,10 @@ export interface ConnectionSavePayload {
 }
 
 export type ServiceMetaFieldType =
-  | 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'image' | 'gallery' | 'repeater';
+  | 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'image' | 'gallery' | 'group' | 'repeater';
 
-export type ServiceMetaSubFieldType = Exclude<ServiceMetaFieldType, 'repeater'>;
+/** Containers (group, repeater) carry sub-fields of any non-container type. */
+export type ServiceMetaSubFieldType = Exclude<ServiceMetaFieldType, 'group' | 'repeater'>;
 
 export interface ServiceMetaOption {
   id: string;

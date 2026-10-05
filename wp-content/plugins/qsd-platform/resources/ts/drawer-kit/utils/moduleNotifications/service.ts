@@ -1,10 +1,11 @@
-// Service module rules — Service Overview, Included Features, Common Questions.
+// Service module rules — Service Overview, Included Features, Common Questions,
+// Service Elements.
 // Assembled by useServiceStation; rules derive state only and render nothing.
 
 import type { ServiceInclusion, ServiceFaq, ServiceItem } from '@/api/types/service';
 // Targets the station's './types' module, not its public barrel: useServiceStation
 // imports this file, so going through the barrel would close a cycle.
-import type { OverviewDraftData } from '@/service-station/types';
+import type { OverviewDraftData, ServiceElement } from '@/service-station/types';
 import {
   checkOverviewCompleteness,
   checkOverviewCompletenessFromDraft,
@@ -63,6 +64,16 @@ export const faqsModule: ModuleDefinition<ServiceFaq[]> = {
   },
 };
 
+// Service Elements (service-level). Values are validated by the Service write
+// boundary against Settings definitions; the rule only reports emptiness.
+export const elementsModule: ModuleDefinition<ServiceElement[]> = {
+  key:                'elements',
+  includeDraftInTail: true,
+  emptyPrompt:        'Edit and add elements.',
+  isEmpty:            (elements) => !elements.some((element) => element.status === 'active'),
+  problems:           () => [],
+};
+
 // ── Backward-compatible generators ────────────────────────────────────────────
 // Existing call sites keep their signatures; each delegates to the shared
 // engine, so module-notification behaviour has a single source of truth.
@@ -81,4 +92,8 @@ export function getInclusionsNotes(inclusions: ServiceInclusion[], ctx: NoteCont
 
 export function getFaqsNotes(faqs: ServiceFaq[], ctx: NoteContext): ModuleNote[] {
   return evaluateModuleNotes(faqsModule, faqs, ctx);
+}
+
+export function getElementsNotes(elements: ServiceElement[], ctx: NoteContext): ModuleNote[] {
+  return evaluateModuleNotes(elementsModule, elements, ctx);
 }

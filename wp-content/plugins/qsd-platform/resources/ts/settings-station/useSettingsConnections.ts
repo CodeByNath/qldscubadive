@@ -11,6 +11,9 @@ import type { ConnectionProjection, ConnectionSavePayload } from './types';
 
 export interface SettingsConnectionsState {
   connections:  ConnectionProjection[];
+  // False when the server has no credential encryption key: secrets cannot be
+  // saved there (the backend refuses rather than storing plaintext).
+  encryptionAvailable: boolean | null;
   loading:      boolean;
   error:        string | null;
   busyProvider: string | null;
@@ -21,6 +24,7 @@ export interface SettingsConnectionsState {
 
 export function useSettingsConnections(): SettingsConnectionsState {
   const [connections, setConnections] = useState<ConnectionProjection[]>([]);
+  const [encryptionAvailable, setEncryptionAvailable] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyProvider, setBusyProvider] = useState<string | null>(null);
@@ -28,7 +32,10 @@ export function useSettingsConnections(): SettingsConnectionsState {
 
   useEffect(() => {
     fetchConnections()
-      .then(setConnections)
+      .then((result) => {
+        setConnections(result.connections);
+        setEncryptionAvailable(result.encryptionAvailable);
+      })
       .catch((err: unknown) => setError(errorMessage(err, 'Could not load connections.')))
       .finally(() => setLoading(false));
   }, []);
@@ -58,5 +65,5 @@ export function useSettingsConnections(): SettingsConnectionsState {
     [run],
   );
 
-  return { connections, loading, error, busyProvider, actionError, save, disconnect };
+  return { connections, encryptionAvailable, loading, error, busyProvider, actionError, save, disconnect };
 }

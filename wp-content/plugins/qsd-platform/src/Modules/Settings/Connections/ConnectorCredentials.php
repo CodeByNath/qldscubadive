@@ -2,26 +2,36 @@
 
 namespace QSD\Platform\Modules\Settings\Connections;
 
+use QSD\Platform\Modules\Settings\Security\CredentialCipher;
+
 /**
- * ConnectorCredentials — the controlled server-side capability a Connector
- * uses to read its own provider configuration and secrets.
+ * ConnectorCredentials — Settings' internal read path for stored provider
+ * configuration and (decrypted) secrets.
  *
- * Domain Stations and Connectors never read ConnectionStore or the option
- * directly; they receive this capability and ask for their own provider's
- * values. It has no REST surface and never feeds a projection.
- *
- * Short-lived, scoped, single-use rotating request keys are NOT implemented:
- * that mechanism is a recorded security decision gate. Today a Connector gets
- * the stored long-lived provider credential only, server-side.
+ * Only Settings code holds this: the Connections controller's projection asks
+ * whether a secret is usable, Connectors read their non-secret configuration,
+ * and Security\CredentialBroker is the ONLY caller of `secret()` — it decrypts
+ * a credential server-side after a request key is consumed and hands it to a
+ * Settings-owned provider operation. No domain Station or other consumer
+ * receives this class; they go through the broker and never see a secret.
+ * It has no REST surface and never feeds a projection.
  */
 final class ConnectorCredentials
 {
-    public function __construct(private ConnectionStore $store) {}
+    public function __construct(private ConnectionStore $store, private CredentialCipher $cipher) {}
 
+    /** The decrypted secret, or null when absent, sealed under another key, or tampered. */
     public function secret(string $provider, string $field): ?string
     {
-        $value = $this->store->read($provider)['secrets'][$field] ?? null;
-        return is_string($value) && $value !== '' ? $value : null;
+        $envelope = $this->store->read($provider)['secrets'][$field] ?? null;
+        $value = $this->cipher->open($envelope, CredentialCipher::context($provider, $field));
+        return $value !== null && $value !== '' ? $value : null;
+    }
+
+    /** A stored secret decrypts under the current key — without returning it. */
+    public function hasSecret(string $provider, string $field): bool
+    {
+        return $this->secret($provider, $field) !== null;
     }
 
     public function config(string $provider, string $field): ?string
@@ -37,10 +47,10 @@ final class ConnectorCredentials
             if (!$field['required']) {
                 continue;
             }
-            $value = $definition->isSecret($field['key'])
-                ? $this->secret($definition->key, $field['key'])
-                : $this->config($definition->key, $field['key']);
-            if ($value === null) {
+            $present = $definition->isSecret($field['key'])
+                ? $this->hasSecret($definition->key, $field['key'])
+                : $this->config($definition->key, $field['key']) !== null;
+            if (!$present) {
                 return false;
             }
         }

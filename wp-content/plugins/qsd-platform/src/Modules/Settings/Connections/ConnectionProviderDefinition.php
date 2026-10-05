@@ -13,6 +13,10 @@ namespace QSD\Platform\Modules\Settings\Connections;
  *
  * Settings stores and projects any provider through this shape alone; no
  * Settings class branches on a provider key.
+ *
+ * `scopes` is the closed list of narrow authorities the credential broker may
+ * issue request keys for (Security\CredentialBroker). A provider with no
+ * declared scope cannot be brokered at all.
  */
 final class ConnectionProviderDefinition
 {
@@ -22,12 +26,14 @@ final class ConnectionProviderDefinition
 
     /**
      * @param list<array{key: string, label: string, type: string, required: bool, options?: array<string, string>}> $fields
+     * @param list<string> $scopes
      */
     public function __construct(
         public readonly string $key,
         public readonly string $label,
         public readonly string $description,
         public readonly array $fields,
+        public readonly array $scopes = [],
     ) {}
 
     /** @return array{key: string, label: string, type: string, required: bool, options?: array<string, string>}|null */

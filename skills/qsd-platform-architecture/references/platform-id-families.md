@@ -21,6 +21,11 @@ Service (rung 2) and deliberately no Platform ID: nothing outside the
 Service addresses them yet. Another Station that must reference them does
 so through `ServicePools` and the `qsd_service_pool_references` filter.
 
+Service Element instances (`el_`/`row_`/`ent_`) are rung-2 children of their
+Service, addressed as (`QSDS…`, child id), with no Platform ID family. Settings
+definition ids (`fld_`/`opt_`) and credential-broker request keys are not
+Platform IDs either.
+
 ## How to extend this vocabulary
 
 1. Confirm the new concept is genuinely rung 3 (see

@@ -225,7 +225,14 @@ function check_lifecycle(bool $condition, string $message): void
 }
 
 $platformIdentifiers = new PlatformIdentifierStation();
-$controller = new ServiceController($platformIdentifiers);
+$controller = new ServiceController(
+    $platformIdentifiers,
+    new \QSD\Platform\Modules\Service\Support\ServiceElements(
+        new \QSD\Platform\Modules\Settings\ServiceMeta\ServiceElementDefinitions(
+            new \QSD\Platform\Modules\Settings\ServiceMeta\ServiceMetaSchema()
+        )
+    )
+);
 
 function createTestService(ServiceController $controller, int $categoryTermId): array
 {

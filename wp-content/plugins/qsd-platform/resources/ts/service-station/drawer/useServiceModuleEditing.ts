@@ -12,8 +12,9 @@ import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { Category, ServiceItem } from '@/api/types/service';
 import { createServiceCategory, updateServiceCategory } from '@/api/endpoints/admin';
 import type { ServiceStation } from '@/service-station';
-import type { OverviewDraft, InclusionsDraft, FaqsDraft } from '@/service-station';
+import type { OverviewDraft, InclusionsDraft, FaqsDraft, ElementsDraft } from '@/service-station';
 import { initOverviewDraft } from './editors/ServiceOverviewEditor';
+import { elementsDraftError } from './editors/ServiceElementsEditor';
 import { useAutoDismiss } from '@/entity-drawers/shared/drawerChrome';
 import type { ServiceEditingSection } from './serviceDrawerTypes';
 
@@ -35,6 +36,12 @@ function isFaqsDirty(a: FaqsDraft, b: FaqsDraft): boolean {
   );
 }
 
+// Element instances nest (groups, rows, entries); a structural compare is the
+// honest dirty check.
+function isElementsDirty(a: ElementsDraft, b: ElementsDraft): boolean {
+  return JSON.stringify(a.items) !== JSON.stringify(b.items);
+}
+
 export interface ServiceModuleEditingArgs {
   // Only consulted as the last-resort Overview seed below, and unreached while
   // pending: a pending station's own `overviewDraft` is never null, so the
@@ -53,8 +60,8 @@ export function useServiceModuleEditing({
 }: ServiceModuleEditingArgs) {
   const {
     detailLoaded,
-    inclusions, faqs, overviewDraft: stationOverviewDraft, settledOverview,
-    saveOverview, saveInclusions, saveFaqs,
+    inclusions, faqs, elements, overviewDraft: stationOverviewDraft, settledOverview,
+    saveOverview, saveInclusions, saveFaqs, saveElements,
   } = station;
 
   // Module state machine: null = View, named value = Edit (InlineEditorShell active).
@@ -62,12 +69,14 @@ export function useServiceModuleEditing({
   const [overviewDraft,    setOverviewDraft]    = useState<OverviewDraft | null>(null);
   const [inclusionsDraft,  setInclusionsDraft]  = useState<InclusionsDraft | null>(null);
   const [faqsDraft,        setFaqsDraft]        = useState<FaqsDraft | null>(null);
+  const [elementsDraft,    setElementsDraft]    = useState<ElementsDraft | null>(null);
   const [catDesc,         setCatDesc]         = useState('');
   const [catDescOriginal, setCatDescOriginal] = useState('');
   const [localCategories, setLocalCategories] = useState<Category[]>(allCategories);
   const [overviewOriginal,   setOverviewOriginal]   = useState<OverviewDraft | null>(null);
   const [inclusionsOriginal, setInclusionsOriginal] = useState<InclusionsDraft | null>(null);
   const [faqsOriginal,       setFaqsOriginal]       = useState<FaqsDraft | null>(null);
+  const [elementsOriginal,   setElementsOriginal]   = useState<ElementsDraft | null>(null);
   const [saving,  setSaving]  = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const [saveOk,  setSaveOk]  = useState(false);
@@ -76,12 +85,14 @@ export function useServiceModuleEditing({
   const isEditorDirty =
     (editingSection === 'overview'   && overviewDraft   != null && overviewOriginal   != null && isOverviewDirty(overviewDraft, overviewOriginal))   ||
     (editingSection === 'inclusions' && inclusionsDraft != null && inclusionsOriginal != null && isInclusionsDirty(inclusionsDraft, inclusionsOriginal)) ||
-    (editingSection === 'faqs'       && faqsDraft       != null && faqsOriginal       != null && isFaqsDirty(faqsDraft, faqsOriginal));
+    (editingSection === 'faqs'       && faqsDraft       != null && faqsOriginal       != null && isFaqsDirty(faqsDraft, faqsOriginal)) ||
+    (editingSection === 'elements'   && elementsDraft   != null && elementsOriginal   != null && isElementsDirty(elementsDraft, elementsOriginal));
 
   const editingSectionLabel =
     editingSection === 'overview'   ? 'Service Overview'  :
     editingSection === 'inclusions' ? 'Included Features' :
-    editingSection === 'faqs'       ? 'Common Questions'  : null;
+    editingSection === 'faqs'       ? 'Common Questions'  :
+    editingSection === 'elements'   ? 'Service Elements'  : null;
 
   // ── Editor open/close ───────────────────────────────────────────────────────
   const openOverviewEditor = useCallback(() => {
@@ -130,6 +141,15 @@ export function useServiceModuleEditing({
     setSaveErr(null);
   }, [faqs, closePanel]);
 
+  const openElementsEditor = useCallback(() => {
+    const draft: ElementsDraft = { items: elements };
+    setElementsOriginal(draft);
+    setElementsDraft(draft);
+    setEditingSection('elements');
+    closePanel();
+    setSaveErr(null);
+  }, [elements, closePanel]);
+
   // Return every module to the readable state and clear transient save state.
   // Used by Cancel (which also restores the category description) and by the
   // exit dialogs' discard/save-and-proceed continuations.
@@ -138,6 +158,7 @@ export function useServiceModuleEditing({
     setOverviewDraft(null);    setOverviewOriginal(null);
     setInclusionsDraft(null);  setInclusionsOriginal(null);
     setFaqsDraft(null);        setFaqsOriginal(null);
+    setElementsDraft(null);    setElementsOriginal(null);
     setSaveErr(null);
     setSaving(false);
   }, []);
@@ -232,22 +253,46 @@ export function useServiceModuleEditing({
     }
   }, [faqsDraft, saveFaqs, closePanel]);
 
+  const handleSaveElements = useCallback(async () => {
+    if (!elementsDraft) return;
+    const invalid = elementsDraftError(elementsDraft);
+    if (invalid) {
+      setSaveErr(invalid);
+      return;
+    }
+    setSaving(true);
+    setSaveErr(null);
+    try {
+      await saveElements(elementsDraft);
+      closePanel();
+      setEditingSection(null);
+      setElementsDraft(null);  setElementsOriginal(null);
+      setSaveOk(true);
+    } catch (err) {
+      setSaveErr(err instanceof Error ? err.message : 'An error occurred.');
+    } finally {
+      setSaving(false);
+    }
+  }, [elementsDraft, saveElements, closePanel]);
+
   // Save whichever module is open (the exit dialogs' Save-now path); returns the
   // fresh module_status map so the caller can re-check pending state.
   const saveCurrentModule = useCallback(async (): Promise<Record<string, string> | null> => {
     if (editingSection === 'overview'   && overviewDraft)   return saveOverview(overviewDraft);
     if (editingSection === 'inclusions' && inclusionsDraft) return saveInclusions(inclusionsDraft);
     if (editingSection === 'faqs'       && faqsDraft)       return saveFaqs(faqsDraft);
+    if (editingSection === 'elements'   && elementsDraft)   return saveElements(elementsDraft);
     return null;
-  }, [editingSection, overviewDraft, inclusionsDraft, faqsDraft, saveOverview, saveInclusions, saveFaqs]);
+  }, [editingSection, overviewDraft, inclusionsDraft, faqsDraft, elementsDraft, saveOverview, saveInclusions, saveFaqs, saveElements]);
 
   return {
     editingSection, editingSectionLabel, isEditorDirty,
     overviewDraft, setOverviewDraft, inclusionsDraft, setInclusionsDraft, faqsDraft, setFaqsDraft,
+    elementsDraft, setElementsDraft,
     localCategories, catDesc, setCatDesc, createInlineCategory,
     saving, saveErr, setSaveErr, saveOk, setSaveOk,
-    openOverviewEditor, openInclusionsEditor, openFaqsEditor,
-    handleSaveOverview, handleSaveInclusions, handleSaveFaqs, handleCancelEdit,
+    openOverviewEditor, openInclusionsEditor, openFaqsEditor, openElementsEditor,
+    handleSaveOverview, handleSaveInclusions, handleSaveFaqs, handleSaveElements, handleCancelEdit,
     clearEditState, saveCurrentModule,
   };
 }

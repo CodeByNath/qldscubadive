@@ -77,7 +77,12 @@ require_once __DIR__ . '/autoload.php';
 // move — construction here must mirror the module's real wiring).
 $controllers = [
     static fn() => new \QSD\Platform\Modules\Service\Http\ServiceController(
-        new \QSD\Platform\PlatformIdentifier\PlatformIdentifierStation()
+        new \QSD\Platform\PlatformIdentifier\PlatformIdentifierStation(),
+        new \QSD\Platform\Modules\Service\Support\ServiceElements(
+            new \QSD\Platform\Modules\Settings\ServiceMeta\ServiceElementDefinitions(
+                new \QSD\Platform\Modules\Settings\ServiceMeta\ServiceMetaSchema()
+            )
+        )
     ),
     static fn() => new \QSD\Platform\Modules\Admin\Http\AdminCategoriesController(
         new \QSD\Platform\PlatformIdentifier\PlatformIdentifierStation()

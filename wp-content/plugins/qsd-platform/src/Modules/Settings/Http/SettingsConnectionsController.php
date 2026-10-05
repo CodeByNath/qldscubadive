@@ -20,20 +20,30 @@ use QSD\Platform\Core\PlatformAccess;
 use QSD\Platform\Modules\Settings\Connections\ConnectionProviderDefinition;
 use QSD\Platform\Modules\Settings\Connections\ConnectionProviders;
 use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
+use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
+use QSD\Platform\Modules\Settings\Security\CredentialCipher;
 
 /**
  * SettingsConnectionsController — the Connections/Security Tool's admin REST
  * family. Settings owns provider configuration; it writes through
  * ConnectionStore and projects only safe connection state.
  *
- * Secret contract: a secret value enters on PUT and is never returned. The
- * projection reports a secret field only as `configured: true|false`.
+ * Secret contract: a secret value enters on PUT and is never returned. It is
+ * sealed by CredentialCipher before it reaches storage; with no encryption key
+ * configured the save is refused (409) rather than stored in plaintext. The
+ * projection reports a secret field only as `configured: true|false` — true
+ * only when the stored value decrypts under the current key.
  * An empty or omitted secret leaves the stored value unchanged; `clear` names
  * secret fields to remove.
  */
 class SettingsConnectionsController
 {
-    public function __construct(private ConnectionStore $store) {}
+    private ConnectorCredentials $credentials;
+
+    public function __construct(private ConnectionStore $store, private CredentialCipher $cipher)
+    {
+        $this->credentials = new ConnectorCredentials($store, $cipher);
+    }
 
     public function register(): void
     {
@@ -75,7 +85,12 @@ class SettingsConnectionsController
         foreach (ConnectionProviders::all() as $definition) {
             $connections[] = $this->project($definition);
         }
-        return rest_ensure_response(['success' => true, 'connections' => $connections]);
+        return rest_ensure_response([
+            'success'     => true,
+            'connections' => $connections,
+            // Whether this server can seal secrets at all (QSD_CREDENTIAL_KEY).
+            'encryption'  => ['available' => $this->cipher->isAvailable()],
+        ]);
     }
 
     public function saveConnection(\WP_REST_Request $request): \WP_REST_Response
@@ -117,9 +132,13 @@ class SettingsConnectionsController
                 return $this->error("'{$key}' is not a secret field of {$definition->label}.", 422);
             }
             $value = trim((string) $value);
-            if ($value !== '') {
-                $vault[$key] = $value;
+            if ($value === '') {
+                continue;
             }
+            if (!$this->cipher->isAvailable()) {
+                return $this->error('Credential encryption is not configured on this server, so secrets cannot be saved.', 409);
+            }
+            $vault[$key] = $this->cipher->seal($value, CredentialCipher::context($definition->key, (string) $key));
         }
 
         foreach ($clear as $key) {
@@ -161,7 +180,7 @@ class SettingsConnectionsController
         foreach ($definition->fields as $field) {
             $out = ['key' => $field['key'], 'label' => $field['label'], 'type' => $field['type'], 'required' => $field['required']];
             if ($field['type'] === ConnectionProviderDefinition::FIELD_SECRET) {
-                $present = ($stored['secrets'][$field['key']] ?? '') !== '';
+                $present = $this->credentials->hasSecret($definition->key, $field['key']);
                 $out['configured'] = $present;
             } else {
                 $value = (string) ($stored['config'][$field['key']] ?? '');

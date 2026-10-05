@@ -29,9 +29,11 @@ namespace QSD\Platform\Modules\Settings\ServiceMeta;
  *
  * Identity (three-rung audit): a field definition is a rung-2 scoped child of
  * this schema — addressable only inside it, never a Platform ID. Each field,
- * select option and repeater sub-field carries a stable internal id minted
+ * select option and container sub-field carries a stable internal id minted
  * here (`fld_…`, `opt_…`) and never derived from label, slug or position.
- * Array order is presentation order only.
+ * Array order is presentation order only. A definition says WHAT an Element
+ * is; which instance exists on a Service is Service Station's own child id
+ * (docs/architecture/service-element-composition-contract.md).
  *
  * Non-destructive policy: a field is never deleted — it is RETIRED (kept, with
  * its id, so stored Service values stay matchable) and can be restored. A
@@ -43,8 +45,10 @@ final class ServiceMetaSchema
 {
     public const OPTION = 'qsd_settings_service_meta_schema';
 
-    public const TYPES = ['text', 'textarea', 'number', 'boolean', 'select', 'image', 'gallery', 'repeater'];
-    /** A repeater's sub-fields may be any type except another repeater (one level). */
+    public const TYPES = ['text', 'textarea', 'number', 'boolean', 'select', 'image', 'gallery', 'group', 'repeater'];
+    /** Container types: a group carries one set of child Elements, a repeater carries repeated rows of them. */
+    public const CONTAINER_TYPES = ['group', 'repeater'];
+    /** A container's sub-fields may be any non-container type (one level of nesting today). */
     public const SUB_FIELD_TYPES = ['text', 'textarea', 'number', 'boolean', 'select', 'image', 'gallery'];
 
     public const STATUS_ACTIVE  = 'active';
@@ -213,7 +217,7 @@ final class ServiceMetaSchema
             throw new ServiceMetaSchemaException('Only a select field has options.');
         }
 
-        if ($type === 'repeater') {
+        if (in_array($type, self::CONTAINER_TYPES, true)) {
             $definition['sub_fields'] = $this->normaliseSubFields(
                 array_key_exists('sub_fields', $input) ? $input['sub_fields'] : ($existing['sub_fields'] ?? []),
                 $existing['sub_fields'] ?? [],
@@ -221,7 +225,7 @@ final class ServiceMetaSchema
                 $subTypes,
             );
         } elseif ($hasSubFields) {
-            throw new ServiceMetaSchemaException('Only a repeater field has sub-fields.');
+            throw new ServiceMetaSchemaException('Only a group or repeater field has sub-fields.');
         }
 
         return $definition;
@@ -275,7 +279,7 @@ final class ServiceMetaSchema
     private function normaliseSubFields(mixed $input, array $existing, array &$taken, array $subTypes): array
     {
         if (!is_array($input) || $input === []) {
-            throw new ServiceMetaSchemaException('A repeater needs at least one sub-field.');
+            throw new ServiceMetaSchemaException('A group or repeater needs at least one sub-field.');
         }
         $existingById = [];
         foreach ($existing as $sub) {
@@ -291,7 +295,7 @@ final class ServiceMetaSchema
             $id = (string) ($sub['id'] ?? '');
             if ($id !== '') {
                 if (!isset($existingById[$id]) || isset($seen[$id])) {
-                    throw new ServiceMetaSchemaException('A sub-field id must name an existing sub-field of this repeater once.');
+                    throw new ServiceMetaSchemaException('A sub-field id must name an existing sub-field of this field once.');
                 }
                 $prior = $existingById[$id];
                 if (isset($sub['type']) && $sub['type'] !== $prior['type']) {
@@ -301,7 +305,7 @@ final class ServiceMetaSchema
             } else {
                 $type = (string) ($sub['type'] ?? '');
                 if (!in_array($type, $subTypes, true)) {
-                    throw new ServiceMetaSchemaException('A repeater sub-field must be a supported non-repeater type.');
+                    throw new ServiceMetaSchemaException('A sub-field must be a supported non-container type.');
                 }
                 $prior = null;
                 $id = $this->mintId('fld_', $taken);

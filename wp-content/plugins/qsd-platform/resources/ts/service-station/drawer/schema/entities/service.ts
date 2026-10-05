@@ -10,6 +10,7 @@ import {
   serviceOverviewShell,
   serviceInclusionsShell,
   serviceFaqsShell,
+  serviceElementsShell,
 } from '../bindings/service';
 import {
   serviceCatalogTable,
@@ -34,13 +35,14 @@ export const SERVICE_ENTITY: EntitySchema = {
   },
 
   // Keyed by backend module key (service detail: overview / inclusions /
-  // faqs). A related Station's shell may be registered here later so the
+  // faqs / elements). A related Station's shell may be registered here later so the
   // Connections group can place it (§8); the shell object itself is shared,
   // never copied.
   shells: {
     overview:   serviceOverviewShell,
     inclusions: serviceInclusionsShell,
     faqs:       serviceFaqsShell,
+    elements:   serviceElementsShell,
   },
 
   // Entity travel actions (StationLifecycle transitions). Declarations only —
@@ -63,6 +65,7 @@ export const SERVICE_ENTITY: EntitySchema = {
         { module: 'overview',   mode: 'details' },
         { module: 'inclusions', mode: 'details' },
         { module: 'faqs',       mode: 'details' },
+        { module: 'elements',   mode: 'details' },
       ],
       connections: [],
     },

@@ -5,7 +5,7 @@
  * api/endpoints/admin.ts holds no Service implementation and does not re-export
  * these; there is exactly one implementation of each call, here.
  *
- * OWNERSHIP TEST: a function belongs here iff it calls one of the 14 routes
+ * OWNERSHIP TEST: a function belongs here iff it calls one of the routes
  * owned by the backend Service module (src/Modules/Service ServiceController).
  * Route path is not ownership — several endpoints under /admin/services/{id}/...
  * are Package Station or Promotions routes, and several `*Service*`-named
@@ -28,6 +28,9 @@ import type {
   PermanentDeleteResponse,
   ServiceCatalogResponse,
   ServiceDetail,
+  ServiceElementsPayload,
+  ServiceElementsRead,
+  ServiceElementsResponse,
   ServiceFaqsPayload,
   ServiceFaqsResponse,
   ServiceInclusionsPayload,
@@ -103,11 +106,25 @@ export function updateServiceFaqs(
   return apiClient.post<ServiceFaqsResponse>(`admin/services/${serviceId}/faqs`, payload);
 }
 
+// ── Service Elements ─────────────────────────────────────────────────────────
+
+export async function fetchServiceElements(serviceId: number): Promise<ServiceElementsRead> {
+  const response = await apiClient.get<WirePlatformId<ServiceElementsRead>>(`admin/services/${serviceId}/elements`);
+  return mapPlatformId(response);
+}
+
+export function updateServiceElements(
+  serviceId: number,
+  payload: ServiceElementsPayload,
+): Promise<ServiceElementsResponse> {
+  return apiClient.post<ServiceElementsResponse>(`admin/services/${serviceId}/elements`, payload);
+}
+
 // ── Settle / revert ──────────────────────────────────────────────────────────
 
 export async function settleServiceModule(
   serviceId: number,
-  module: 'overview' | 'inclusions' | 'faqs',
+  module: 'overview' | 'inclusions' | 'faqs' | 'elements',
 ): Promise<ModuleSettleResponse> {
   const response = await apiClient.post<WireModuleSettleResponse>(`admin/services/${serviceId}/${module}/settle`);
   return { ...response, service: mapPlatformId(response.service) };
@@ -120,7 +137,7 @@ export async function settleAllServiceModules(serviceId: number): Promise<Module
 
 export function revertServiceModule(
   serviceId: number,
-  module: 'overview' | 'inclusions' | 'faqs',
+  module: 'overview' | 'inclusions' | 'faqs' | 'elements',
 ): Promise<ModuleRevertResponse> {
   return apiClient.post<ModuleRevertResponse>(`admin/services/${serviceId}/${module}/revert`);
 }

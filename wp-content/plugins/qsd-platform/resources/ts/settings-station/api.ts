@@ -52,9 +52,13 @@ function toWireDraft(draft: Partial<ServiceMetaFieldDraft>): Record<string, unkn
   return subFields ? { ...rest, sub_fields: subFields } : rest;
 }
 
-export async function fetchConnections(): Promise<ConnectionProjection[]> {
-  const response = await apiClient.get<{ connections: WireConnection[] }>('admin/settings/connections');
-  return response.connections.map(toConnection);
+/** `encryptionAvailable` is null when the server did not say (older responses). */
+export async function fetchConnections(): Promise<{ connections: ConnectionProjection[]; encryptionAvailable: boolean | null }> {
+  const response = await apiClient.get<{ connections: WireConnection[]; encryption?: { available: boolean } }>('admin/settings/connections');
+  return {
+    connections:         response.connections.map(toConnection),
+    encryptionAvailable: typeof response.encryption?.available === 'boolean' ? response.encryption.available : null,
+  };
 }
 
 export async function saveConnection(provider: string, payload: ConnectionSavePayload): Promise<ConnectionProjection> {

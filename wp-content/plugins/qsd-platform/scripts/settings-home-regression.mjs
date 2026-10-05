@@ -44,7 +44,7 @@ window.QSDConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-non
 
 // ── Server-side truth ────────────────────────────────────────────────────
 const SECRET = 'rz-SECRET-71c9';
-const server = { environment: '', apiKeyStored: false, fields: [], nextId: 0 };
+const server = { environment: '', apiKeyStored: false, fields: [], nextId: 0, encryptionAvailable: true };
 let calls = [];
 
 const mintId = (prefix) => `${prefix}${String(++server.nextId).padStart(10, '2').replace(/[01]/g, '2')}`;
@@ -74,7 +74,9 @@ globalThis.fetch = (url, init = {}) => {
   calls.push({ method, path, body });
   let m;
 
-  if (method === 'GET' && path === 'admin/settings/connections') return jsonResponse({ success: true, connections: [connection()] });
+  if (method === 'GET' && path === 'admin/settings/connections') {
+    return jsonResponse({ success: true, connections: [connection()], encryption: { available: server.encryptionAvailable } });
+  }
   if (method === 'PUT' && path === 'admin/settings/connections/rezdy') {
     if (body.values?.environment !== undefined) server.environment = body.values.environment;
     if (body.secrets?.api_key) server.apiKeyStored = true;
@@ -171,6 +173,7 @@ check('loading read the connections and the Service Meta fields once each',
 console.log('\n2) Connections — a secret is write-only');
 const card = () => container.querySelector('.cz-settings-connection[data-provider="rezdy"]');
 check('Rezdy reads Not configured', card()?.querySelector('.cz-settings-state')?.textContent.trim() === 'Not configured');
+check('no encryption warning shows when the server can seal secrets', !container.textContent.includes('no credential encryption key'));
 const secretInput = () => card().querySelector('input[type="password"]');
 check('the API key input is a password input that starts empty', secretInput()?.value === '');
 await choose(card().querySelector('select'), 'staging');
@@ -274,6 +277,28 @@ click(metaPanel().querySelector(`[data-field-id="${certId}"]`), 'Restore');
 await sleep(40);
 check('Restore POSTs restore', mutations().at(-1)?.path.endsWith(`${certId}/restore`), describe(mutations()));
 check('no request ever deleted a field', !calls.some((c) => c.method === 'DELETE' && c.path.includes('service-meta')));
+
+console.log('\n8) Service Meta — a Group carries its own sub-fields');
+calls = [];
+click(metaPanel(), 'Add field');
+await sleep(10);
+await type(form().querySelector('input[type="text"]'), 'Dive profile');
+await choose(form().querySelector('select'), 'group');
+check('choosing Group opens the sub-field editor', form().querySelector('input[aria-label="Group field 1 label"]') != null);
+const subTypes = [...(form().querySelector('select[aria-label="Group field 1 type"]')?.querySelectorAll('option') ?? [])].map((o) => o.value);
+check('a sub-field cannot itself be a group or repeater', !subTypes.includes('group') && !subTypes.includes('repeater') && subTypes.includes('text'), subTypes.join(','));
+await type(form().querySelector('input[aria-label="Group field 1 label"]'), 'Site');
+form().dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+await sleep(40);
+check('Add field POSTs a group with its sub-fields and no client ids', mutations()[0]?.body.type === 'group' && JSON.stringify(mutations()[0]?.body.sub_fields) === '[{"label":"Site","type":"text"}]', describe(mutations()));
+
+console.log('\n9) Connections — without an encryption key, the lane says so');
+render(null, container);
+server.encryptionAvailable = false;
+render(h(SettingsDeck, { items: [], loading: false, error: null, onIntent: () => {}, refetch: () => {} }), container);
+await sleep(60);
+const warning = [...container.querySelectorAll('[role="alert"]')].find((el) => el.textContent.includes('no credential encryption key'));
+check('the lane warns that secret values cannot be saved on this server', warning != null, container.textContent.slice(0, 300));
 
 console.log('');
 if (failures.length > 0) {

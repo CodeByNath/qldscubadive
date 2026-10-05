@@ -51,13 +51,19 @@ on a read path.
 `src/Modules/Settings/` is configuration authority, not domain authority:
 
 - Provider connections — `Connections/ConnectionStore.php` is the sole
-  reader/writer of `qsd_settings_connections`. Secrets are never projected;
-  Connectors read their own provider values only through
-  `Connections/ConnectorCredentials.php`.
-- Service Meta field **definitions** — `ServiceMeta/ServiceMetaSchema.php`
-  (`qsd_settings_service_meta_schema`). Definitions are rung-2 scoped children
-  with `fld_…` internal ids, not Platform IDs. Per-Service **values** belong to
-  Service Station (`docs/architecture/service-meta-schema-contract.md`).
+  reader/writer of `qsd_settings_connections`; secrets are encrypted at rest
+  (`Security/CredentialCipher.php`) and never projected. Consumers never get a
+  credential: `Security/CredentialBroker.php` issues short-lived single-use
+  request keys and performs the provider operation server-side
+  (`docs/architecture/credential-broker-contract.md`). Request keys are
+  security artifacts, never Platform IDs.
+- Element **definitions** — `ServiceMeta/ServiceMetaSchema.php`
+  (`qsd_settings_service_meta_schema`), rung-2 children of the schema with
+  `fld_…`/`opt_…` ids; Service reads them only through the read-only
+  `ServiceMeta/ServiceElementDefinitions.php`. Element **instances** belong to
+  Service Station (`Support/ServiceElements.php`, `qsd_service_elements`):
+  rung-2 children of their Service, addressed by `QSDS` + `el_`/`row_`/`ent_`
+  child id (`docs/architecture/service-element-composition-contract.md`).
 
 ## Pricing
 

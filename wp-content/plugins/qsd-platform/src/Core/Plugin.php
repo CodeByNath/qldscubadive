@@ -35,10 +35,12 @@ final class Plugin
         (new AssetLoader())->register();
 
         $platformIdentifiers = new PlatformIdentifierStation();
+        $settings            = new SettingsModule();
 
-        (new ServiceModule($platformIdentifiers))->register();
+        // Service reads Element definitions only through Settings' read capability.
+        (new ServiceModule($platformIdentifiers, $settings->serviceElementDefinitions()))->register();
         (new AdminModule($platformIdentifiers))->register();
-        (new SettingsModule())->register();
+        $settings->register();
         (new AdminStationModule())->register();
         (new AdminStationAuth())->register();
 
