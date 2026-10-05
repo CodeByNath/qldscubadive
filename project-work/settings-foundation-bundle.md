@@ -1,8 +1,8 @@
 # Settings foundation bundle — Settings Station + Connections/Security + configurable Meta schema
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Post-Phase-6 Settings foundation
-Actor: Reviewer
+Actor: Builder
 
 ## Owner direction
 
@@ -226,3 +226,60 @@ Source checks: no Settings file imports a Service peer; presentation imports no 
 
 - The Rezdy importer, product/service mapping and import flow were **not** designed or implemented. `RezdyConnector` is configuration and connection state only, with no HTTP calls.
 - No live Rezdy/Stripe calls or credentials; no new Platform ID family; no Service persistence moved into Settings/Admin/Station Manager; no public API expansion; no staging/production deployment; no Project History created.
+
+
+## Reviewer decision
+
+Verdict: Proceed with safeguards
+
+Independent review of candidate `17f47b563ee39726003197806bb539d7736e1365` confirms the larger Settings foundation is correctly separated from Service domain authority and remains inside the authorised package:
+
+- topic is exactly one commit ahead of accepted `main` `7b099dac5e54a180540dcde29cd7f1ea439614fd`;
+- Settings is a real peer navigation/destination/surface registration with no fabricated domain record, lifecycle or Platform ID family;
+- Service Home's existing Settings lane remains separate;
+- Connections/Security stores secrets server-side only, never returns secret values in REST projections, and gives Connectors a server-only `ConnectorCredentials` capability rather than exposing storage;
+- the Rezdy seam contains configuration/connection state only: no HTTP call, importer, mapping or Service transformation was introduced;
+- Service Meta definitions are Settings-owned and actual Service values remain explicitly reserved for Service-owned draft/settle/projection work;
+- field/option/sub-field identity is server-minted and independent of label/order; retire/restore avoids destructive field deletion before a Service-value recovery rule exists;
+- Settings routes are capability-gated and there is no public API, deployment, multi-supplier or new Platform-ID scope;
+- focused PHP and mounted/registry contracts cover secret non-projection, schema CRUD/retirement/reorder identity, Settings registration and real Settings presentation flow;
+- roadmap and Code Maps now restore the Owner-approved Settings → Connections → Rezdy seam → importer sequence;
+- the Owner's pre-built Rezdy importer checkpoint is preserved and importer design was not started.
+
+### Safeguard 1 — credentials are foundation-only
+
+The candidate stores long-lived provider secrets in a non-autoloaded WordPress option without at-rest encryption. That is acceptable only as a foundation seam with no live credentials entered yet.
+
+Before any real Rezdy/Stripe credential is used on staging or production, Owner/Reviewer must decide:
+- at-rest encryption policy;
+- whether `manage_qsd` is sufficient for credential management or a stricter capability is required;
+- the short-lived/scoped/single-use rotating request-key model (issuer, scope, TTL, storage and replay protection).
+
+Do not treat the current long-lived `ConnectorCredentials` read as the final security architecture.
+
+### Safeguard 2 — Service Meta identity must be re-audited at the value boundary
+
+The current `fld_` / `opt_` identifiers are accepted as stable internal Settings schema keys. However, the draft contract describes field definitions as architecture rung 2 while future Service records will reference those ids outside the schema owner.
+
+Before implementing Service Meta value persistence, re-run the platform identity audit against the actual cross-Station consumer path and confirm whether internal schema identity remains sufficient or a stronger parent-qualified / Platform identity decision is required. Do not silently lock the current rung-2 statement into the value implementation.
+
+### Safeguard 3 — removal remains retire/restore
+
+Owner asked for fields to be removable. In this foundation, "remove" means retire from active use while preserving the id and future stored values. Permanent purge stays blocked until Service-value recovery/migration semantics are approved.
+
+### Coordination cleanup
+
+The earlier duplicate `project-work/settings-foundation.md` is now marked `DEFERRED` as superseded by this active bundle. This bundle remains the single active Settings work file.
+
+No source correction is required for this candidate.
+
+## Next Builder action — promote Settings foundation
+
+1. Promote exact accepted topic head `17f47b563ee39726003197806bb539d7736e1365` from `settings-foundation/settings-connections-meta` to `main` without scope change.
+2. Verify resulting `main` is that exact candidate.
+3. Verify post-push `main` CI completes successfully.
+4. Do not deploy to `staging` or production and do not enter real provider credentials.
+5. After successful main/CI verification, delete only `settings-foundation/settings-connections-meta`; preserve the three permanent branches.
+6. Verify final remote branches are exactly `main`, `staging`, and `Project-work-instructions`.
+7. Update this file with main SHA, CI run/result, final branch list and no-deployment confirmation; set `Status: AWAITING REVIEWER REVIEW`, `Actor: Reviewer`, then stop.
+8. Do not start the Service Meta value module or Rezdy importer. Those begin only after Reviewer closeout and the safeguards/Owner gates above.
