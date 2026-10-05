@@ -1,8 +1,8 @@
 # Settings foundation bundle — Settings Station + Connections/Security + configurable Meta schema
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Post-Phase-6 Settings foundation
-Actor: Builder
+Actor: Reviewer
 
 ## Owner direction
 
@@ -283,3 +283,13 @@ No source correction is required for this candidate.
 6. Verify final remote branches are exactly `main`, `staging`, and `Project-work-instructions`.
 7. Update this file with main SHA, CI run/result, final branch list and no-deployment confirmation; set `Status: AWAITING REVIEWER REVIEW`, `Actor: Reviewer`, then stop.
 8. Do not start the Service Meta value module or Rezdy importer. Those begin only after Reviewer closeout and the safeguards/Owner gates above.
+
+## Builder promotion evidence
+
+- Promoted exact accepted head `17f47b563ee39726003197806bb539d7736e1365` to `main` by fast-forward (`7b099da..17f47b5`); ancestry verified before push, no scope change.
+- Remote `main` verified at `17f47b563ee39726003197806bb539d7736e1365`.
+- Post-push `main` CI: run `37261129309` ("Test and deploy") — `completed` / `success`; job `test` success, job `deploy-staging` skipped.
+- Topic `settings-foundation/settings-connections-meta` deleted only after confirming it is contained in `main`.
+- Final remote branches: exactly `main` (`17f47b5`), `staging` (`69f68ca`), `Project-work-instructions`.
+- No staging or production deployment; no real provider credentials entered.
+- Service Meta value module and Rezdy importer not started; they wait on Reviewer closeout and Safeguards 1–3 / Owner gates.
