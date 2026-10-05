@@ -1,8 +1,8 @@
 # Service Element + Security Broker foundation bundle
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Post-Settings foundation — Service Element composition + credential broker
-Actor: Reviewer
+Actor: Builder
 
 ## Owner-approved architecture
 
@@ -582,3 +582,47 @@ On acceptance, `da93493` can fast-forward `main` from `17f47b5`. Two consequence
 - The Element implementation stays recoverable in history at `8ea707b`, for the Phase 3 decision.
 - The topic-branch name still says "service-elements". It was kept, as instructed, and is deleted at promotion.
 
+
+
+## Reviewer decision — Security Phase 1
+
+Verdict: Proceed with safeguards
+
+Reviewed exact candidate: `da934936edafcf892ebab33e870e6f5f511d147f`.
+
+Independent diff/source review confirms the candidate is now Security-only against accepted `main` `17f47b563ee39726003197806bb539d7736e1365`:
+
+- Service Element persistence/editor/routes/contracts are absent from the final diff and deferred to Phase 3;
+- provider secrets are AEAD-sealed with XChaCha20-Poly1305 under external `QSD_CREDENTIAL_KEY`, bound to provider+field, with no plaintext fallback;
+- secret mutation/disconnect requires both platform access and administrator `manage_options`; safe state/non-secret config remain under `manage_qsd`;
+- request keys are random, hash-only at rest, bounded by provider/scope/caller/user/subject, short TTL, atomically single-use, burn on mismatch, reject replay/expiry/forgery, and are not Platform IDs;
+- provider secrets are reachable only inside the Settings-owned broker operation boundary;
+- broker audit is bounded and excludes request key, hash and provider secret;
+- key rotation is shell-only, all-or-nothing, supports already-current envelopes, refuses missing/same/unreadable keys, and keeps keys/plaintext out of output;
+- Rezdy still declares no brokered scope/operation, so no provider call/importer/mapping was introduced;
+- no real credentials, key provisioning, staging deployment or production deployment occurred.
+
+### Safeguard 1 — caller/user binding at Phase 2 boundary
+
+`BrokerGrant` currently accepts `userId` and `caller` as constructor inputs. That is safe while the broker has no external consumer, but when Phase 2 adds any `qsd/v1` flow those bindings must be **derived server-side from authenticated runtime context and an allow-listed component**, not accepted from arbitrary client request fields.
+
+The frontend may request an operation/subject, but it must not be able to choose another WordPress user id or invent a privileged caller identity.
+
+### Safeguard 2 — validate real WordPress/database behavior in Phase 2
+
+Phase 1 proves deterministic contracts with a fake `$wpdb`. Phase 2 must validate the request-key claim/consume and credential storage/rotation on a real WordPress database/runtime before live provider use.
+
+### Safeguard 3 — keys and real credentials remain prohibited until Phase 2
+
+Do not provision `QSD_CREDENTIAL_KEY`, store a real Rezdy key, or perform a provider call merely because Phase 1 is accepted. Those are deliberate Phase 2 validation steps.
+
+## Next Builder action — promote Security Phase 1
+
+1. Promote exact candidate head `da934936edafcf892ebab33e870e6f5f511d147f` to `main` without source changes.
+2. Verify resulting `main` is that exact head.
+3. Verify post-push GitHub Actions succeeds on that exact SHA.
+4. Confirm `deploy-staging` is skipped; do not push `staging` and do not deploy production.
+5. Delete only `service-elements/elements-security-broker` after successful main/CI verification.
+6. Verify remote branches return to exactly `main`, `staging`, `Project-work-instructions`.
+7. Update this same file with exact main SHA, CI run/result, final branch list and no-deployment/no-key/no-real-credential confirmation; set `Status: AWAITING REVIEWER REVIEW`, `Actor: Reviewer`, then stop.
+8. Do not begin Phase 2 in the same handoff.
