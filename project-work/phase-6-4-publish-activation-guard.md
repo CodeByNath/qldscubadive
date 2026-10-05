@@ -1,6 +1,6 @@
 # Phase 6.4 — Publish activation guard
 
-Status: AWAITING REVIEWER REVIEW
+Status: ACCEPTED
 Phase: Phase 6.4 — Atomic Publish
 Actor: Reviewer
 
@@ -156,3 +156,21 @@ No source correction is required.
 - Deleted only `phase-6-4/publish-activation-guard` after the containment check.
 - Final remote branches (exactly three): `main` `b9192c6`, `staging` `69f68ca`, `Project-work-instructions`.
 - Phase 6.5 not started; awaiting Reviewer close of Phase 6.4.
+
+
+## Reviewer closeout
+
+Verdict: Proceed
+
+Independent promotion verification completed:
+
+- `main` is exactly `b9192c6abd9deb04c0d1b24a87f70dd4ec99434f`, the accepted Phase 6.4 candidate;
+- GitHub Actions run `37250672804` completed successfully on that exact SHA;
+- the `test` job passed, including `npm ci`, `npm test`, and Admin Station artifact upload;
+- `deploy-staging` was skipped;
+- no staging or production deployment occurred;
+- topic branch `phase-6-4/publish-activation-guard` is removed;
+- remote branches are exactly `main`, `staging`, and `Project-work-instructions`;
+- the remaining two-request Publish limitation stays documented as a known gap for later architectural review.
+
+Phase 6.4 is accepted and closed. Phase 6.5 has not started.
