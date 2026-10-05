@@ -19,9 +19,11 @@ import { registry } from '@/runtime/registry';
 import { AdminStation } from '@/admin-station/AdminStation';
 import { registerAdminStation, registerPresentationPolicy } from '@/admin-station/register';
 import { registerServiceStation } from '@/service-station/register';
+import { registerSettingsStation } from '@/settings-station/register';
 import { finalizeStationRegistry } from '@/station-manager/registry/boot';
 
 registerServiceStation();
+registerSettingsStation();
 registerAdminStation();
 registerPresentationPolicy();
 finalizeStationRegistry();

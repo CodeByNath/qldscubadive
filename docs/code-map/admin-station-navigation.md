@@ -6,7 +6,7 @@ Root: `wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/`
 
 ## Registration and boot
 
-`navigation.ts` defines `StationNavItem` and accepts rows through `registerNavItems()`. Each row includes identity, label, Admin-owned icon capability, activation key, header/menu visibility, and order. Service currently registers `services` at 10. A new Station registers its own row; leave gaps in `order` for placement.
+`navigation.ts` defines `StationNavItem` and accepts rows through `registerNavItems()`. Each row includes identity, label, Admin-owned icon capability, activation key, header/menu visibility, and order. Service registers `services` at 10 and Settings registers `settings` at 90. A new Station registers its own row; leave gaps in `order` for placement.
 
 `destinations.ts` registers `StationDestination` records and resolves an activation key to:
 
@@ -14,7 +14,7 @@ Root: `wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/`
 { id, stationId, surfaceId, placement, mode, conditions? }
 ```
 
-All four current destinations declare `surfaceId: 'catalog'`, `placement: 'body'`, `mode: 'table'`, and `conditions.scope: 'current'`. They are navigation declarations; current visible content is composed independently from presentation bindings.
+Service's destination declares `surfaceId: 'catalog'`, `mode: 'table'`; Settings' declares `surfaceId: 'settings-home'`, `mode: 'summary'`; both use `placement: 'body'` and `conditions.scope: 'current'`. They are navigation declarations; current visible content is composed independently from presentation bindings.
 
 Registration rejects duplicate navigation ids, destination ids, and identical destination projections. `finalizeStationRegistry()` locks registration, builds stable order-sorted header and menu arrays, and asserts that every navigation activation key names a registered destination. Public navigation and destination resolvers throw before finalization. `resolveDestination()` returns `null` for a null or unmapped activation.
 
@@ -35,7 +35,7 @@ There is no URL router in this chain. An activation key is not a route. Destinat
 
 ## Boundaries
 
-- Registry-native station ids (currently `services`) are not legacy app-registry identifiers.
+- Registry-native station ids (currently `services` and `settings`) are not legacy app-registry identifiers.
 - `StationConditions` describes what a station surface addresses. It is distinct from the runtime registry's `MountCondition`, which decides where the app mounts.
 - `destinations.ts` has one sanctioned type-only dependency on `drawer-kit/schema/types` for `ShellMode`; Station Manager has no peer runtime imports.
 - Record ids remain native `string | number` values wherever conditions or intents carry them.

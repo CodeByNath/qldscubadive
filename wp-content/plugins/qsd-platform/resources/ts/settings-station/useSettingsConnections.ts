@@ -1,0 +1,62 @@
+// Connections/Security Tool state — the provider connection list and its
+// save/disconnect actions. Presentation calls these handlers, never ./api.
+//
+// A saved secret is never held here after the request: the backend projection
+// returns only `configured`, and this hook keeps no copy of what was sent.
+
+import { useCallback, useEffect, useState } from 'preact/hooks';
+import { disconnectConnection, fetchConnections, saveConnection } from './api';
+import { errorMessage } from './errorMessage';
+import type { ConnectionProjection, ConnectionSavePayload } from './types';
+
+export interface SettingsConnectionsState {
+  connections:  ConnectionProjection[];
+  loading:      boolean;
+  error:        string | null;
+  busyProvider: string | null;
+  actionError:  { provider: string; message: string } | null;
+  save:         (provider: string, payload: ConnectionSavePayload) => Promise<boolean>;
+  disconnect:   (provider: string) => Promise<boolean>;
+}
+
+export function useSettingsConnections(): SettingsConnectionsState {
+  const [connections, setConnections] = useState<ConnectionProjection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyProvider, setBusyProvider] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<SettingsConnectionsState['actionError']>(null);
+
+  useEffect(() => {
+    fetchConnections()
+      .then(setConnections)
+      .catch((err: unknown) => setError(errorMessage(err, 'Could not load connections.')))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const run = useCallback(async (provider: string, operation: () => Promise<ConnectionProjection>, fallback: string) => {
+    setBusyProvider(provider);
+    setActionError(null);
+    try {
+      const next = await operation();
+      setConnections((prev) => prev.map((c) => (c.provider === next.provider ? next : c)));
+      return true;
+    } catch (err) {
+      setActionError({ provider, message: errorMessage(err, fallback) });
+      return false;
+    } finally {
+      setBusyProvider(null);
+    }
+  }, []);
+
+  const save = useCallback(
+    (provider: string, payload: ConnectionSavePayload) =>
+      run(provider, () => saveConnection(provider, payload), 'The connection could not be saved.'),
+    [run],
+  );
+  const disconnect = useCallback(
+    (provider: string) => run(provider, () => disconnectConnection(provider), 'The connection could not be removed.'),
+    [run],
+  );
+
+  return { connections, loading, error, busyProvider, actionError, save, disconnect };
+}

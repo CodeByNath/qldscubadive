@@ -46,6 +46,19 @@ on a read path.
   must be named explicitly in that projection — existing in storage is not
   the same as reaching the consumer.
 
+## Configuration (Settings)
+
+`src/Modules/Settings/` is configuration authority, not domain authority:
+
+- Provider connections — `Connections/ConnectionStore.php` is the sole
+  reader/writer of `qsd_settings_connections`. Secrets are never projected;
+  Connectors read their own provider values only through
+  `Connections/ConnectorCredentials.php`.
+- Service Meta field **definitions** — `ServiceMeta/ServiceMetaSchema.php`
+  (`qsd_settings_service_meta_schema`). Definitions are rung-2 scoped children
+  with `fld_…` internal ids, not Platform IDs. Per-Service **values** belong to
+  Service Station (`docs/architecture/service-meta-schema-contract.md`).
+
 ## Pricing
 
 None yet. When pricing arrives it gets one owner (a Service module or its

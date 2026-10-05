@@ -23,6 +23,8 @@ It imports only Preact. It names no station, entity, drawer route, data source, 
 
 - **Service Home** — [ServiceLowerDeck.tsx](../../wp-content/plugins/qsd-platform/resources/ts/service-station/presentation/ServiceLowerDeck.tsx) is Service-owned composition. `Details` holds the existing Service Catalogue, handed the template-kit props unchanged; `Connections` renders Service's own read-only Category-connections lane (every live Category, All / Connected / Unassigned), `Settings` renders Service's own two creation launchers (Create Service, Create Category), and `Bin` renders Service's own archived/trashed travel lane. See [Service Catalogue](service-catalogue.md).
 
+- **Settings Home** — [SettingsDeck.tsx](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/presentation/SettingsDeck.tsx) is Settings-owned composition with two Tool lanes, Connections & Security and Service Meta. See [Settings Station](settings-station.md).
+
 A future Station deck consumes the same primitive with its own lanes, rows, and models. Only the tab behaviour is shared.
 
 ## Skin

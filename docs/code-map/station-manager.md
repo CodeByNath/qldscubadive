@@ -19,6 +19,7 @@ Root: `wp-content/plugins/qsd-platform/resources/ts/station-manager/`
 
 ```text
 registerServiceStation()
+→ registerSettingsStation()
 → registerAdminStation()
 → registerPresentationPolicy()
 → finalizeStationRegistry()

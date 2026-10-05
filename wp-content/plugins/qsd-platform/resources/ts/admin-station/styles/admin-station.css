@@ -2505,3 +2505,294 @@ button.cz-station-status-pill {
   color: var(--station-text-muted);
   letter-spacing: var(--station-tracking-wide);
 }
+
+/* ── Settings Station deck ─────────────────────────────────────────────────
+   Settings Home's framed deck (context bar, tab strip, active Tool lane),
+   restated under Settings' own class names: matching Service Home's look is a
+   styling decision and carries no Service meaning across. Controls inside the
+   lanes are painted by the field system (cz-tf-*), never here. */
+
+.cz-settings-deck {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--station-border);
+  border-radius: var(--station-card-radius);
+  background: var(--station-surface-elevated);
+  color: var(--station-text);
+  overflow: hidden;
+}
+
+.cz-settings-deck__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--station-card-divider);
+}
+
+.cz-settings-deck__context-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--station-card-icon-size);
+  height: var(--station-card-icon-size);
+  border-radius: var(--station-card-icon-radius);
+  background: var(--station-accent-soft-bg);
+  color: var(--station-accent-fg);
+}
+
+.cz-settings-deck__context-icon > svg {
+  width: var(--station-card-glyph-size);
+  height: var(--station-card-glyph-size);
+}
+
+.cz-settings-deck__context-name {
+  margin: 0;
+  color: var(--station-text);
+  font-size: var(--station-text-sm);
+  font-weight: 700;
+}
+
+.cz-settings-deck__tabs {
+  padding-inline: 20px;
+}
+
+.cz-settings-deck__panel {
+  padding: 18px 20px 20px;
+}
+
+/* Tool lanes: Connections & Security, Service Meta. */
+.cz-settings-lane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--station-card-gap);
+}
+
+.cz-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--station-card-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cz-settings-muted {
+  margin: 0;
+  color: var(--station-text-muted);
+  font-size: var(--station-text-xs);
+  line-height: var(--station-line-snug);
+}
+
+.cz-settings-error {
+  margin: 0;
+  padding: 12px var(--station-card-pad);
+  border: 1px solid var(--station-status-inactive-border);
+  border-radius: var(--station-control-radius);
+  background: var(--station-status-inactive-bg);
+  color: var(--station-status-inactive-fg);
+  font-size: var(--station-text-sm);
+}
+
+.cz-settings-connection,
+.cz-settings-meta-row,
+.cz-settings-meta-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--station-card-pad);
+  border: 1px solid var(--station-border);
+  border-radius: var(--station-card-radius);
+  background: var(--station-surface);
+}
+
+.cz-settings-connection__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--station-grid-gap);
+}
+
+.cz-settings-connection__title {
+  margin: 0;
+  color: var(--station-text);
+  font-size: var(--station-text-sm);
+  font-weight: 700;
+}
+
+.cz-settings-connection__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--station-card-gap);
+  max-width: 48rem;
+}
+
+/* Connection / field state chip: neutral by default, toned by state. */
+.cz-settings-state {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--station-border);
+  border-radius: 999px;
+  color: var(--station-text-muted);
+  font-size: var(--station-text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cz-settings-state--configured {
+  border-color: var(--station-status-active-border);
+  background: var(--station-status-active-bg);
+  color: var(--station-status-active-fg);
+}
+
+.cz-settings-state--incomplete {
+  border-color: var(--station-status-pending-border);
+  background: var(--station-status-pending-bg);
+  color: var(--station-status-pending-fg);
+}
+
+.cz-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--station-grid-gap);
+}
+
+.cz-settings-actions--start {
+  justify-content: flex-start;
+}
+
+.cz-settings-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--station-grid-gap);
+}
+
+.cz-settings-confirm__prompt {
+  color: var(--station-text);
+  font-size: var(--station-text-sm);
+  font-weight: 700;
+}
+
+.cz-settings-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--station-control-height);
+  padding-inline: var(--station-control-pad-x);
+  border: 1px solid var(--station-border);
+  border-radius: var(--station-control-radius);
+  background: var(--station-surface);
+  color: var(--station-text);
+  font: inherit;
+  font-size: var(--station-text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cz-settings-button--primary {
+  border-color: var(--station-action-bg);
+  background: var(--station-action-bg);
+  color: var(--station-accent-on);
+}
+
+.cz-settings-button--primary:hover:not(:disabled) {
+  border-color: var(--station-action-bg-hover);
+  background: var(--station-action-bg-hover);
+}
+
+.cz-settings-button--danger {
+  border-color: var(--station-status-inactive-fg);
+  background: var(--station-status-inactive-fg);
+  color: var(--station-accent-on);
+}
+
+.cz-settings-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cz-settings-button:focus-visible,
+.cz-settings-link:focus-visible {
+  outline: 2px solid var(--station-focus-ring);
+  outline-offset: 2px;
+}
+
+.cz-settings-link {
+  margin-left: var(--station-grid-gap);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--station-accent-fg);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Service Meta rows and the inline field editor. */
+.cz-settings-meta-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cz-settings-meta-row--retired {
+  opacity: 0.7;
+}
+
+.cz-settings-meta-row__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cz-settings-meta-row__label {
+  color: var(--station-text);
+  font-size: var(--station-text-sm);
+  font-weight: 700;
+}
+
+.cz-settings-meta-row__id {
+  color: var(--station-text-muted);
+  font-size: var(--station-text-xs);
+}
+
+.cz-settings-meta-editor {
+  width: 100%;
+  max-width: 48rem;
+}
+
+.cz-settings-meta-editor__group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--station-grid-gap);
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--station-border);
+  border-radius: var(--station-control-radius);
+}
+
+.cz-settings-meta-editor__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--station-grid-gap);
+  width: 100%;
+}
+
+.cz-settings-meta-editor__sub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--station-grid-gap);
+  width: 100%;
+}

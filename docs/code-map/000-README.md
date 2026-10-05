@@ -27,6 +27,10 @@ The Code Map points to the **current implementation**: the small set of authorit
 - [Service Connections](service-connections.md)
 - [Categories](categories.md)
 
+### Configuration
+
+- [Settings Station](settings-station.md)
+
 ### Shared backend
 
 - [Platform Identifier Station](platform-identifier-station.md)

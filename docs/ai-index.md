@@ -24,6 +24,7 @@ Durable repository-operability rules live under [Foundation](foundation/README.m
 - [Station Manager](code-map/station-manager.md) is coordinator-only. It owns registration contracts/resolvers, ordering and availability coordination, boot/finalize, generic surface composition, native record-identity transport, and retained-collection infrastructure. It owns no presentation primitive, domain logic, persistence, lifecycle rule, or drawer editor.
 - [Service Station](code-map/service-station.md) is the Service peer and sole authority for Service data, IDs, lifecycle, validation, saves, catalogue presentation, and drawer composition.
 - [Categories](code-map/categories.md) is the Category domain, hosted by Admin Station; it owns Category identity, Overview draft, and lifecycle.
+- [Settings Station](code-map/settings-station.md) is the platform/business configuration authority: the Connections/Security Tool (provider secrets stay server-side) and the Service Meta field-definition schema. It owns no domain record, lifecycle, or Platform ID family; Service values stay with Service.
 - [Admin Station](code-map/admin-station.md) is a presentation/control Station and the thin frontend host. It owns shell chrome, icons, presentation tools, the generic drawer shell, and string-key presentation policy. Its drawer hosts the owning Station's registered contract; it never saves domain data.
 
 Placement does not transfer authority. Peers register their own capabilities; Admin decides placement, order, conditions, kit selection, and the default Home through Station Manager. Peer imports of Admin presentation modules are legal capability consumption. Peer-to-peer domain consumption uses public barrels.
@@ -48,7 +49,7 @@ A new domain (for example courses, dive trips, equipment) follows Service:
 
 ## Boot contract
 
-The Admin Station entry synchronously registers Service, Admin capabilities, and Admin presentation policy; finalizes Station Manager; then registers the mounted app. Peer `register.ts` modules are entry-only. No resolver runs at module scope or before successful finalization. See [Station Manager](code-map/station-manager.md).
+The Admin Station entry synchronously registers Service, Settings, Admin capabilities, and Admin presentation policy; finalizes Station Manager; then registers the mounted app. Peer `register.ts` modules are entry-only. No resolver runs at module scope or before successful finalization. See [Station Manager](code-map/station-manager.md).
 
 ## Capability vocabulary and lifecycle
 
