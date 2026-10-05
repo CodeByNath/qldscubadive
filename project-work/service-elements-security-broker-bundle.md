@@ -1,8 +1,8 @@
 # Service Element + Security Broker foundation bundle
 
-Status: BLOCKED — DECISION REQUIRED
+Status: BUILDER ACTION REQUIRED
 Phase: Post-Settings foundation — Service Element composition + credential broker
-Actor: Owner / Reviewer
+Actor: Builder
 
 ## Owner-approved architecture
 
@@ -363,3 +363,92 @@ No importer design may begin from this candidate.
 ## Next action
 
 Owner decides the Element-definition identity model above. After that, Reviewer will issue one bounded Builder correction on this same topic branch; do not restart or discard the otherwise-reviewed Service-child/security work.
+
+
+## Owner sequencing decision — split by phase, Security first
+
+The Owner has now resolved sequencing. Do **not** hold Security behind the Service Element definition-identity question.
+
+### Phase 1 — Security System (active now)
+
+Use the existing topic branch `service-elements/elements-security-broker`, but make the candidate **Security-only** before the next handoff.
+
+Keep and complete the authorised Security work:
+- provider-neutral Connections/Security foundation;
+- `CredentialCipher` encrypted-at-rest storage with fail-closed behavior;
+- `CredentialBroker`, scoped/caller/provider/user-bound short-lived request keys;
+- hash-only request-key storage;
+- atomic single-use consume;
+- replay, expiry, forged-key and binding-mismatch rejection;
+- safe bounded audit trail with no key/hash/secret leakage;
+- broker-only provider-secret access;
+- minimum governed `qsd/v1` admin surfaces needed to configure/test Security;
+- deterministic tests, docs and Code Maps;
+- key provisioning + rotation/re-seal operating contract;
+- credential-management permission decision implemented conservatively.
+
+### Remove/defer from this phase
+
+The current candidate also contains Service Element implementation. That work is **not rejected**, but it belongs to Phase 3.
+
+Before next handoff, remove from the Security candidate all product-source changes whose only purpose is:
+- Service Element persistence/value module;
+- Element drawer/editor UI;
+- Group/Repeater/gallery Service instance storage;
+- Service route-baseline changes caused only by Elements;
+- Element-specific architecture/Code Map claims that would become main authority before the identity decision.
+
+Restore the accepted pre-Element Service behavior from `main` where required. Do not rewrite history or force-push; make a normal corrective commit on the same topic branch.
+
+The reusable Element-definition rung/Platform-ID decision is deferred to the **Service Manager phase**. Preserve the analysis in this work file; do not resolve it inside Phase 1.
+
+### Credential permission decision
+
+For Phase 1, provider-secret management must be stricter than ordinary business `manage_qsd` access. Use the existing WordPress administrator-level authority (`manage_options`) for creating, replacing, clearing, or disconnecting provider secrets unless current repository authority provides an already-approved narrower security capability. Safe non-secret connection state may remain visible to ordinary authorised platform managers if architecture permits.
+
+Do not create a new role/capability family solely for this phase.
+
+### Key operations contract
+
+Document and test the rotation model:
+1. provision `QSD_CREDENTIAL_KEY` outside the database;
+2. stored provider secrets are AEAD envelopes bound to provider+field;
+3. key replacement without re-seal fails closed;
+4. rotation must decrypt with the old key and re-seal each secret under the new key through an explicit privileged operation/process;
+5. never log either key or plaintext;
+6. failed/partial rotation must not silently mark unreadable credentials configured.
+
+Do not deploy or provision real secrets in this phase.
+
+### Phase 2 — API/storage/rotation validation (next after acceptance)
+
+After Security Phase 1 is accepted, open one large validation package for controlled provider testing through the broker boundary: encrypted storage, `qsd/v1` flow, request-key issue/consume/replay/expiry, rotation/re-seal and safe audit output.
+
+### Phase 3 — Service Manager tools (later)
+
+Only after Phase 2 acceptance:
+- resolve reusable Element-definition identity;
+- Service Elements;
+- Service Options/variations;
+- Rezdy importer and provider → Service mapping;
+- manual/import convergence;
+- future Service Manager tools.
+
+The Owner's pre-built Rezdy importer PHP reference is now available. In Phase 3 it is behavioral evidence only; QSD implementation must remain PHP backend + `qsd/v1` + TypeScript Admin Station, not the old PHP-admin/ACF architecture.
+
+## Next Builder handoff requirements
+
+Push a new exact SHA on the existing topic branch containing the Security-only candidate and update this file to `AWAITING REVIEWER REVIEW`.
+
+Evidence must include:
+- diff showing Service Element implementation is absent/deferred;
+- encryption tests;
+- permission tests proving secret mutation requires administrator-level authority;
+- request-key issuance/storage/TTL/binding/atomic consume/replay tests;
+- rotation/re-seal contract/tests or a precise runtime-safe implementation if added;
+- no-secret REST/audit/storage evidence;
+- `npm test`;
+- `npm run docs:check`;
+- confirmation of no live credentials, no provider calls, no staging/production deployment.
+
+Do not start Phase 2 or Phase 3 in the same handoff.
