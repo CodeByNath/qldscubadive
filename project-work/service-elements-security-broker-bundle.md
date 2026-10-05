@@ -1,8 +1,8 @@
 # Service Element + Security Broker foundation bundle
 
-Status: AWAITING REVIEWER REVIEW
+Status: BLOCKED — DECISION REQUIRED
 Phase: Post-Settings foundation — Service Element composition + credential broker
-Actor: Reviewer
+Actor: Owner / Reviewer
 
 ## Owner-approved architecture
 
@@ -315,3 +315,51 @@ The architecture skill audit was run against the actual cross-Station consumer p
 ### OWNER INPUT REQUIRED
 
 Obtain and audit the Owner's pre-built Rezdy importer reference before importer design continues. That covers Rezdy scopes and the brokered operation, product/service → Service Element mapping, importer transformations and import orchestration. None of this was designed or implemented.
+
+
+## Reviewer decision
+
+Verdict: Stop — architectural risk
+
+Candidate reviewed: `8ea707b8513564aba457965d275decbb7efe5ee7`.
+
+Most of the package follows the approved direction: Service instances are parent-qualified Service children with stable `el_` / `row_` / `ent_` identities; Settings does not own Service values; draft → settle preserves child identity; the broker uses random short-lived single-use keys, hash-only token storage, atomic consume/replay rejection, server-side provider operations, and authenticated encryption at rest; Rezdy mapping/importer work was correctly not started.
+
+### Blocking identity contradiction
+
+The candidate still declares a Settings Element definition (`fld_…`) as **rung 2**, while the same durable definition identity is intentionally referenced and reused by multiple Service records outside the Settings schema.
+
+That conflicts with the architecture skill's locked three-rung rule:
+
+- rung 2 is addressable only inside its parent and is never reused as its own unit elsewhere;
+- an identity independently referenced by unrelated parents is the rung-3 test.
+
+The Service child instance itself remains correctly parent-qualified under `QSDS`; this finding concerns the reusable **definition/template identity**, not `el_` / `row_` / `ent_`.
+
+Do not promote this candidate until the Owner chooses the definition identity boundary.
+
+## Owner decision required
+
+Choose one architecture:
+
+1. **Reusable platform definition (recommended by current behavior):** Element definitions are reusable independent platform atoms/templates referenced by many Services. Give the definition its own Platform ID family through existing PlatformIdentifier infrastructure. Service instances keep their separate parent-qualified child identity and store the definition Platform ID as their template reference.
+
+2. **Service-scoped definition:** keep definitions rung 2, but then they cannot be globally reusable durable identities across Services. Each Service must own/copy its definition identity within the Service boundary rather than persistently reference the shared Settings `fld_` identity.
+
+Do not solve this by calling a cross-Station reusable `fld_` id "internal"; durable reuse is the architectural test, not whether the id is public.
+
+### Non-blocking security safeguards
+
+The broker implementation can remain on the candidate branch while the identity decision is resolved. Before any real provider credential or deployment:
+- approve/provision `QSD_CREDENTIAL_KEY` and its rotation/re-seal procedure;
+- decide credential-management permission. Current `manage_qsd` includes normal business platform managers and is not yet approved as the final secret-management capability.
+
+### Rezdy checkpoint remains locked
+
+The Owner's pre-built Rezdy importer reference is now required **before any next work on Rezdy scopes, brokered Rezdy operations, provider-field → Element mapping, importer transformations, or canonical import orchestration**.
+
+No importer design may begin from this candidate.
+
+## Next action
+
+Owner decides the Element-definition identity model above. After that, Reviewer will issue one bounded Builder correction on this same topic branch; do not restart or discard the otherwise-reviewed Service-child/security work.
