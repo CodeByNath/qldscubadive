@@ -1,8 +1,8 @@
 # Phase 6 completion bundle — Trash confirmation + lifecycle regression closeout
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6 remainder (6.5 + 6.6)
-Actor: Builder
+Actor: Reviewer
 
 ## Goal
 
@@ -194,3 +194,13 @@ No source correction is required.
 6. Verify final remote branches are exactly `main`, `staging`, and `Project-work-instructions`.
 7. Update this same work file with main SHA, CI run/result, final branch list, confirmation no deployment occurred, set `Status: AWAITING REVIEWER REVIEW`, set `Actor: Reviewer`, and stop.
 8. Do not begin post-Phase-6 scuba-domain work until Reviewer closes this bundle.
+
+## Builder promotion result
+
+- Promoted exact accepted candidate `7b099dac5e54a180540dcde29cd7f1ea439614fd` to `main` by fast-forward (`b9192c6..7b099da`); ancestry checked before push; no scope change.
+- `main` = `7b099dac5e54a180540dcde29cd7f1ea439614fd`; containment re-verified after fetch.
+- Post-push CI: GitHub Actions run `37254679497` ("Test and deploy") — `completed` / `success`. Jobs: `test` success; `deploy-staging` skipped.
+- No deployment: `staging` unchanged at `69f68cafab6b3fb647523782ea560f900e9b86ac`; nothing deployed to staging or production.
+- Deleted only `phase-6-completion/trash-confirm-closeout` after the containment check.
+- Final remote branches (exactly three): `main` `7b099da`, `staging` `69f68ca`, `Project-work-instructions`.
+- No post-Phase-6 work started; awaiting Reviewer close of this bundle.
