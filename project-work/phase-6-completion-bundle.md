@@ -1,8 +1,8 @@
 # Phase 6 completion bundle — Trash confirmation + lifecycle regression closeout
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Phase 6 remainder (6.5 + 6.6)
-Actor: Builder
+Actor: Reviewer
 
 ## Goal
 
@@ -107,3 +107,52 @@ Push one exact topic SHA, update this same file to `AWAITING REVIEWER REVIEW`, a
 - `npm test`;
 - `npm run docs:check`;
 - explicit confirmation no post-Phase-6 or deployment work was included.
+
+## Builder handoff
+
+**Candidate:** `phase-6-completion/trash-confirm-closeout` @ `7b099dac5e54a180540dcde29cd7f1ea439614fd` — one commit on accepted `main` `b9192c6abd9deb04c0d1b24a87f70dd4ec99434f`.
+
+### Changed files
+
+- `resources/ts/service-station/drawer/useServiceDrawerController.ts` — `trashConfirm`/`trashError` state; footer `handleTrash` is now `requestTrash` (a persisted Service arms the dialog and sends nothing; `station.isNew` keeps the existing local discard-by-close); `cancelTrash`; `handleConfirmTrash` runs the lifecycle Trash once (in-flight ref guard against double click), closes the dialog only on success, otherwise shows an error. Handlers read the latest identity/lifecycle through a ref because the footer VNode is re-registered only on its gating inputs.
+- `resources/ts/service-station/drawer/useServiceLifecycle.ts` — `handleTrash` now resolves `true` only when the record left the surface (no behaviour change otherwise; success still closes via `closeBypassingGuard`).
+- `resources/ts/service-station/drawer/ServiceDrawerDialogs.tsx` — new "Move {title} to Trash?" dialog (`cz-publish-confirm*`, click-outside cancels, `role="alert"` error, buttons disabled while the Station is busy). Presentation calls only controller handlers.
+- `scripts/drawer-trash-confirm-regression.mjs` (new) + `package.json` `regression:drawer-trash-confirm`.
+- `scripts/drawer-module-entry-contract.ts` — pins Service `handleTrash: requestTrash` + dialog confirm wiring and Category `setConfirmDialog('trash')` + `handleConfirmDestructive` wiring.
+- Docs: `docs/roadmap.md` (6.4 accepted; 6.5/6.6 done, awaiting acceptance), `docs/code-map/lifecycle-system.md`, `drawer-system.md`, `service-station.md` (one sentence each), lifecycle contract §8 conformance bullet. Two-request Publish known gap preserved unchanged.
+
+### Trash confirm request-flow evidence
+
+`node scripts/drawer-trash-confirm-regression.mjs` — mounts the real `ServiceDrawerHost` and `CategoryDrawerHost`, fetch mock records every mutation. 26/26 checks pass:
+
+- Service footer Move to Trash → dialog open, 0 requests.
+- Cancel → dialog closed, 0 requests, drawer not closed.
+- Confirm (clicked twice) → exactly 1 `POST admin/services/911/status {"platform_status":"trashed"}`, drawer closed once; no Restore/Disable/Enable.
+- Trash 422 → 1 attempt, dialog stays open with alert, drawer not closed, record unchanged.
+- Local `new` → no dialog, drawer closed, 0 requests.
+- Category → arm sends 0; Cancel sends 0; Confirm sends exactly 1 `PATCH …/status {"platform_status":"trashed"}`, drawer closed once.
+
+Against the pre-fix source (source stashed, script kept) it fails: arming immediately sent the Trash write, Cancel was unreachable, and two Trash writes/closes occurred.
+
+### Phase 6 regression/contract evidence (all in `npm test`)
+
+- Trash confirmation (Service + Category): `regression:drawer-trash-confirm` (new); wiring pinned in `contract:drawer-module-entry`.
+- Restore → unmasked Pending, no `/status` write, never Publish/Disable/Enable: `regression:service-home-bin` (unchanged) and PHP `tests/service-lifecycle-mask.php`, `tests/category-pending-lifecycle.php`.
+- Publish settle-failure guard: `regression:publish-activation-guard` (unchanged).
+- Server-side illegal-transition 422s: PHP `tests/service-lifecycle-mask.php`, `tests/category-pending-lifecycle.php` (unchanged, run by `npm test`).
+- Bin and reachable-Category: `regression:service-home-bin`, `regression:service-home-connections`, `contract:service-home-connections` remain declared and run by `run-all.mjs`.
+
+### Checks (from `wp-content/plugins/qsd-platform/`)
+
+- `npm test` — exit 0 (typecheck, PHP tests, build, 22/22 JS contracts/regressions/snapshots, docs:check).
+- `npm run docs:check` — passed (41 Markdown files, 18 Code Maps).
+- Focused: `npm run regression:drawer-trash-confirm` passed; `npx tsx scripts/drawer-module-entry-contract.ts` passed.
+
+### Notes for Reviewer
+
+- The "Before you leave" exit prompt's Move to Trash (`useServiceExitFlow.handleNewSvcTrash`) is itself a confirmation dialog and was left unchanged.
+- File sizes: `useServiceDrawerController.ts` 269 lines, `ServiceDrawerDialogs.tsx` 212, new regression 271 — all under 600.
+
+### Exclusions confirmed
+
+No new Publish endpoint or transaction change; no lifecycle vocabulary, Restore/Disable/Enable, identity/storage/API changes; no backend change; no post-Phase-6 feature; no staging or production deployment. Project History not created.
