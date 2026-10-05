@@ -1,8 +1,8 @@
 # Settings foundation — configuration, Service Meta, Connections, Rezdy gate
 
-Status: BUILDER ACTION REQUIRED
+Status: DEFERRED
 Phase: Settings foundation
-Actor: Builder
+Actor: Reviewer
 
 ## Owner direction
 
@@ -117,3 +117,8 @@ Run from `wp-content/plugins/qsd-platform/`:
 - `npm run docs:check`
 
 Push one topic SHA, update this same file to `AWAITING REVIEWER REVIEW` with changed files, architecture decisions, tests, and any decision gates encountered, then stop.
+
+
+## Superseded coordination note
+
+This file is superseded by `project-work/settings-foundation-bundle.md`, opened later with the same scope plus stricter evidence and security/identity gates. Do not execute this file independently.
