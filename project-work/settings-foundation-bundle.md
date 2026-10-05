@@ -1,8 +1,8 @@
 # Settings foundation bundle — Settings Station + Connections/Security + configurable Meta schema
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Post-Phase-6 Settings foundation
-Actor: Builder
+Actor: Reviewer
 
 ## Owner direction
 
@@ -123,3 +123,106 @@ Push one exact topic SHA and update this file to `AWAITING REVIEWER REVIEW` with
 - tests/checks;
 - unresolved gates;
 - confirmation that Rezdy importer/mapping was not implemented without Owner input.
+
+## Builder handoff
+
+**Candidate:** `settings-foundation/settings-connections-meta` @ `17f47b563ee39726003197806bb539d7736e1365` — one commit on accepted `main` `7b099dac5e54a180540dcde29cd7f1ea439614fd`.
+
+### Active-file note
+
+Two files were opened with `Status: BUILDER ACTION REQUIRED`: `settings-foundation.md` (8b1a92e) and this `settings-foundation-bundle.md` (80fa03c, later). Same scope. I treated this later bundle as the single active file, applied the stricter stop conditions from `settings-foundation.md` (identity audit before minting, no destructive removal without a recovery rule, no generic connector abstraction beyond what Rezdy proves), and did not edit `settings-foundation.md`. Reviewer to close or supersede it.
+
+### Architecture/ownership decisions implemented
+
+- **Settings Station** = configuration authority: a real peer (`src/Modules/Settings/`, `resources/ts/settings-station/`) registered through Station Manager (nav `settings` order 90, destination, data source, kit; Admin places the binding). It has no domain record, no lifecycle, no drawer, and no Platform ID family. The data source is an honest empty collection, not a fabricated record. Separate from Service Home's `ServiceSettingsLane` (unchanged).
+- **Connections/Security** is provider-neutral. `ConnectionProviderDefinition` declares `text`/`select`/`secret` fields. `ConnectionStore` is the sole owner of the non-autoloaded `qsd_settings_connections` option. Secrets are accepted on PUT and never projected: secret fields return only `configured`. An empty secret keeps the stored value, `clear` removes it, and DELETE disconnects. `ConnectorCredentials` is the only server-side read path for Connectors. `ConnectionProviders` lists only Connectors with a real consumer (Rezdy). Stripe is not added because it has no consumer; adding it means one more definition, with no store/route change.
+- **Rezdy Connector seam:** environment (production/staging) + API key definition, plus `connectionState()` (configured, environment, base URL; never the key). No HTTP call, no mapping, no import.
+- **Service Meta schema** (Settings owns definitions only):
+  - Types: text, textarea, number, boolean, select, image, gallery, repeater. Sub-fields may be any non-repeater type, one level deep.
+  - Identity: three-rung audit puts definitions at rung 2 (scoped child of the schema), so no Platform ID is minted. Server-minted `fld_` + 10 characters for fields and sub-fields (unique schema-wide), and `opt_…` for select options. Client ids are ignored. Identity never derives from label, slug or order; order is presentation only.
+  - Non-destructive policy: no delete route; **retire/restore** keeps the definition and its id. Type is immutable. Existing option/sub-field ids cannot be dropped (422) but can be relabelled and reordered. Reorder must list every field id exactly once.
+  - No Service storage is touched. The value-side integration is documented in `docs/architecture/service-meta-schema-contract.md` (Draft): values keyed by field id, select values stored as option ids, and repeater rows/gallery entries carrying stable row ids minted at the Service write boundary. Values flow through Service draft → settle → projection, and `required` is enforced by Service once values exist.
+- **Access:** all routes use `qsd/v1/admin/settings/*` and are gated by `PlatformAccess::CAP` (`requireAdmin`). There is no public API expansion.
+
+### Changed files (43)
+
+- Backend (new): `src/Modules/Settings/{SettingsModule.php, CLAUDE.md}`, `Connections/{ConnectionProviderDefinition, ConnectionProviders, ConnectionStore, ConnectorCredentials}.php`, `Connectors/RezdyConnector.php`, `ServiceMeta/{ServiceMetaSchema, ServiceMetaSchemaException}.php`, `Http/{SettingsConnectionsController, ServiceMetaSchemaController}.php`. Modified: `src/Core/Plugin.php` (wires `SettingsModule`).
+- Frontend (new): `resources/ts/settings-station/{types, api, errorMessage, useSettingsConnections, useServiceMetaSchema, useSettingsHome, register, index}.ts`, `CLAUDE.md`, `presentation/{SettingsDeck, SettingsConnectionsLane, ServiceMetaSchemaLane, ServiceMetaFieldEditor}.tsx`.
+- Frontend (modified): `modules/admin-station.ts` (`registerSettingsStation()` after Service, before Admin), `admin-station/register.ts` (Settings Home binding), `admin-station/shell/icons.tsx` (`SettingsIcon`), `admin-station/styles/admin-station.css` (`cz-settings-*` deck/lane rules; controls still painted only by `cz-tf-*`).
+- Tests (new): `tests/settings-connections.php`, `tests/settings-service-meta-schema.php`, `scripts/settings-station-contract.ts`, `scripts/settings-home-regression.mjs`. Modified: `package.json` (`contract:settings-station`, `regression:settings-home`).
+- Docs: new `docs/code-map/settings-station.md` (indexed under Configuration), new `docs/architecture/service-meta-schema-contract.md` (Draft). Updated: `docs/roadmap.md`, `docs/ai-index.md`, `docs/code-map/station-manager.md` (boot order), `admin-station-navigation.md`, `station-tab-set.md`, and `skills/qsd-platform-architecture/references/domain-ownership-map.md` (Settings rows). `agents/openai.yaml` is unchanged because it lists no owners and the vocabulary is unchanged.
+
+### Settings registration evidence
+
+`contract:settings-station` (33 checks) runs the real Service → Settings → Admin registration and finalize, then confirms:
+- `settings` appears in header and menu after Services;
+- `resolveDestination('settings')` → station `settings`;
+- one presentation binding (`settings-deck` / `settings-home`) with no intents and no drawer, and the kit resolves to `SettingsDeck`;
+- the source returns an empty collection, and `resolveDrawerTemplate('settings') === null`;
+- default Home is still `services`.
+
+Source checks: no Settings file imports a Service peer; presentation imports no endpoint module; `register.ts` is imported only by the entry and is not in the barrel; the secret projection type has no value slot; `ServiceSettingsLane` is unchanged; the Settings backend has no `PlatformIdentifier` use; the schema touches no Service storage.
+
+### Connections/Security storage/projection evidence
+
+`tests/settings-connections.php` (26 checks, real controller/store/capability/connector):
+- every route is gated by `requireAdmin`, and users without `manage_qsd` are refused;
+- Rezdy is the only provider and starts `not_configured`;
+- after saving environment + API key, the save and list JSON never contain the secret, and the secret field has `configured:true` with no `value` key;
+- the option is stored with autoload `no`;
+- `ConnectorCredentials` returns the trimmed secret server-side, and `RezdyConnector::connectionState()` returns configured/staging/base URL without the key;
+- an empty secret keeps the stored key; `clear` → `incomplete`;
+- unknown provider → 404; secret-as-config, config-as-secret, out-of-options select value and unknown field → 422;
+- disconnect removes everything.
+
+`regression:settings-home` (29 checks, real `SettingsDeck` mounted):
+- a typed secret is sent once on save and the input clears afterwards;
+- the secret value never appears in rendered HTML, and a saved secret shows only a "Saved…" placeholder;
+- re-saving sends no secret; "Remove saved value" sends `clear:["api_key"]`;
+- Disconnect is armed with no request, Cancel sends nothing, and Confirm sends exactly one DELETE.
+
+### Meta schema identity/types/CRUD and deletion-policy evidence
+
+`tests/settings-service-meta-schema.php` (37 checks):
+- all 8 types are created with distinct server-minted `fld_` ids, and a client id is ignored;
+- options get distinct `opt_` ids, and sub-field ids are unique schema-wide;
+- rename keeps the id, and duplicate labels stay distinct identities;
+- reorder changes order only; reorders that are partial or repeat an id → 422;
+- option relabel/reorder keeps ids, new options are minted, and dropping or forging an option → 422;
+- sub-field reorder keeps ids; dropping a sub-field, changing a sub-field type or nesting a repeater → 422;
+- changing a field type → 422; unsupported type, empty label, a select without options, a repeater without sub-fields, or options on a non-select → 422;
+- retire keeps the definition and id, an edit cannot change status, and restore returns the same id to active;
+- unknown id → 404; there is no delete operation.
+
+`regression:settings-home` Service Meta checks:
+- Add field POSTs label/type/option labels with no client ids, and the row shows the server id;
+- on edit the type is disabled and existing options offer no Remove; saving PUTs by id with existing option ids;
+- move up POSTs `{ids:[…]}` and rows re-render in the new order with unchanged ids;
+- Retire is armed with no request and Confirm POSTs retire once; the row reads Retired and stays listed; Restore POSTs restore;
+- no delete request is ever sent.
+
+### Roadmap/Code Map changes
+
+- **Roadmap:** Phase 6 is marked done/accepted. A new "Next" section records Settings foundation → Connections/Security → Rezdy Connector seam → Service importer (blocked on Owner input) → Service Meta value module. Service Details, new Stations, the public read API and production deploy move to "Later". Descriptive Service details now arrive through Service Meta, not hard-coded Overview fields.
+- **Code Maps:** see Changed files. All maps are under 600 words, and `docs:check` passes (45 Markdown files, 19 Code Maps).
+
+### Tests/checks (from `wp-content/plugins/qsd-platform/`)
+
+- `npm test`: exit 0 (typecheck; PHP tests including both new files; build; **24/24** JS contracts/regressions/snapshots; docs:check).
+- `npm run docs:check`: passed.
+- Focused runs passed: `php tests/settings-connections.php`, `php tests/settings-service-meta-schema.php`, `npx tsx scripts/settings-station-contract.ts`, `node scripts/settings-home-regression.mjs`, `npm run contract:admin-station-css`.
+- Not performed: browser or real-WordPress runtime verification of the Settings screens or routes. Evidence is PHP with in-memory WordPress stubs plus happy-dom mounts.
+
+### Unresolved gates
+
+- **BLOCKED — DECISION REQUIRED: rotating request keys.** Short-lived, scoped, single-use rotating request keys need a security architecture decision (issuer, scope model, TTL, storage, replay protection). Only the provider-neutral `ConnectorCredentials` seam is built; Connectors read the stored long-lived credential server-side.
+- **DECISION REQUIRED: secret encryption at rest.** Secrets are stored as plain values in a non-autoloaded option, the WordPress norm. No cryptography was invented.
+- **DECISION REQUIRED: credential permission level.** Managing provider secrets uses the platform capability `manage_qsd`, the same as all admin routes. A stricter capability, e.g. `manage_options`, would be an Owner decision.
+- **DECISION REQUIRED: Service Meta field purge.** Permanent removal of a definition and its stored Service values needs an approved Service-value recovery rule. Retire/restore is implemented instead.
+- **Service Meta value module (next work, not started):** Service-side persistence, editor, publish-readiness enforcement and public projection, per the Draft contract.
+- **OWNER INPUT REQUIRED — obtain the Owner's pre-built Rezdy importer system before importer design continues.**
+
+### Confirmations
+
+- The Rezdy importer, product/service mapping and import flow were **not** designed or implemented. `RezdyConnector` is configuration and connection state only, with no HTTP calls.
+- No live Rezdy/Stripe calls or credentials; no new Platform ID family; no Service persistence moved into Settings/Admin/Station Manager; no public API expansion; no staging/production deployment; no Project History created.
