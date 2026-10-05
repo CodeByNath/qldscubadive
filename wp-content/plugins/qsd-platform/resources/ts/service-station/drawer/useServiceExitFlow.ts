@@ -89,8 +89,7 @@ export function useServiceExitFlow({
       const stillPending = isActive && newModuleStatus != null && (
         newModuleStatus.overview   === 'pending' ||
         newModuleStatus.inclusions === 'pending' ||
-        newModuleStatus.faqs       === 'pending' ||
-        newModuleStatus.elements   === 'pending'
+        newModuleStatus.faqs       === 'pending'
       );
       if (stillPending) {
         setExitDialog('pending');

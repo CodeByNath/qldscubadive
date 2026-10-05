@@ -3,8 +3,8 @@
 namespace QSD\Platform\Modules\Service\Support;
 
 /**
- * Service module lifecycle rules — the domain logic for the Service modules
- * (overview, inclusions, faqs, elements): mark a draft pending, settle a
+ * Service module lifecycle rules — the domain logic for the Service drawer's
+ * three modules (overview, inclusions, faqs): mark a draft pending, settle a
  * draft into canonical Active, derive module status on activation, and the
  * completeness gates each module settles against.
  *
@@ -94,17 +94,6 @@ final class ServiceModules
                 delete_post_meta($id, ServiceSchema::DRAFT_FAQS);
                 $meta['module_status']['faqs'] = self::isFaqsComplete($id) ? 'settled' : 'not-configured';
                 break;
-
-            case 'elements':
-                // The draft already carries every instance id; settling copies it
-                // verbatim, so Service-child identity survives draft → settle.
-                $draft = get_post_meta($id, ServiceSchema::DRAFT_ELEMENTS, true);
-                if (!is_array($draft)) break;
-
-                update_post_meta($id, ServiceSchema::META_ELEMENTS, ServiceElements::wrap(ServiceElements::listFrom($draft)));
-                delete_post_meta($id, ServiceSchema::DRAFT_ELEMENTS);
-                $meta['module_status']['elements'] = self::isElementsComplete($id) ? 'settled' : 'not-configured';
-                break;
         }
 
         update_post_meta($id, ServiceSchema::META_KEY, $meta);
@@ -126,9 +115,6 @@ final class ServiceModules
             'faqs'       => self::hasDraft($id, 'faqs')
                             ? 'pending'
                             : (self::isFaqsComplete($id)         ? 'settled' : 'not-configured'),
-            'elements'   => self::hasDraft($id, 'elements')
-                            ? 'pending'
-                            : (self::isElementsComplete($id)     ? 'settled' : 'not-configured'),
         ];
     }
 
@@ -140,7 +126,7 @@ final class ServiceModules
 
     /**
      * Publish readiness (Phase 6.3): the canonical Overview is complete and its
-     * module is settled. Optional child modules (Inclusions/FAQs/Elements) never gate it.
+     * module is settled. Optional child modules (Inclusions/FAQs) never gate it.
      */
     public static function isPublishReady(\WP_Post $post, array $meta): bool
     {
@@ -168,11 +154,6 @@ final class ServiceModules
             if (trim((string) ($inc['label'] ?? '')) === '') return false;
         }
         return true;
-    }
-
-    public static function isElementsComplete(int $id): bool
-    {
-        return ServiceElements::isComplete(ServiceElements::listFrom(get_post_meta($id, ServiceSchema::META_ELEMENTS, true)));
     }
 
     public static function isFaqsComplete(int $id): bool

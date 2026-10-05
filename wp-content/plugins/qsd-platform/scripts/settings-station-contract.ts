@@ -9,9 +9,9 @@
 //   2. Source boundaries — presentation never calls ./api; Settings imports no
 //      Service peer; register.ts is entry-only; the secret projection type has
 //      no value slot; Service Home's own Settings lane is untouched.
-//   3. Element and broker boundaries — Service reads definitions only through
-//      the Settings read capability; Settings never touches Service values;
-//      only the credential broker reads a decrypted secret.
+//   3. Security boundaries — only the credential broker reads a decrypted
+//      secret; secret mutation needs administrator authority; key rotation is
+//      shell-only; Settings exposes no Service Element surface.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -106,7 +106,7 @@ check(!phpModule.includes('PlatformIdentifier'), 'the Settings backend mints no 
 const schema = source('src/Modules/Settings/ServiceMeta/ServiceMetaSchema.php');
 check(!/get_post_meta|update_post_meta|qsd_service_/.test(schema), 'the Service Meta schema reads/writes no Service storage');
 
-// ── 3. Service Element and credential-broker boundaries ─────────────────────
+// ── 3. Credential broker and secret-authority boundaries ────────────────────
 
 function phpFiles(directory: string, acc: string[] = []): string[] {
   for (const entry of readdirSync(resolve(root, directory))) {
@@ -119,13 +119,8 @@ function phpFiles(directory: string, acc: string[] = []): string[] {
 const backend = phpFiles('src');
 const code = (path: string) => source(path).replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
 
-const serviceBackend = backend.filter((file) => file.startsWith('src/Modules/Service/'));
-check(serviceBackend.every((file) => !/ServiceMetaSchema\b/.test(code(file))), 'Service backend never touches ServiceMetaSchema — it reads definitions only through ServiceElementDefinitions');
-check(serviceBackend.some((file) => code(file).includes('ServiceElementDefinitions')), 'Service backend consumes the Settings read capability');
-const definitionsCapability = code('src/Modules/Settings/ServiceMeta/ServiceElementDefinitions.php');
-check(!/->(create|update|reorder|retire|restore)\(/.test(definitionsCapability), 'the read capability exposes no schema mutation');
 const settingsBackend = backend.filter((file) => file.startsWith('src/Modules/Settings/'));
-check(settingsBackend.every((file) => !/qsd_service_elements|META_ELEMENTS|post_meta/.test(code(file))), 'no Settings code reads or writes Service Element values');
+check(settingsBackend.every((file) => !/ServiceElement|qsd_service_elements|post_meta/.test(code(file))), 'Settings exposes no Service Element surface and touches no Service values (deferred to the Service Manager phase)');
 
 check(backend.filter((file) => /ConnectorCredentials\b/.test(code(file))).every((file) => file.startsWith('src/Modules/Settings/')), 'ConnectorCredentials is never handed to code outside Settings');
 const secretReaders = backend.filter((file) => /->secret\(/.test(code(file)));
@@ -135,7 +130,12 @@ check(brokerFiles.every((file) => !code(file).includes('PlatformIdentifier')), '
 check(/\[\],\s*\);/.test(code('src/Modules/Settings/Connectors/RezdyConnector.php')) && !/BrokeredProviderOperation/.test(code('src/Modules/Settings/Connectors/RezdyConnector.php')), 'Rezdy declares no brokered scope or operation before the Owner importer review');
 check(!/new \w+Operation\(|BrokeredProviderOperation/.test(code('src/Modules/Settings/SettingsModule.php')), 'Settings wires no brokered provider operation yet');
 
-const serviceFrontend = sourceFiles('resources/ts/service-station');
-check(serviceFrontend.every((file) => !source(file).includes('settings-station')), 'the Service frontend reads Element definitions from its own route, never from the Settings peer');
+const connectionsController = code('src/Modules/Settings/Http/SettingsConnectionsController.php');
+check(/'PUT',[\s\S]*?'permission_callback' => \[\$this, 'requireSaveAuthority'\]/.test(connectionsController)
+  && /'DELETE',[\s\S]*?'permission_callback' => \[\$this, 'requireSecretAuthority'\]/.test(connectionsController), 'secret-changing routes are gated by secret authority, not the bare platform capability');
+check(/const CAP = 'manage_options'/.test(code('src/Modules/Settings/Security/CredentialAuthority.php')), 'secret authority is the existing administrator capability, with no new role or capability family');
+check(backend.every((file) => !/add_role|add_cap\(/.test(code(file)) || file === 'src/Core/PlatformAccess.php'), 'no role or capability is created outside PlatformAccess');
+check(backend.filter((file) => /CredentialRotation\b/.test(code(file))).every((file) => !/register_rest_route/.test(code(file))), 'key rotation has no REST route');
+check(/WP_CLI::add_command\('qsd credentials', CredentialRotationCommand::class\)/.test(code('src/Modules/Settings/SettingsModule.php')), 'key rotation is registered only as a WP-CLI command');
 
 console.log(`Settings Station contract passed: ${checks} checks.`);

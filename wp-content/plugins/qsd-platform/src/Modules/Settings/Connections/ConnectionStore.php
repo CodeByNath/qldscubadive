@@ -8,8 +8,8 @@ namespace QSD\Platform\Modules\Settings\Connections;
  * Storage: one non-autoloaded option, keyed by provider:
  *   [provider => ['config' => [field => string], 'secrets' => [field => envelope], 'updated_at' => ISO-8601]]
  *
- * Only ConnectorCredentials and the Settings Connections controller use this
- * class. Nothing else reads the option, and no REST response ever carries
+ * Only ConnectorCredentials, the Settings Connections controller and
+ * Security\CredentialRotation use this class. Nothing else reads the option, and no REST response ever carries
  * `secrets`.
  *
  * Every secret is stored as a Security\CredentialCipher envelope (encrypted at
@@ -39,6 +39,32 @@ final class ConnectionStore
             'secrets'    => $record['secrets'],
             'updated_at' => gmdate('c'),
         ];
+        $this->persist($all);
+    }
+
+    /** @return list<string> every provider with a stored record */
+    public function providers(): array
+    {
+        return array_map('strval', array_keys($this->all()));
+    }
+
+    /**
+     * Replaces the named secret envelopes in one write (key rotation). Config,
+     * other secrets and `updated_at` are left as they are.
+     *
+     * @param array<string, array<string, mixed>> $secretsByProvider provider => [field => envelope]
+     */
+    public function replaceSecrets(array $secretsByProvider): void
+    {
+        $all = $this->all();
+        foreach ($secretsByProvider as $provider => $secrets) {
+            if (!is_array($all[$provider] ?? null)) {
+                continue;
+            }
+            foreach ($secrets as $field => $envelope) {
+                $all[$provider]['secrets'][$field] = $envelope;
+            }
+        }
         $this->persist($all);
     }
 

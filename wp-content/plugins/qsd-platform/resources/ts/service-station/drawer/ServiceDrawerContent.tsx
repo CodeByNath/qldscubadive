@@ -17,7 +17,7 @@ import { useEffect } from 'preact/hooks';
 import { EntityDrawer } from '@/drawer-kit/EntityDrawer';
 import type { EntityDrawerEditingModule } from '@/drawer-kit/EntityDrawer';
 import { SERVICE_ENTITY } from './schema/entities/service';
-import type { OverviewDraft, InclusionsDraft, FaqsDraft, ElementsDraft } from '@/service-station';
+import type { OverviewDraft, InclusionsDraft, FaqsDraft } from '@/service-station';
 import { useServiceDrawerController } from './useServiceDrawerController';
 import { ServiceDrawerFooter } from './ServiceDrawerFooter';
 import { ServiceDrawerDialogs } from './ServiceDrawerDialogs';
@@ -70,19 +70,6 @@ export function ServiceDrawerContent(props: ServiceDrawerContentProps) {
         saveErr: c.saveErr,
         isDirty: c.isEditorDirty,
       },
-    } : c.editingSection === 'elements' && c.elementsDraft ? {
-      module: 'elements',
-      session: {
-        draft: c.elementsDraft,
-        patch: (patch) => c.setElementsDraft((current) => current ? { ...current, ...(patch as Partial<ElementsDraft>) } : current),
-        replace: (next) => c.setElementsDraft(next as ElementsDraft),
-        onSave: c.handleSaveElements,
-        onCancel: c.handleCancelEdit,
-        saving: c.saving,
-        saveErr: c.saveErr,
-        isDirty: c.isEditorDirty,
-        extras: { definitions: c.elementDefinitions },
-      },
     } : null;
 
   // Publish the record-level footer into the host's footer region. Re-runs on
@@ -121,7 +108,6 @@ export function ServiceDrawerContent(props: ServiceDrawerContentProps) {
           overview:   c.overviewShellBinding,
           inclusions: c.inclusionsShellBinding,
           faqs:       c.faqsShellBinding,
-          elements:   c.elementsShellBinding,
         }}
         openPanel={c.openPanel}
         onTogglePanel={c.togglePanel}

@@ -1,8 +1,8 @@
 // Service shell bindings (Schema architecture S2).
 //
 // Per-module configuration of the two shell archetypes for the Service
-// station: Overview = overview archetype; Included Features, Common
-// Questions and Service Elements = child archetype. Everything here is presentation — data
+// station: Overview = overview archetype; Included Features and Common
+// Questions = child archetype. Everything here is presentation — data
 // shapes, copy, footer intent, editor binding. Behaviour (status, notes,
 // handlers) arrives at render time through ShellBinding, assembled by the
 // Service drawer step from useServiceStation.
@@ -16,13 +16,11 @@ import {
   overviewModule,
   inclusionsModule,
   faqsModule,
-  elementsModule,
 } from '@/drawer-kit/utils/moduleNotifications';
 import { ServiceOverviewEditor } from '../../editors/ServiceOverviewEditor';
 import { ServiceInclusionsEditor } from '../../editors/ServiceInclusionsEditor';
 import { ServiceFaqsEditor } from '../../editors/ServiceFaqsEditor';
-import { ServiceElementsEditor } from '../../editors/ServiceElementsEditor';
-import type { OverviewDraft, InclusionsDraft, FaqsDraft, ElementsDraft, ServiceElementDefinition } from '@/service-station';
+import type { OverviewDraft, InclusionsDraft, FaqsDraft } from '@/service-station';
 import type { ShellActionSchema, ShellBinding, ShellSchema } from '@/drawer-kit/schema/types';
 import { decodeHtml } from '@/utils/format';
 import type {
@@ -35,7 +33,7 @@ import type {
 } from '@/drawer-kit/schema/elements/library';
 
 // The canonical owning-workspace footer: Discard Draft (only while a module
-// draft exists) then Edit. Shared by every Service module shell.
+// draft exists) then Edit. Shared by all three Service module shells.
 // `view` serves the read-only viewpoints (the connections View-only footer is
 // renderer-encoded; it resolves this action).
 const DETAILS_ACTIONS: Record<string, ShellActionSchema> = {
@@ -245,51 +243,6 @@ export const serviceFaqsShell: ShellSchema<ServiceFaqsShellData> = {
     render: (s) => (
       <ServiceFaqsEditor
         draft={s.draft as FaqsDraft}
-        onChange={(next) => s.replace(next)}
-      />
-    ),
-  },
-};
-
-// ── Service Elements ──────────────────────────────────────────────────────────
-// Read view: one line per active top-level Element, keyed by its own
-// Service-child id. Definitions are Settings-owned and arrive as extras.
-
-export interface ServiceElementsShellData {
-  lines:        Array<{ id: string; label: string }>;
-  serviceTitle: string;   // parent identity, for the empty-state copy
-}
-
-export const serviceElementsShell: ShellSchema<ServiceElementsShellData> = {
-  archetype: 'child',
-  dna:       elementsModule,
-  header: {
-    title:       'Service Elements',
-    subtitle:    'Descriptive details, from the fields defined in Settings.',
-    icon:        'elements',
-    iconVariant: 'drawerModule__icon--elements',
-  },
-  content: [
-    {
-      id: 'elements', element: 'item-collection',
-      bind: (d): ItemCollectionValue => ({
-        items: d.lines,
-        empty: {
-          title: 'No elements',
-          copy: d.serviceTitle
-            ? `Add descriptive elements to the ${d.serviceTitle}.`
-            : 'Add descriptive elements to this service.',
-        },
-      }),
-    },
-  ],
-  footer:  DETAILS_FOOTER,
-  actions: DETAILS_ACTIONS,
-  editor: {
-    render: (s) => (
-      <ServiceElementsEditor
-        draft={s.draft as ElementsDraft}
-        definitions={(s.extras?.definitions ?? []) as ServiceElementDefinition[]}
         onChange={(next) => s.replace(next)}
       />
     ),

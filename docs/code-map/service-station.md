@@ -6,8 +6,8 @@ Drawer Lifecycle Contract](../architecture/StationDrawerLifecycleContract-v1.md)
 ## Purpose and authority
 
 Service Station owns `qsd_service` posts, Category relationships, meta/drafts,
-inclusion/FAQ pools, Service Element instances ([Service Elements](service-elements.md)),
-lifecycle, endpoints, client state, catalogue presentation, and drawer editing.
+inclusion/FAQ pools, lifecycle, endpoints, client state, catalogue presentation,
+and drawer editing.
 
 The Service record carries no price, tier, or availability. Those arrive later
 as their own Service modules (following the Inclusions/FAQs pattern) or as their
@@ -59,8 +59,8 @@ Disable/Enable use `/status` with `action: disable|enable`; they never settle, a
 
 ## Contract baseline
 
-[service-route-baseline.php](../../wp-content/plugins/qsd-platform/tests/service-route-baseline.php) snapshots the 28 Service and Category route registrations (paths, methods, permissions, arguments), not handler bodies or runtime behaviour. Regenerate it with `php tests/service-route-baseline.php --update` only for an intended route change, and review the fixture diff.
+[service-route-baseline.php](../../wp-content/plugins/qsd-platform/tests/service-route-baseline.php) snapshots the 26 Service and Category route registrations (paths, methods, permissions, arguments), not handler bodies or runtime behaviour. Regenerate it with `php tests/service-route-baseline.php --update` only for an intended route change, and review the fixture diff.
 
 ## Related Code Maps
 
-[Station Manager](station-manager.md), [Service Elements](service-elements.md), [Service Catalogue](service-catalogue.md), [Service Connections](service-connections.md), [Lifecycle](lifecycle-system.md), and [Drawer System](drawer-system.md).
+[Station Manager](station-manager.md), [Service Catalogue](service-catalogue.md), [Service Connections](service-connections.md), [Lifecycle](lifecycle-system.md), and [Drawer System](drawer-system.md).

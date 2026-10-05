@@ -39,9 +39,6 @@ export function ServiceDrawerDialogs({ c }: { c: ServiceDrawerController }) {
                   <li style={c.faqsSummary.orange ? 'color:var(--admin-warning);font-weight:600' : undefined}>
                     <strong>Common Questions:</strong> {c.faqsSummary.text}
                   </li>
-                  <li style={c.elementsSummary.orange ? 'color:var(--admin-warning);font-weight:600' : undefined}>
-                    <strong>Service Elements:</strong> {c.elementsSummary.text}
-                  </li>
                 </ul>
               )}
             </div>

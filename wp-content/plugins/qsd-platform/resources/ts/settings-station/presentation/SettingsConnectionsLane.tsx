@@ -3,7 +3,9 @@
 // Non-secret configuration is shown and edited in place. A secret is a
 // write-only input: it starts empty, a saved secret reads only "Saved", and
 // the typed value is cleared from local state as soon as the save succeeds.
-// Disconnect is armed in place with useInlineConfirm (contract §11).
+// Disconnect is armed in place with useInlineConfirm (contract §11). Only an
+// administrator may change a secret or disconnect; for anyone else secret
+// inputs are read-only and Disconnect is not offered (the server refuses too).
 
 import { useState } from 'preact/hooks';
 import type { VNode } from 'preact';
@@ -40,6 +42,7 @@ function ConnectionCard({ connection, tools, confirm }: {
   const busy = tools.busyProvider === connection.provider;
   const error = tools.actionError?.provider === connection.provider ? tools.actionError.message : null;
   const armed = confirm.pendingId === connection.provider;
+  const secretsLocked = !tools.canManageSecrets;
 
   const handleSave = async () => {
     const typed = Object.fromEntries(Object.entries(secrets).filter(([, value]) => value.trim() !== ''));
@@ -79,12 +82,13 @@ function ConnectionCard({ connection, tools, confirm }: {
               ) : (
                 <>
                   <input id={id} type="password" autocomplete="new-password" class="cz-tf-control cz-tf-input"
-                    value={secrets[field.key] ?? ''} disabled={busy || clear.includes(field.key)}
+                    value={secrets[field.key] ?? ''} disabled={busy || secretsLocked || clear.includes(field.key)}
                     placeholder={clear.includes(field.key) ? 'Will be removed on save' : field.configured ? 'Saved — enter a new value to replace' : 'Not set'}
                     onInput={(e) => setSecrets((prev) => ({ ...prev, [field.key]: (e.target as HTMLInputElement).value }))} />
                   <span class="cz-tf-hint">
                     {field.configured ? 'Saved. The stored value is never shown again.' : 'Stored server-side and never shown again.'}
-                    {field.configured && (
+                    {secretsLocked && ' Only a site administrator can change it.'}
+                    {field.configured && !secretsLocked && (
                       <button type="button" class="cz-settings-link" disabled={busy}
                         onClick={() => setClear((prev) => (prev.includes(field.key) ? prev.filter((k) => k !== field.key) : [...prev, field.key]))}>
                         {clear.includes(field.key) ? 'Keep saved value' : 'Remove saved value'}
@@ -109,7 +113,7 @@ function ConnectionCard({ connection, tools, confirm }: {
           </span>
         ) : (
           <>
-            {connection.state !== 'not_configured' && (
+            {connection.state !== 'not_configured' && !secretsLocked && (
               <button type="button" class="cz-settings-button" onClick={() => confirm.request(connection.provider)} disabled={busy}>Disconnect</button>
             )}
             <button type="button" class="cz-settings-button cz-settings-button--primary" onClick={handleSave} disabled={busy}>

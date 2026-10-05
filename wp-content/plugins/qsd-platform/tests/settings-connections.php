@@ -5,11 +5,16 @@ declare(strict_types=1);
 // Runs the real Settings Connections controller, store, credential capability
 // and Rezdy connector seam against an in-memory option boundary. Proves the
 // secret contract: a secret enters on save, is readable server-side through
-// ConnectorCredentials only, and never appears in any REST projection.
+// ConnectorCredentials only, and never appears in any REST projection, and
+// that changing a secret needs administrator authority (manage_options).
 
 $__settingsOptions = [];
 $__routes = [];
-$__canManage = true;
+// The current user's capabilities. An administrator also holds manage_qsd
+// (PlatformAccess grants it); a business platform manager holds only manage_qsd.
+const ADMINISTRATOR = ['manage_qsd', 'manage_options'];
+const PLATFORM_MANAGER = ['manage_qsd'];
+$__caps = ADMINISTRATOR;
 
 function sanitize_text_field(mixed $value): string { return trim(strip_tags((string) $value)); }
 function add_action(string $hook, callable $callback): void {}
@@ -18,7 +23,7 @@ function register_rest_route(string $namespace, string $route, array $args): boo
     $__routes[$route] = $args;
     return true;
 }
-function current_user_can(string $cap): bool { global $__canManage; return $__canManage && $cap === 'manage_qsd'; }
+function current_user_can(string $cap): bool { global $__caps; return in_array($cap, $__caps, true); }
 function add_option(string $key, mixed $value, string $deprecated = '', string|bool $autoload = 'yes'): bool {
     global $__settingsOptions;
     if (array_key_exists($key, $__settingsOptions)) return false;
@@ -80,16 +85,41 @@ $encoded = static fn(WP_REST_Response $response): string => json_encode($respons
 echo "Settings Connections\n";
 
 check_settings(isset($__routes['/admin/settings/connections']) && isset($__routes['/admin/settings/connections/(?P<provider>[a-z0-9-]+)']), 'list and per-provider routes are registered');
+$gates = [];
 foreach ($__routes as $route => $args) {
     $endpoints = isset($args['methods']) ? [$args] : $args;
     foreach ($endpoints as $endpoint) {
-        check_settings(($endpoint['permission_callback'] ?? null) === [$controller, 'requireAdmin'], "{$route} {$endpoint['methods']} is gated by requireAdmin");
+        $gates[$endpoint['methods']] = $endpoint['permission_callback'] ?? null;
     }
 }
+check_settings($gates === [
+    'GET'    => [$controller, 'requireAdmin'],
+    'PUT'    => [$controller, 'requireSaveAuthority'],
+    'DELETE' => [$controller, 'requireSecretAuthority'],
+], 'GET is gated by requireAdmin, PUT by requireSaveAuthority, DELETE by requireSecretAuthority');
 check_settings($controller->requireAdmin() === true, 'a manage_qsd user passes the gate');
-$__canManage = false;
+$__caps = [];
 check_settings($controller->requireAdmin() === false, 'a user without manage_qsd is refused');
-$__canManage = true;
+
+// ── Secret authority: administrator only ─────────────────────────────────
+$put = static fn(array $params): WP_REST_Request => new WP_REST_Request(['provider' => 'rezdy'] + $params);
+$__caps = PLATFORM_MANAGER;
+check_settings($controller->requireAdmin() === true, 'a platform manager may read safe connection state');
+check_settings($controller->requireSaveAuthority($put(['values' => ['environment' => 'staging']])) === true, 'a platform manager may save non-secret configuration');
+check_settings($controller->requireSaveAuthority($put(['values' => ['environment' => 'staging'], 'secrets' => ['api_key' => '']])) === true, 'an empty secret (keep the stored value) is not a secret change');
+check_settings($controller->requireSaveAuthority($put(['secrets' => ['api_key' => SECRET]])) === false, 'a platform manager may not set a secret');
+check_settings($controller->requireSaveAuthority($put(['values' => ['environment' => 'staging'], 'secrets' => ['api_key' => SECRET]])) === false, 'a secret hidden beside configuration is still refused');
+check_settings($controller->requireSaveAuthority($put(['secrets' => ['api_key' => ['nested']]])) === false, 'a malformed secret value is treated as a secret change');
+check_settings($controller->requireSaveAuthority($put(['clear' => ['api_key']])) === false, 'a platform manager may not clear a secret');
+check_settings($controller->requireSecretAuthority() === false, 'a platform manager may not disconnect');
+check_settings($controller->listConnections(new WP_REST_Request())->get_data()['permissions'] === ['manage_secrets' => false], 'the list tells a platform manager they cannot manage secrets');
+$__caps = ['manage_options'];
+check_settings($controller->requireSaveAuthority($put(['secrets' => ['api_key' => SECRET]])) === false && $controller->requireSecretAuthority() === false, 'manage_options without manage_qsd still fails the platform gate');
+$__caps = ADMINISTRATOR;
+check_settings($controller->requireSaveAuthority($put(['secrets' => ['api_key' => SECRET]])) === true, 'an administrator may set a secret');
+check_settings($controller->requireSaveAuthority($put(['clear' => ['api_key']])) === true, 'an administrator may clear a secret');
+check_settings($controller->requireSecretAuthority() === true, 'an administrator may disconnect');
+check_settings($controller->listConnections(new WP_REST_Request())->get_data()['permissions'] === ['manage_secrets' => true], 'the list tells an administrator they can manage secrets');
 
 $list = $controller->listConnections(new WP_REST_Request());
 $rezdyRow = $list->get_data()['connections'][0] ?? [];

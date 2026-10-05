@@ -52,12 +52,20 @@ function toWireDraft(draft: Partial<ServiceMetaFieldDraft>): Record<string, unkn
   return subFields ? { ...rest, sub_fields: subFields } : rest;
 }
 
-/** `encryptionAvailable` is null when the server did not say (older responses). */
-export async function fetchConnections(): Promise<{ connections: ConnectionProjection[]; encryptionAvailable: boolean | null }> {
-  const response = await apiClient.get<{ connections: WireConnection[]; encryption?: { available: boolean } }>('admin/settings/connections');
+/**
+ * `encryptionAvailable` is null when the server did not say (older responses).
+ * `canManageSecrets` is true only when the server says so; the server enforces it either way.
+ */
+export async function fetchConnections(): Promise<{ connections: ConnectionProjection[]; encryptionAvailable: boolean | null; canManageSecrets: boolean }> {
+  const response = await apiClient.get<{
+    connections: WireConnection[];
+    encryption?: { available: boolean };
+    permissions?: { manage_secrets: boolean };
+  }>('admin/settings/connections');
   return {
     connections:         response.connections.map(toConnection),
     encryptionAvailable: typeof response.encryption?.available === 'boolean' ? response.encryption.available : null,
+    canManageSecrets:    response.permissions?.manage_secrets === true,
   };
 }
 

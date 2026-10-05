@@ -17,7 +17,6 @@
  *   CATALOGUE   list/Home summary data
  *   DETAIL      single-service read
  *   POOLS       the Service-owned inclusion/FAQ item shapes
- *   ELEMENTS    Service Element instances and the definitions they reference
  *   DRAFTS      pending edit state
  *   MODULE I/O  per-module draft save payloads and responses
  *   SETTLE      settle/revert responses
@@ -88,9 +87,6 @@ export interface ServiceDetail {
   previous_platform_status: string;
   module_status:   Record<string, string>;
   drafts:          ServiceModuleDrafts;
-  // Settled Service Element instances. Optional only so older fixtures and
-  // the catalogue-seeded detail stay valid; the detail route always sends it.
-  elements?:       ServiceElement[];
 }
 
 // ── POOLS: Service-owned item shapes ─────────────────────────────────────────
@@ -106,55 +102,6 @@ export interface ServiceFaqItem {
   answer: string;
 }
 
-// ── ELEMENTS: Service Element composition ────────────────────────────────────
-//
-// Settings owns Element DEFINITIONS (what an Element is); Service owns every
-// INSTANCE. An instance's durable address is the owning Service's `QSDS` plus
-// its own Service-child `id` — `el_…` for an Element (top level or inside a
-// Group/Repeater row), `row_…` for a Repeater row, `ent_…` for a gallery entry.
-// Ids are minted by the server on first save: a new instance is sent WITHOUT
-// an id, and nothing is ever matched by position or label. An omitted
-// instance is kept server-side as `detached`; sending it back `active`
-// restores it.
-
-export type ServiceElementType =
-  'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'image' | 'gallery' | 'group' | 'repeater';
-
-export type ServiceElementStatus = 'active' | 'detached';
-
-export interface ServiceElementDefinition {
-  id:          string;   // Settings `fld_…` — never an instance id
-  label:       string;
-  type:        ServiceElementType;
-  help:        string;
-  required:    boolean;
-  status:      'active' | 'retired';
-  options?:    Array<{ id: string; label: string }>;
-  sub_fields?: ServiceElementDefinition[];
-}
-
-export interface ServiceGalleryEntry {
-  id?:        string;
-  status:     ServiceElementStatus;
-  attachment: number;
-}
-
-export interface ServiceElementRow {
-  id?:      string;
-  status:   ServiceElementStatus;
-  children: ServiceElement[];
-}
-
-export interface ServiceElement {
-  id?:           string;   // absent only on a not-yet-saved instance
-  definition_id: string;
-  status:        ServiceElementStatus;
-  value?:        string | number | boolean | null;
-  entries?:      ServiceGalleryEntry[];
-  children?:     ServiceElement[];
-  rows?:         ServiceElementRow[];
-}
-
 // ── DRAFTS: pending edit state ───────────────────────────────────────────────
 
 export interface OverviewDraftData {
@@ -168,7 +115,6 @@ export interface ServiceModuleDrafts {
   overview:   OverviewDraftData | null;
   inclusions: ServiceInclusionItem[] | null;
   faqs:       ServiceFaqItem[] | null;
-  elements?:  ServiceElement[] | null;
 }
 
 // ── EDIT DRAFTS: the shapes the editors hold while a module is being edited ───
@@ -209,10 +155,6 @@ export interface FaqsDraft {
   items: FaqDraftItem[];
 }
 
-export interface ElementsDraft {
-  items: ServiceElement[];
-}
-
 // ── MODULE I/O: per-module draft saves ───────────────────────────────────────
 
 export interface ServiceOverviewPayload {
@@ -248,27 +190,6 @@ export interface ServiceFaqsResponse {
   module_status: Record<string, string>;
 }
 
-export interface ServiceElementsPayload {
-  elements: ServiceElement[];
-}
-
-export interface ServiceElementsResponse {
-  success:       boolean;
-  elements:      ServiceElement[];
-  module_status: Record<string, string>;
-}
-
-/** GET /admin/services/{id}/elements — instances plus the definitions they reference. */
-export interface ServiceElementsRead {
-  success:       boolean;
-  id:            number;
-  platformId:    string;
-  elements:      ServiceElement[];
-  draft:         ServiceElement[] | null;
-  definitions:   ServiceElementDefinition[];
-  module_status: Record<string, string>;
-}
-
 // ── SETTLE: settle / revert ──────────────────────────────────────────────────
 
 // B3 — non-blocking pool-settle guard entry: a pool item the settle removed
@@ -286,7 +207,6 @@ export interface ModuleSettleResponse {
   service:       { id: number; platformId: string; title: string; excerpt: string; content: string; categories: Array<{ id: number; name: string; slug: string }> };
   inclusions:    ServiceInclusionItem[];
   faqs:          ServiceFaqItem[];
-  elements?:     ServiceElement[];
   // Present only when the settle orphaned still-referenced pool items.
   pool_warnings?: PoolSettleWarning[];
 }

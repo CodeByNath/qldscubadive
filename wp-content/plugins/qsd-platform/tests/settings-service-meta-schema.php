@@ -124,17 +124,6 @@ check_meta($update($repeaterId, ['sub_fields' => [$subs[0]]])->get_status() === 
 check_meta($update($repeaterId, ['sub_fields' => [['id' => $subs[0]['id'], 'label' => 'Time', 'type' => 'number'], $subs[1], $subs[2], $moreSubs['sub_fields'][3]]])->get_status() === 422, 'changing a sub-field type is refused');
 check_meta($create(['label' => 'Nested', 'type' => 'repeater', 'sub_fields' => [['label' => 'Inner', 'type' => 'repeater']]])->get_status() === 422, 'a repeater cannot nest a repeater');
 
-// ── Group: a container carrying one set of child Element definitions ─────
-$group = $create(['label' => 'Dive profile', 'type' => 'group', 'sub_fields' => [
-    ['label' => 'Site', 'type' => 'text'],
-    ['label' => 'Bottom time', 'type' => 'number'],
-]]);
-check_meta($group->get_status() === 201 && count($group->get_data()['field']['sub_fields']) === 2, 'a group field is created with its sub-fields');
-check_meta(array_filter(array_column($group->get_data()['field']['sub_fields'], 'id'), static fn($id) => !str_starts_with($id, 'fld_')) === [], 'group sub-fields get their own fld_ ids');
-check_meta($create(['label' => 'Empty group', 'type' => 'group'])->get_status() === 422, 'a group needs a sub-field');
-check_meta($create(['label' => 'Deep', 'type' => 'group', 'sub_fields' => [['label' => 'Inner', 'type' => 'group']]])->get_status() === 422, 'a group cannot nest a container');
-check_meta($create(['label' => 'Deep rows', 'type' => 'repeater', 'sub_fields' => [['label' => 'Inner', 'type' => 'group']]])->get_status() === 422, 'a repeater cannot nest a group');
-
 // ── Type and shape rules ─────────────────────────────────────────────────
 check_meta($update($made['number']['id'], ['type' => 'text'])->get_status() === 422, 'a field type cannot change');
 check_meta($create(['label' => 'Bad', 'type' => 'wysiwyg-scuba'])->get_status() === 422, 'an unsupported type is refused');

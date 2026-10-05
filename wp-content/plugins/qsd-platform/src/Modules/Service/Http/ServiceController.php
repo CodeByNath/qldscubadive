@@ -6,7 +6,6 @@
  * SERVICE_ROUTES           The qsd_service REST route registrations
  * CATALOGUE_HANDLERS       List, create, detail
  * DRAFT_HANDLERS           Overview/inclusions/faqs draft saves
- * ELEMENT_HANDLERS         Service Element read + draft save (Support\ServiceElements)
  * SETTLE_HANDLERS          Per-module settle, bulk settle, revert
  * LIFECYCLE_HANDLERS       Status, restore, permanent delete
  * POOL_HANDLERS            Immediate canonical inclusion/FAQ pool creation
@@ -20,10 +19,6 @@
  * pool write path is Support\ServicePools.
  *
  * Search: SECTION: SERVICE_ROUTES ... SECTION: MODULE_HELPERS
- *
- * Service Element instances (identity, merge, validation against Settings'
- * read-only definitions) live in Support\ServiceElements; this controller
- * only routes them through the same draft → settle path as every module.
  *
  * OWNERSHIP
  * This is the single backend owner of the qsd_service entity: its lifecycle, its
@@ -46,8 +41,6 @@ namespace QSD\Platform\Modules\Service\Http;
 
 use QSD\Platform\Modules\Admin\Support\CategoryMeta;
 use QSD\Platform\Modules\Admin\Support\StationLifecycle;
-use QSD\Platform\Modules\Service\Support\ServiceElementException;
-use QSD\Platform\Modules\Service\Support\ServiceElements;
 use QSD\Platform\Modules\Service\Support\ServiceModules;
 use QSD\Platform\Modules\Service\Support\ServicePools;
 use QSD\Platform\Modules\Service\Support\ServiceSchema;
@@ -58,10 +51,7 @@ use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 class ServiceController
 {
-    public function __construct(
-        private PlatformIdentifierStation $platformIdentifiers,
-        private ServiceElements $elements,
-    ) {}
+    public function __construct(private PlatformIdentifierStation $platformIdentifiers) {}
 
     public function register(): void
     {
@@ -129,23 +119,8 @@ class ServiceController
             'args'                => ServiceSchema::updateFaqsArgs(),
         ]);
 
-        // ── Service Elements (read + draft save) ──────────────────────────────
-        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/elements', [
-            'methods'             => 'GET',
-            'callback'            => [$this, 'fetchElements'],
-            'permission_callback' => [$this, 'requireAdmin'],
-            'args'                => ServiceSchema::identity(),
-        ]);
-
-        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/elements', [
-            'methods'             => 'POST',
-            'callback'            => [$this, 'updateElements'],
-            'permission_callback' => [$this, 'requireAdmin'],
-            'args'                => ServiceSchema::updateElementsArgs(),
-        ]);
-
         // ── Per-module settle (atomic primary) ────────────────────────────────
-        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/(?P<module>overview|inclusions|faqs|elements)/settle', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/(?P<module>overview|inclusions|faqs)/settle', [
             'methods'             => 'POST',
             'callback'            => [$this, 'settleModuleRoute'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -161,7 +136,7 @@ class ServiceController
         ]);
 
         // ── Per-module revert ─────────────────────────────────────────────────
-        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/(?P<module>overview|inclusions|faqs|elements)/revert', [
+        register_rest_route('qsd/v1', '/admin/services/(?P<id>\d+)/(?P<module>overview|inclusions|faqs)/revert', [
             'methods'             => 'POST',
             'callback'            => [$this, 'revertModule'],
             'permission_callback' => [$this, 'requireAdmin'],
@@ -316,8 +291,7 @@ class ServiceController
                 'module_status'            => $meta['module_status'] ?? ServiceSchema::defaultModuleStatus(),
                 'has_drafts'               => ServiceModules::hasDraft($post->ID, 'overview')
                                            || ServiceModules::hasDraft($post->ID, 'inclusions')
-                                           || ServiceModules::hasDraft($post->ID, 'faqs')
-                                           || ServiceModules::hasDraft($post->ID, 'elements'),
+                                           || ServiceModules::hasDraft($post->ID, 'faqs'),
                 'inclusion_count'          => is_array($rawInclusions['inclusions'] ?? null) ? count($rawInclusions['inclusions']) : 0,
                 'faq_count'                => is_array($rawFaqs) ? count($rawFaqs) : 0,
             ];
@@ -403,10 +377,14 @@ class ServiceController
         update_post_meta($id, ServiceSchema::META_INCLUSIONS, ['inclusions' => []]);
         update_post_meta($id, ServiceSchema::META_FAQS, []);
 
-        // overview: pending (draft exists); inclusions/faqs/elements: not-configured (no draft, no active).
+        // overview: pending (draft exists); inclusions/faqs: not-configured (no draft, no active).
         update_post_meta($id, ServiceSchema::META_KEY, [
             'platform_status' => 'disabled',
-            'module_status'   => ServiceSchema::defaultModuleStatus(),
+            'module_status'   => [
+                'overview'   => 'pending',
+                'inclusions' => 'not-configured',
+                'faqs'       => 'not-configured',
+            ],
         ]);
 
         // Step 2 — Overview Draft begins.
@@ -448,7 +426,6 @@ class ServiceController
                 'overview'   => $overviewDraft,
                 'inclusions' => null,
                 'faqs'       => null,
-                'elements'   => null,
             ],
         ]);
     }
@@ -474,7 +451,6 @@ class ServiceController
         $ovDraft  = get_post_meta($id, ServiceSchema::DRAFT_OVERVIEW, true);
         $incDraft = get_post_meta($id, ServiceSchema::DRAFT_INCLUSIONS, true);
         $faqDraft = get_post_meta($id, ServiceSchema::DRAFT_FAQS, true);
-        $elDraft  = get_post_meta($id, ServiceSchema::DRAFT_ELEMENTS, true);
 
         return rest_ensure_response([
             'success'                  => true,
@@ -486,7 +462,6 @@ class ServiceController
             'categories'               => $categories,
             'inclusions'               => $inclusions,
             'faqs'                     => $faqs,
-            'elements'                 => ServiceElements::listFrom(get_post_meta($id, ServiceSchema::META_ELEMENTS, true)),
             'platform_status'          => ServiceSchema::resolvePlatformStatus($meta, $post->post_status),
             'previous_platform_status' => (string) ($meta['previous_platform_status'] ?? ''),
             'module_status'            => $meta['module_status'] ?? ServiceSchema::defaultModuleStatus(),
@@ -494,7 +469,6 @@ class ServiceController
                 'overview'   => is_array($ovDraft)  && !empty($ovDraft)  ? $ovDraft  : null,
                 'inclusions' => is_array($incDraft) && !empty($incDraft) ? $incDraft : null,
                 'faqs'       => is_array($faqDraft) && !empty($faqDraft) ? $faqDraft : null,
-                'elements'   => is_array($elDraft)  && !empty($elDraft)  ? ServiceElements::listFrom($elDraft) : null,
             ],
         ]);
     }
@@ -634,79 +608,6 @@ class ServiceController
     }
 
     // ===================================================================
-    // SECTION: ELEMENT_HANDLERS
-    // ===================================================================
-
-    /**
-     * The Service's Element instances (settled + draft) and the Settings
-     * definitions they reference, so an editor renders instances by their
-     * definition. Definitions are read through Settings' read capability;
-     * Service never writes them.
-     */
-    public function fetchElements(\WP_REST_Request $request): \WP_REST_Response
-    {
-        $id   = (int) $request->get_param('id');
-        $post = get_post($id);
-
-        if (!$post || $post->post_type !== ServiceSchema::POST_TYPE) {
-            return new \WP_REST_Response(['success' => false, 'message' => 'Service not found.'], 404);
-        }
-
-        $meta  = get_post_meta($id, ServiceSchema::META_KEY, true);
-        $meta  = is_array($meta) ? $meta : [];
-        $draft = get_post_meta($id, ServiceSchema::DRAFT_ELEMENTS, true);
-
-        return rest_ensure_response([
-            'success'       => true,
-            'id'            => $id,
-            'platform_id'   => $this->platformId($id),
-            'elements'      => ServiceElements::listFrom(get_post_meta($id, ServiceSchema::META_ELEMENTS, true)),
-            'draft'         => is_array($draft) && !empty($draft) ? ServiceElements::listFrom($draft) : null,
-            'definitions'   => $this->elements->definitions()->all(),
-            'module_status' => $meta['module_status'] ?? ServiceSchema::defaultModuleStatus(),
-        ]);
-    }
-
-    /**
-     * Element draft save. The payload is the full collection; Support\ServiceElements
-     * merges it onto the draft-preferred stored collection by id only, mints
-     * ids for new instances, and keeps every omitted instance as `detached`.
-     * Canonical `qsd_service_elements` is untouched until Publish settles.
-     */
-    public function updateElements(\WP_REST_Request $request): \WP_REST_Response
-    {
-        if ($rejection = $this->rejectPlatformIdMutation($request)) {
-            return $rejection;
-        }
-        $id   = (int) $request->get_param('id');
-        $post = get_post($id);
-
-        if (!$post || $post->post_type !== ServiceSchema::POST_TYPE) {
-            return new \WP_REST_Response(['success' => false, 'message' => 'Service not found.'], 404);
-        }
-
-        $draft  = get_post_meta($id, ServiceSchema::DRAFT_ELEMENTS, true);
-        $stored = is_array($draft) && !empty($draft)
-            ? ServiceElements::listFrom($draft)
-            : ServiceElements::listFrom(get_post_meta($id, ServiceSchema::META_ELEMENTS, true));
-
-        try {
-            $next = $this->elements->merge($request->get_param('elements'), $stored);
-        } catch (ServiceElementException $e) {
-            return new \WP_REST_Response(['success' => false, 'message' => $e->getMessage()], $e->status());
-        }
-
-        update_post_meta($id, ServiceSchema::DRAFT_ELEMENTS, ServiceElements::wrap($next));
-        $moduleStatus = ServiceModules::markModuleDraft($id, 'elements');
-
-        return rest_ensure_response([
-            'success'       => true,
-            'elements'      => $next,
-            'module_status' => $moduleStatus,
-        ]);
-    }
-
-    // ===================================================================
     // SECTION: SETTLE_HANDLERS
     // ===================================================================
     public function settleModuleRoute(\WP_REST_Request $request): \WP_REST_Response
@@ -751,7 +652,6 @@ class ServiceController
             ],
             'inclusions'    => $inclusions,
             'faqs'          => $faqs,
-            'elements'      => ServiceElements::listFrom(get_post_meta($id, ServiceSchema::META_ELEMENTS, true)),
         ];
         if ($poolWarnings !== []) {
             $response['pool_warnings'] = $poolWarnings;
@@ -810,7 +710,6 @@ class ServiceController
             ],
             'inclusions'    => $inclusions,
             'faqs'          => $faqs,
-            'elements'      => ServiceElements::listFrom(get_post_meta($id, ServiceSchema::META_ELEMENTS, true)),
         ];
         if ($poolWarnings !== []) {
             $response['pool_warnings'] = $poolWarnings;
@@ -848,7 +747,6 @@ class ServiceController
             'overview'   => ServiceModules::isOverviewComplete($post)  ? 'settled' : 'not-configured',
             'inclusions' => ServiceModules::isInclusionsComplete($id)   ? 'settled' : 'not-configured',
             'faqs'       => ServiceModules::isFaqsComplete($id)         ? 'settled' : 'not-configured',
-            'elements'   => ServiceModules::isElementsComplete($id)     ? 'settled' : 'not-configured',
             default      => 'not-configured',
         };
 

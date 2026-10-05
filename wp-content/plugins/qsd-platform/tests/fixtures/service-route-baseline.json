@@ -237,7 +237,7 @@
             }
         },
         {
-            "route": "qsd/v1/admin/services/(?P<id>\\d+)/(?P<module>overview|inclusions|faqs|elements)/revert",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/(?P<module>overview|inclusions|faqs)/revert",
             "methods": "POST",
             "callback": "revertModule",
             "permission_callback": "requireAdmin",
@@ -253,7 +253,7 @@
             }
         },
         {
-            "route": "qsd/v1/admin/services/(?P<id>\\d+)/(?P<module>overview|inclusions|faqs|elements)/settle",
+            "route": "qsd/v1/admin/services/(?P<id>\\d+)/(?P<module>overview|inclusions|faqs)/settle",
             "methods": "POST",
             "callback": "settleModuleRoute",
             "permission_callback": "requireAdmin",
@@ -265,37 +265,6 @@
                 "module": {
                     "required": true,
                     "type": "string"
-                }
-            }
-        },
-        {
-            "route": "qsd/v1/admin/services/(?P<id>\\d+)/elements",
-            "methods": "GET",
-            "callback": "fetchElements",
-            "permission_callback": "requireAdmin",
-            "args": {
-                "id": {
-                    "required": true,
-                    "type": "integer"
-                }
-            }
-        },
-        {
-            "route": "qsd/v1/admin/services/(?P<id>\\d+)/elements",
-            "methods": "POST",
-            "callback": "updateElements",
-            "permission_callback": "requireAdmin",
-            "args": {
-                "elements": {
-                    "items": {
-                        "type": "object"
-                    },
-                    "required": true,
-                    "type": "array"
-                },
-                "id": {
-                    "required": true,
-                    "type": "integer"
                 }
             }
         },

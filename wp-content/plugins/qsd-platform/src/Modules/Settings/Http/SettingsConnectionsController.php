@@ -21,6 +21,7 @@ use QSD\Platform\Modules\Settings\Connections\ConnectionProviderDefinition;
 use QSD\Platform\Modules\Settings\Connections\ConnectionProviders;
 use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
 use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
+use QSD\Platform\Modules\Settings\Security\CredentialAuthority;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
 
 /**
@@ -35,6 +36,11 @@ use QSD\Platform\Modules\Settings\Security\CredentialCipher;
  * only when the stored value decrypts under the current key.
  * An empty or omitted secret leaves the stored value unchanged; `clear` names
  * secret fields to remove.
+ *
+ * Permission: reading safe state and saving non-secret configuration need
+ * `manage_qsd`. Setting, replacing or clearing a secret, and disconnecting
+ * (which removes secrets), need administrator authority (CredentialAuthority,
+ * `manage_options`).
  */
 class SettingsConnectionsController
 {
@@ -65,12 +71,12 @@ class SettingsConnectionsController
             [
                 'methods'             => 'PUT',
                 'callback'            => [$this, 'saveConnection'],
-                'permission_callback' => [$this, 'requireAdmin'],
+                'permission_callback' => [$this, 'requireSaveAuthority'],
             ],
             [
                 'methods'             => 'DELETE',
                 'callback'            => [$this, 'disconnect'],
-                'permission_callback' => [$this, 'requireAdmin'],
+                'permission_callback' => [$this, 'requireSecretAuthority'],
             ],
         ]);
     }
@@ -90,6 +96,8 @@ class SettingsConnectionsController
             'connections' => $connections,
             // Whether this server can seal secrets at all (QSD_CREDENTIAL_KEY).
             'encryption'  => ['available' => $this->cipher->isAvailable()],
+            // Whether this user may set, replace, clear or disconnect secrets.
+            'permissions' => ['manage_secrets' => CredentialAuthority::allows()],
         ]);
     }
 
@@ -221,5 +229,38 @@ class SettingsConnectionsController
     public function requireAdmin(): bool
     {
         return current_user_can(PlatformAccess::CAP);
+    }
+
+    /** Non-secret configuration needs the platform capability; touching a secret needs administrator authority. */
+    public function requireSaveAuthority(\WP_REST_Request $request): bool
+    {
+        if (!$this->requireAdmin()) {
+            return false;
+        }
+        return !self::touchesSecrets($request) || CredentialAuthority::allows();
+    }
+
+    public function requireSecretAuthority(): bool
+    {
+        return $this->requireAdmin() && CredentialAuthority::allows();
+    }
+
+    /** A save that would set, replace or clear any secret. */
+    private static function touchesSecrets(\WP_REST_Request $request): bool
+    {
+        $secrets = $request->get_param('secrets');
+        $clear   = $request->get_param('clear');
+        if (!empty($clear)) {
+            return true;
+        }
+        if (!is_array($secrets)) {
+            return $secrets !== null && $secrets !== '';
+        }
+        foreach ($secrets as $value) {
+            if (!is_scalar($value) || trim((string) $value) !== '') {
+                return true;
+            }
+        }
+        return false;
     }
 }

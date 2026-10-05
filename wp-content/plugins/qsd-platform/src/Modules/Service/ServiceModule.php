@@ -3,8 +3,6 @@
 namespace QSD\Platform\Modules\Service;
 
 use QSD\Platform\Modules\Service\Http\ServiceController;
-use QSD\Platform\Modules\Service\Support\ServiceElements;
-use QSD\Platform\Modules\Settings\ServiceMeta\ServiceElementDefinitions;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 /**
@@ -28,13 +26,10 @@ use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
  */
 class ServiceModule
 {
-    public function __construct(
-        private PlatformIdentifierStation $platformIdentifiers,
-        private ServiceElementDefinitions $elementDefinitions,
-    ) {}
+    public function __construct(private PlatformIdentifierStation $platformIdentifiers) {}
 
     public function register(): void
     {
-        (new ServiceController($this->platformIdentifiers, new ServiceElements($this->elementDefinitions)))->register();
+        (new ServiceController($this->platformIdentifiers))->register();
     }
 }

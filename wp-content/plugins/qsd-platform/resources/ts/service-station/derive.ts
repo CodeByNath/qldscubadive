@@ -7,13 +7,7 @@
 // never the station barrel (which would close a cycle through useServiceStation).
 
 import type { ModuleNote } from '@/drawer-kit/utils/moduleNotifications';
-import type {
-  ServiceInclusionItem,
-  ServiceFaqItem,
-  OverviewDraft,
-  ServiceElement,
-  ServiceElementDefinition,
-} from './types';
+import type { ServiceInclusionItem, ServiceFaqItem, OverviewDraft } from './types';
 
 // ── Module status (inclusions / FAQs) ─────────────────────────────────────────
 // The service overview resolves through resolveOverviewStatus (draft-aware);
@@ -89,16 +83,12 @@ export function derivePendingOverviewNotes(draft: OverviewDraft): ModuleNote[] {
   return notes;
 }
 
-const PENDING_CHILD_COPY: Record<'inclusions' | 'faqs' | 'elements', string> = {
-  inclusions: 'Save Service Overview before adding included features.',
-  faqs:       'Save Service Overview before adding common questions.',
-  elements:   'Save Service Overview before adding elements.',
-};
-
-export function derivePendingChildNotes(module: 'inclusions' | 'faqs' | 'elements'): ModuleNote[] {
+export function derivePendingChildNotes(module: 'inclusions' | 'faqs'): ModuleNote[] {
   return [{
     id:      `${module}.parent.create`,
-    message: PENDING_CHILD_COPY[module],
+    message: module === 'inclusions'
+      ? 'Save Service Overview before adding included features.'
+      : 'Save Service Overview before adding common questions.',
     type: 'info',
   }];
 }
@@ -112,89 +102,14 @@ export function derivePendingModules(
   const hasPendingModules = isActive && (
     moduleStatus?.overview   === 'pending' ||
     moduleStatus?.inclusions === 'pending' ||
-    moduleStatus?.faqs       === 'pending' ||
-    moduleStatus?.elements   === 'pending'
+    moduleStatus?.faqs       === 'pending'
   );
   const pendingModuleNames = [
     moduleStatus?.overview   === 'pending' ? 'Service Overview'  : null,
     moduleStatus?.inclusions === 'pending' ? 'Included Features' : null,
     moduleStatus?.faqs       === 'pending' ? 'Common Questions'  : null,
-    moduleStatus?.elements   === 'pending' ? 'Service Elements'  : null,
   ].filter((n): n is string => n !== null);
   return { hasPendingModules, pendingModuleNames };
-}
-
-// ── Service Elements ──────────────────────────────────────────────────────────
-// Same ladder as the list modules: not-configured / no active Element →
-// pending-dim; unsettled or platform-inactive → pending-full; settled + active
-// → active. Detached instances are kept server-side but never count.
-
-export function activeElements(elements: ServiceElement[]): ServiceElement[] {
-  return elements.filter((element) => element.status === 'active');
-}
-
-export function resolveElementsStatus(
-  elements: ServiceElement[],
-  transition: string,
-  isActive: boolean,
-  disabled?: boolean,
-): string {
-  if (disabled) return 'disabled';
-  if (transition === 'not-configured') return 'pending-dim';
-  if (activeElements(elements).length === 0) return 'pending-dim';
-  if (transition === 'pending') return 'pending-full';
-  if (!isActive) return 'pending-full';
-  return 'active';
-}
-
-function summariseValue(element: ServiceElement, definition: ServiceElementDefinition): string {
-  const value = element.value;
-  switch (definition.type) {
-    case 'boolean':
-      return value === true ? 'Yes' : value === false ? 'No' : 'Not set';
-    case 'select':
-      return definition.options?.find((option) => option.id === value)?.label ?? 'Not set';
-    case 'image':
-      return typeof value === 'number' ? `Image #${value}` : 'Not set';
-    case 'gallery': {
-      const count = (element.entries ?? []).filter((entry) => entry.status === 'active').length;
-      return pluralCount(count, 'image', 'images');
-    }
-    case 'repeater': {
-      const count = (element.rows ?? []).filter((row) => row.status === 'active').length;
-      return pluralCount(count, 'row', 'rows');
-    }
-    case 'group': {
-      const parts = activeElements(element.children ?? []).map((child) => {
-        const sub = definition.sub_fields?.find((field) => field.id === child.definition_id);
-        return sub ? `${sub.label}: ${summariseValue(child, sub)}` : null;
-      }).filter((part): part is string => part !== null);
-      return parts.length > 0 ? parts.join(' · ') : 'Not set';
-    }
-    default: {
-      const text = value === null || value === undefined ? '' : String(value).trim();
-      if (text === '') return 'Not set';
-      return text.length > 80 ? `${text.slice(0, 79)}…` : text;
-    }
-  }
-}
-
-/**
- * Read-view lines for the active top-level Elements, keyed by their own
- * Service-child id (never the definition id, which two instances could share
- * over time).
- */
-export function deriveElementLines(
-  elements: ServiceElement[],
-  definitions: ServiceElementDefinition[],
-): Array<{ id: string; label: string }> {
-  return activeElements(elements).map((element, index) => {
-    const definition = definitions.find((field) => field.id === element.definition_id);
-    const id = element.id ?? `unsaved-${index}`;
-    if (!definition) return { id, label: 'Unknown field (kept)' };
-    const label = definition.status === 'retired' ? `${definition.label} (retired field)` : definition.label;
-    return { id, label: `${label}: ${summariseValue(element, definition)}` };
-  });
 }
 
 // A saved inclusions/FAQ draft is an independent publish enabler — but only for an
@@ -220,9 +135,8 @@ export function deriveCanPublish(args: {
 
 // ── Publish modal summaries ───────────────────────────────────────────────────
 
-function pluralCount(n: number, singular: string, plural: string): string {
-  return `${n} ${n === 1 ? singular : plural}`;
-}
+const pluralCount = (n: number, singular: string, plural: string) =>
+  `${n} ${n === 1 ? singular : plural}`;
 
 export function deriveInclusionsSummary(
   inclusions: ServiceInclusionItem[],
@@ -236,17 +150,6 @@ export function deriveInclusionsSummary(
   };
   const complete = inclusions.filter(inc => !!inc.label?.trim()).length;
   return { text: `${pluralCount(complete, 'included feature', 'included features')} added`, orange: false };
-}
-
-export function deriveElementsSummary(
-  elements: ServiceElement[],
-  elementsStatus: string,
-): { text: string; orange: boolean } {
-  const count = activeElements(elements).length;
-  return {
-    text:   `${pluralCount(count, 'element', 'elements')} ${elementsStatus === 'pending-dim' && count > 0 ? 'pending' : 'added'}`,
-    orange: elementsStatus === 'pending-dim',
-  };
 }
 
 export function deriveFaqsSummary(

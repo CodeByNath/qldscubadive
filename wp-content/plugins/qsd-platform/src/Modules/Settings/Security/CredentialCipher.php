@@ -44,10 +44,16 @@ final class CredentialCipher
 
     public static function fromEnvironment(): self
     {
-        if (!defined(self::CONSTANT)) {
+        return self::fromConstant(self::CONSTANT);
+    }
+
+    /** A cipher keyed by the base64 key in the named wp-config constant; unavailable when absent or invalid. */
+    public static function fromConstant(string $constant): self
+    {
+        if (!defined($constant)) {
             return new self(null);
         }
-        $decoded = base64_decode((string) constant(self::CONSTANT), true);
+        $decoded = base64_decode((string) constant($constant), true);
         return new self($decoded === false ? null : $decoded);
     }
 

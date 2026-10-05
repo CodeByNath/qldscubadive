@@ -14,6 +14,9 @@ export interface SettingsConnectionsState {
   // False when the server has no credential encryption key: secrets cannot be
   // saved there (the backend refuses rather than storing plaintext).
   encryptionAvailable: boolean | null;
+  // Only an administrator may set, replace, clear or disconnect secrets; a
+  // platform manager edits non-secret configuration only.
+  canManageSecrets: boolean;
   loading:      boolean;
   error:        string | null;
   busyProvider: string | null;
@@ -25,6 +28,7 @@ export interface SettingsConnectionsState {
 export function useSettingsConnections(): SettingsConnectionsState {
   const [connections, setConnections] = useState<ConnectionProjection[]>([]);
   const [encryptionAvailable, setEncryptionAvailable] = useState<boolean | null>(null);
+  const [canManageSecrets, setCanManageSecrets] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyProvider, setBusyProvider] = useState<string | null>(null);
@@ -35,6 +39,7 @@ export function useSettingsConnections(): SettingsConnectionsState {
       .then((result) => {
         setConnections(result.connections);
         setEncryptionAvailable(result.encryptionAvailable);
+        setCanManageSecrets(result.canManageSecrets);
       })
       .catch((err: unknown) => setError(errorMessage(err, 'Could not load connections.')))
       .finally(() => setLoading(false));
@@ -65,5 +70,5 @@ export function useSettingsConnections(): SettingsConnectionsState {
     [run],
   );
 
-  return { connections, encryptionAvailable, loading, error, busyProvider, actionError, save, disconnect };
+  return { connections, encryptionAvailable, canManageSecrets, loading, error, busyProvider, actionError, save, disconnect };
 }

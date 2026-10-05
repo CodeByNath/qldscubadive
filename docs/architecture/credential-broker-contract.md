@@ -1,6 +1,6 @@
 # Credential Broker Contract
 
-**Status:** Draft. Pending Reviewer acceptance. Real provider credentials stay prohibited until this contract, encryption at rest, and the credential permission level are reviewed.
+**Status:** Draft. Pending Reviewer acceptance (Security Phase 1). Real provider credentials and key provisioning stay prohibited until this contract is accepted and the Phase 2 validation package runs.
 
 ## Rule
 
@@ -35,11 +35,32 @@ Secrets are sealed with libsodium XChaCha20-Poly1305 (`CredentialCipher`).
 - **Key id.** A key-id fingerprint detects a value sealed under another key.
 - **Fail closed.** With no valid key, secret saves are refused (409) and nothing decrypts. A plaintext value is never accepted as a secret.
 
+## Permission
+
+- **Safe state.** Reading connection state (`configured`, `encryption.available`) and saving non-secret configuration need the platform capability `manage_qsd`.
+- **Secrets.** Setting, replacing or clearing a secret, and disconnecting a provider (which removes its secrets), need the WordPress administrator capability `manage_options` (`CredentialAuthority`). A business platform manager holds only `manage_qsd` and is refused with 403.
+- **Gates.** `PUT /admin/settings/connections/{provider}` is gated by `requireSaveAuthority`: a request that carries a non-empty secret or a `clear` needs administrator authority. `DELETE` is gated by `requireSecretAuthority`.
+- **Projection.** The list reports `permissions.manage_secrets`, so the lane makes secret inputs read-only and hides Disconnect for anyone else. The server enforces the rule either way.
+- No new role or capability family is created.
+
+## Key operations
+
+1. **Provision.** `QSD_CREDENTIAL_KEY` lives in `wp-config.php`, outside the database: base64 of 32 random bytes (`php -r "echo base64_encode(random_bytes(32));"`). It is never stored, logged or sent over HTTP.
+2. **Envelopes.** Every stored secret is an AEAD envelope bound to its provider and field, carrying the key-id fingerprint of the key that sealed it.
+3. **Replacing the key without a re-seal fails closed.** An envelope sealed under another key does not open, so the secret reads as not configured and the broker cannot use it. Nothing is lost: the old key still opens it.
+4. **Rotation** is an explicit, privileged shell operation, never a REST route:
+   1. Move the old key to `QSD_CREDENTIAL_KEY_PREVIOUS` and put the new key in `QSD_CREDENTIAL_KEY`.
+   2. Run `wp qsd credentials reseal` (`CredentialRotationCommand` → `CredentialRotation`). Every secret is opened with the previous key and re-sealed under the new key, bound to the same provider and field, with a fresh nonce.
+   3. Remove `QSD_CREDENTIAL_KEY_PREVIOUS`.
+5. **No secrets in output.** The re-seal output names `provider:field` slots and counts only. It never contains either key, a key id, or a plaintext.
+6. **All or nothing.** Every secret is planned before anything is written. If any value opens under neither key, or is not an envelope, the re-seal reports it as unreadable and writes nothing. An unreadable credential is never marked configured. A repeated re-seal finds every secret already current and writes nothing.
+
+The re-seal refuses to start when either key is missing or invalid, or when both are the same key.
+
 ## Current boundaries
 
-- **No brokered scopes yet.** No provider declares a brokered scope or operation. Rezdy declares none, so no request key can be issued until a reviewed Connector adds a scope and its operation. That waits for the Owner's pre-built Rezdy importer.
+- **No brokered scopes yet.** No provider declares a brokered scope or operation. Rezdy declares none, so no request key can be issued until a reviewed Connector adds a scope and its operation. That is Phase 3 work, after the Owner's Rezdy importer reference is audited.
 - **Server-internal API.** The broker is server-internal and has no REST route.
-- **Permission.** Credential management uses the platform capability `manage_qsd`. Whether a narrower capability is required is an open decision gate.
-- **Key operations are open.** Provisioning and rotating the key on staging and production are open operational decisions. Rotation means re-sealing stored secrets.
+- **No real credentials yet.** No real provider credential is stored, no key is provisioned on staging or production, and no provider call is made in this phase.
 
 See [Settings Station](../code-map/settings-station.md).
