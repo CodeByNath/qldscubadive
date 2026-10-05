@@ -1,8 +1,8 @@
 # Phase 6.4 — Publish activation guard
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Phase 6.4 — Atomic Publish
-Actor: Reviewer
+Actor: Builder
 
 ## Authority
 
@@ -113,3 +113,36 @@ Against the pre-fix hooks the same script fails: settle then `active` is sent, a
 **Checks** (from `wp-content/plugins/qsd-platform/`): `npm test` exit 0 (typecheck, PHP, build, 21/21 JS); `npm run docs:check` passed.
 
 Not included: new publish endpoint, server/transaction changes, Restore/Disable/Enable/Archive/Trash/Delete changes, drawer/footer redesign, Phase 6.5 Trash confirmation, deployment.
+
+
+## Reviewer decision
+
+Verdict: Proceed
+
+Independent review of candidate `b9192c6abd9deb04c0d1b24a87f70dd4ec99434f` confirms the bounded Phase 6.4 stop-on-settle-failure path is correct:
+
+- the topic branch is exactly one commit ahead of accepted `main` `6ac7535a65e3b2e1bcbff36ad32fc92e31346b65`;
+- Service `publishService()` returns immediately when settle reports failure, before local success-state application or any activation request;
+- Category `publishCategory()` does the same and no longer falls back to the pre-settle record before activating;
+- successful settlement remains followed by exactly one `active` request;
+- already-active republish preserves the Phase 6.3 compatibility rule only after successful settlement;
+- the mounted regression bundles and exercises the real Service and Category hooks and covers reported settle failure, HTTP settle failure, pending success, active republish success, and active republish failure;
+- Publish introduces no Restore, Disable, or Enable request;
+- no backend lifecycle, route, identity, storage, drawer/footer, Phase 6.5, or deployment scope was changed.
+
+The remaining two-request limitation is correctly documented as a known gap: if activation itself fails after successful settlement, the record may be settled but non-active. That is not a Phase 6.4 defect because this phase explicitly authorised the stop-on-settle-failure option and prohibited inventing a new server Publish route without a new decision gate.
+
+Builder-reported validation is `npm test` exit 0 and `npm run docs:check` pass. No GitHub Actions run exists for the topic SHA, as expected before promotion.
+
+No source correction is required.
+
+## Next Builder action — promote Phase 6.4
+
+1. Promote exact accepted topic head `b9192c6abd9deb04c0d1b24a87f70dd4ec99434f` from `phase-6-4/publish-activation-guard` to `main` without changing scope.
+2. Verify resulting `main` contains that exact accepted candidate.
+3. Verify post-push `main` CI completes successfully.
+4. Do not deploy to `staging` or production.
+5. After successful main/CI verification, delete only `phase-6-4/publish-activation-guard`; preserve the three permanent branches.
+6. Verify final remote branches are exactly `main`, `staging`, and `Project-work-instructions`.
+7. Update this same work file with main SHA, CI run/result, final branch list, confirmation no deployment occurred, set `Status: AWAITING REVIEWER REVIEW`, set `Actor: Reviewer`, and stop.
+8. Do not begin Phase 6.5 until Reviewer closes Phase 6.4.
