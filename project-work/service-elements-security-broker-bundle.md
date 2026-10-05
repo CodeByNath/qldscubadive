@@ -1,8 +1,8 @@
 # Service Element + Security Broker foundation bundle
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Post-Settings foundation — Service Element composition + credential broker
-Actor: Builder
+Actor: Reviewer
 
 ## Owner-approved architecture
 
@@ -452,3 +452,133 @@ Evidence must include:
 - confirmation of no live credentials, no provider calls, no staging/production deployment.
 
 Do not start Phase 2 or Phase 3 in the same handoff.
+
+
+## Builder handoff — Security Phase 1 (Security-only candidate)
+
+Candidate: `da934936edafcf892ebab33e870e6f5f511d147f` on `service-elements/elements-security-broker`.
+
+- It is one normal corrective commit on top of the reviewed `8ea707b`, a fast-forward with no history rewrite and no force-push.
+- `main` remains `17f47b563ee39726003197806bb539d7736e1365`. The candidate's base is still `main`.
+- Phase 2 and Phase 3 were not started.
+
+### 1. Service Element implementation removed/deferred
+
+Every Element-only product source was restored from `main` or deleted:
+
+- **Restored from `main`:**
+  - The whole of `src/Modules/Service/`, `src/Core/Plugin.php`, `resources/ts/service-station/`, `resources/ts/drawer-kit/schema/icons.tsx` and `resources/ts/drawer-kit/utils/moduleNotifications/service.ts`.
+  - `drawer-kit.css`, `package.json` (no `regression:service-elements`), `ServiceMetaSchema.php` (no `group` type), and the settings-station `types.ts` and `ServiceMetaFieldEditor.tsx`.
+  - `tests/fixtures/service-route-baseline.json`, `tests/service-route-baseline.php`, `tests/service-lifecycle-mask.php` and `tests/settings-service-meta-schema.php`.
+  - `docs/architecture/service-meta-schema-contract.md`, and `docs/code-map/000-README.md`, `service-station.md` and `station-tab-set.md`.
+  - The skill reference `identity-composition-model.md`.
+- **Deleted:** `ServiceElements.php`, `ServiceElementException.php`, `ServiceElementDefinitions.php`, `ServiceElementsEditor.tsx`, `tests/service-elements.php`, `scripts/service-elements-regression.mjs`, `docs/architecture/service-element-composition-contract.md` and `docs/code-map/service-elements.md`.
+- **Mixed files** were trimmed to their Security content only: `SettingsModule.php` (no `serviceElementDefinitions()`), the Settings and settings-station CLAUDE.md files, `ai-index.md`, `roadmap.md`, `settings-station.md`, `domain-ownership-map.md`, `platform-id-families.md`, `settings-home-regression.mjs` (group section removed) and `settings-station-contract.ts`.
+- **Proof that nothing Element-related remains:**
+  - `git diff da93493 origin/main` is empty for: `src/Modules/Service`, `src/Core`, `resources/ts/service-station`, `resources/ts/drawer-kit`, `resources/css`, `package.json`, `tests/fixtures`, `tests/service-*.php`, `src/Modules/Settings/ServiceMeta`, settings-station `types.ts`/`ServiceMetaFieldEditor.tsx`, and `service-meta-schema-contract.md`.
+  - The service route baseline is the `main` file, with 26 routes.
+- **What the full diff against `main` contains:** 36 files, +1701/−85.
+  - Settings `Connections/`, `Security/` and `Http/SettingsConnectionsController.php`, plus `SettingsModule.php`.
+  - In the settings-station frontend: the Connections lane, `api.ts` and `useSettingsConnections.ts`.
+  - The Settings tests and scripts, the broker contract, the Settings code map, and the index, roadmap and skill-reference lines.
+- **Element analysis preserved.** The Reviewer's definition-identity analysis stays in this file above. The roadmap records it as Phase 3, and the Settings code map records it as an open gate. It was not resolved.
+
+### 2. Credential permission — implemented conservatively
+
+- **New class.** `Security/CredentialAuthority.php` holds `CAP = 'manage_options'`, the existing WordPress administrator capability. No role or capability family was created.
+- **PUT `/admin/settings/connections/{provider}`** is now gated by `requireSaveAuthority`. It needs `manage_qsd`. When the request carries a non-empty secret, a malformed secret value, or any `clear`, it also needs `manage_options`, and the request is refused with 403 at the permission callback.
+- **DELETE (disconnect, which removes secrets)** is gated by `requireSecretAuthority`, which needs both `manage_qsd` and `manage_options`.
+- **GET (safe state)** keeps `requireAdmin`, which is `manage_qsd`. Non-secret configuration saves stay at `manage_qsd`.
+- **The list projects `permissions.manage_secrets`.** For a user without it, the lane:
+  - makes secret inputs read-only and says "Only a site administrator can change it.";
+  - hides "Remove saved value" and Disconnect;
+  - sends no secret and no clear on a config save.
+  - The frontend defaults to *not allowed* when the server does not say. The server enforces the rule regardless.
+
+### 3. Key operations contract and rotation
+
+- **Contract.** `docs/architecture/credential-broker-contract.md` has new **Permission** and **Key operations** sections, covering all 6 required points:
+  1. provisioning outside the database;
+  2. AEAD envelopes bound to provider and field;
+  3. replacing the key without a re-seal fails closed;
+  4. re-seal from the old key to the new key through an explicit privileged process;
+  5. no key and no plaintext in any output;
+  6. a failed re-seal writes nothing and never marks a credential configured.
+- **`Security/CredentialRotation.php`** re-seals from `QSD_CREDENTIAL_KEY_PREVIOUS` to `QSD_CREDENTIAL_KEY`. It is all or nothing: it plans every secret first and writes once through `ConnectionStore::replaceSecrets`, which leaves config and `updated_at` untouched.
+  - **Before starting,** it refuses when either key is missing or invalid, or when both are the same key.
+  - **Already-current secrets** are counted and not rewritten, so the operation is idempotent.
+  - **Unreadable values,** including plaintext non-envelopes, abort the run with nothing written.
+  - **The report** carries `provider:field` slot names and counts only.
+- **`Security/CredentialRotationCommand.php`** is the entry point, `wp qsd credentials reseal`. It is registered only under WP-CLI in `SettingsModule`, so it needs server shell access. There is no REST route and no key crosses HTTP.
+- **`CredentialCipher::fromConstant()`** was added so a cipher can be built from the previous-key constant. `fromEnvironment()` delegates to it.
+- **Deviation:** the WP-CLI command wrapper itself is not executed by the tests, because WP-CLI is not available in the PHP test harness. Its logic lives entirely in `CredentialRotation`, which is fully tested. The contract script proves the command is registered only under WP-CLI and has no route.
+
+### 4. Evidence: tests (all run locally at `da93493`)
+
+- **`tests/settings-connections.php` — 54 checks** (was 34 at `8ea707b`).
+  - New route gates: GET uses `requireAdmin`, PUT uses `requireSaveAuthority`, DELETE uses `requireSecretAuthority`.
+  - A platform manager (`manage_qsd` only):
+    - **may** read safe state, save non-secret config, and send an empty secret (keep the stored value);
+    - **may not** set a secret, set one hidden beside config, send a malformed secret, clear, or disconnect;
+    - sees `manage_secrets:false` in the list.
+  - `manage_options` without `manage_qsd` still fails the platform gate.
+  - An administrator may set, clear and disconnect, and sees `manage_secrets:true`.
+  - The existing encryption checks still hold:
+    - the envelope algorithm and key id;
+    - no plaintext anywhere in stored options;
+    - a 24-byte random nonce, and fresh ciphertext on every seal;
+    - slot binding, tamper rejection, and foreign-key rejection;
+    - a value sealed under a foreign key does not count as configured;
+    - plaintext is never accepted;
+    - with no key, a secret save returns 409 and writes nothing, while non-secret config still saves;
+    - a short key counts as no key.
+- **`tests/settings-credential-rotation.php` — 25 checks (new).**
+  - A key swapped in without a re-seal fails closed and is not configured, and the old key still opens the secret.
+  - The re-seal moves every slot to the new key with a new key id and a fresh nonce, stays bound to provider and field, and leaves config and `updated_at` untouched.
+  - No plaintext and neither key appears in storage or in the report, and the report has no key id.
+  - Running the re-seal again writes nothing.
+  - An unreadable or foreign-key value aborts with nothing written, and nothing unreadable is marked configured.
+  - A plaintext value is unreadable.
+  - A missing new key, a missing previous key, or the same key twice is refused with nothing written.
+- **`tests/settings-credential-broker.php` — 61 checks, unchanged.** Covers request-key issuance with random `qrk_` keys, hash-only storage, the TTL default of 60 and maximum of 300, every binding, atomic single-use consume, and replay, expiry, forged-key and binding-mismatch rejection with burn. Also covers a safe bounded audit with no key, hash or secret, and a consumer never receiving a secret.
+- **`contract:settings-station` — 44 checks.** The Element checks were replaced with:
+  - Settings has no Service Element surface;
+  - the secret routes are gated by secret authority;
+  - `CredentialAuthority` is `manage_options`;
+  - no role or capability is created outside `PlatformAccess`;
+  - rotation has no REST route and is registered only as a WP-CLI command.
+  - These checks are kept: only the broker reads a decrypted secret; `ConnectorCredentials` stays inside Settings; request keys are not Platform IDs; Rezdy has no scope; no operation is wired.
+- **`regression:settings-home`.** The group section was removed. A new section covers the platform-manager view: the secret input is read-only, the hint is shown, "Remove saved value" and Disconnect are absent, and a config save sends no secret or clear.
+- **No secrets in REST, audit or storage:**
+  - the connections projection never contains the secret;
+  - stored options hold no plaintext;
+  - the rotation report and storage contain no key or plaintext;
+  - the broker audit holds no key, hash or secret.
+- **`npm test` exited 0.**
+  - The typecheck passed.
+  - All PHP suites passed.
+  - The build passed.
+  - JS suites passed 24/24. That is 25 at `8ea707b` minus the deleted `regression:service-elements`.
+  - The docs check passed.
+- **`npm run docs:check` passed:** 46 Markdown files and 19 Code Maps. That is one fewer of each, because `service-elements.md` was removed.
+- **CI has not run.** CI runs only on main, staging and PRs, so this is local evidence only. There was also no browser check and no real-WordPress check.
+
+### 5. Confirmations
+
+- No live or real provider credentials were stored.
+- No key was provisioned anywhere.
+- No Rezdy, Stripe or other provider call was made.
+- Nothing was deployed to staging or production.
+- No new Platform ID family, no new role or capability family, and no ownership transfer of Service values.
+- No destructive purge.
+- No importer or mapping work. Rezdy still declares no brokered scope or operation.
+- No force-push or history rewrite.
+- No secrets are published in code, docs or this file.
+
+### Promotion note for the Reviewer
+
+On acceptance, `da93493` can fast-forward `main` from `17f47b5`. Two consequences:
+
+- The Element implementation stays recoverable in history at `8ea707b`, for the Phase 3 decision.
+- The topic-branch name still says "service-elements". It was kept, as instructed, and is deleted at promotion.
+
