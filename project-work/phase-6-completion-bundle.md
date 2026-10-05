@@ -1,8 +1,8 @@
 # Phase 6 completion bundle — Trash confirmation + lifecycle regression closeout
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Phase 6 remainder (6.5 + 6.6)
-Actor: Reviewer
+Actor: Builder
 
 ## Goal
 
@@ -156,3 +156,41 @@ Against the pre-fix source (source stashed, script kept) it fails: arming immedi
 ### Exclusions confirmed
 
 No new Publish endpoint or transaction change; no lifecycle vocabulary, Restore/Disable/Enable, identity/storage/API changes; no backend change; no post-Phase-6 feature; no staging or production deployment. Project History not created.
+
+
+## Reviewer decision
+
+Verdict: Proceed
+
+Independent review of candidate `7b099dac5e54a180540dcde29cd7f1ea439614fd` confirms the Phase 6 completion bundle is correctly bounded and satisfies the authorised 6.5 + 6.6 scope:
+
+- the topic branch is exactly one commit ahead of accepted `main` `b9192c6abd9deb04c0d1b24a87f70dd4ec99434f`;
+- saved Service Move to Trash now arms a `ServiceDrawerDialogs` confirmation instead of mutating immediately;
+- Cancel performs no mutation and keeps the drawer open;
+- Confirm is guarded against double-submit, invokes the existing Station Trash action exactly once, and closes only after authoritative success;
+- Trash failure keeps the Service dialog open with an error and does not fake a terminal close;
+- local `new` discard remains local close-only behavior with no server write;
+- Category's existing destructive dialog path remains intact;
+- presentation owns no endpoint call; the controller coordinates the dialog and the Station remains the write boundary;
+- `drawer-trash-confirm-regression.mjs` mounts the real Service and Category drawer hosts and proves arm/cancel/confirm/failure/new-record behavior;
+- `drawer-module-entry` pins both entities' confirmation wiring;
+- the new regression is declared in `package.json`, and `run-all.mjs` automatically includes every declared regression/contract/snapshot in `npm test`;
+- existing Restore-to-unmasked-Pending, Publish settle-failure, server illegal-transition, Bin, and reachable-Category coverage remains part of the full suite;
+- lifecycle/drawer/Service docs and the locked lifecycle contract were updated only to describe the implemented confirmation behavior;
+- the two-request Publish known gap remains honestly documented;
+- no backend lifecycle, identity/storage/API, post-Phase-6 feature, Project History, staging, or production deployment work entered scope.
+
+Builder reports `npm test` exit 0, `npm run docs:check` pass, focused Trash regression pass, and drawer-module-entry contract pass. No GitHub Actions run exists for the topic SHA before promotion, as expected.
+
+No source correction is required.
+
+## Next Builder action — promote the Phase 6 completion bundle
+
+1. Promote exact accepted topic head `7b099dac5e54a180540dcde29cd7f1ea439614fd` from `phase-6-completion/trash-confirm-closeout` to `main` without changing scope.
+2. Verify resulting `main` is that exact accepted candidate.
+3. Verify post-push `main` CI completes successfully.
+4. Do not deploy to `staging` or production.
+5. After successful main/CI verification, delete only `phase-6-completion/trash-confirm-closeout`; preserve the three permanent branches.
+6. Verify final remote branches are exactly `main`, `staging`, and `Project-work-instructions`.
+7. Update this same work file with main SHA, CI run/result, final branch list, confirmation no deployment occurred, set `Status: AWAITING REVIEWER REVIEW`, set `Actor: Reviewer`, and stop.
+8. Do not begin post-Phase-6 scuba-domain work until Reviewer closes this bundle.
