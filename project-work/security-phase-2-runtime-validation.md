@@ -60,3 +60,28 @@ No staging or production deployment unless separately authorised by the Owner.
 ## Handoff
 
 Push the exact topic SHA, update this same file to `AWAITING REVIEWER REVIEW` with runtime evidence and redacted/safe provider-call evidence, then stop. Do not begin Phase 3.
+
+## Builder preflight — 2026-10-06 (capability gap, no source change)
+
+Status stays `BUILDER ACTION REQUIRED`; ownership stays with Builder. Per `AGENTS.md` *Executor capability preflight*, the phase was not partially advanced: no topic branch opened, no source changed, `main` still `da934936edafcf892ebab33e870e6f5f511d147f`.
+
+Mandatory operations vs. this execution surface (Owner's macOS workstation, Claude Code):
+
+| Required operation | Available? |
+|---|---|
+| Git fetch/branch/commit/push, CI inspection | yes |
+| PHP 8.x with sodium + mysqli/pdo_mysql | yes (PHP 8.5.6) |
+| Real WordPress install loading `qsd-platform` | **no** — none present |
+| Real database server (MySQL/MariaDB) | **no** — no server, no Docker, no Local/MAMP |
+| WP-CLI (needed for `wp qsd credentials reseal` on a real runtime) | **no** |
+| Real `QSD_CREDENTIAL_KEY` / `_PREVIOUS` in a non-committed wp-config | **no** (not to be provisioned without a runtime) |
+| One real Rezdy credential (only declared provider is `rezdy`) | **no** — none supplied |
+| Approved Rezdy target for the one validation call (staging vs. live API) | **not stated** |
+
+Required execution surface / Owner inputs before Builder can run the phase end-to-end:
+
+1. **Runtime** — either (a) Owner authorises Builder to stand up a disposable local runtime on this workstation (Homebrew MariaDB + WordPress core + WP-CLI phar, outside the repo, plugin symlinked from the checkout, torn down after), or (b) Owner names an existing non-production WordPress + MySQL runtime Builder may use. Staging deploy is excluded by this file, so (a) or a named local/dev host is assumed.
+2. **Credential** — Owner places one Rezdy API key directly into the runtime (Settings UI as a `manage_options` user, or a non-committed local file Builder reads only into the runtime). It must not be pasted into chat, the work file, a commit, or a log.
+3. **Target** — Owner confirms which Rezdy endpoint the single connection/authentication call may hit (Rezdy staging API preferred) and that one read-only authentication call is acceptable.
+
+Once 1–3 are in place, the Builder package in this file is executable as written; no scope question is open.
