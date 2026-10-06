@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BLOCKED — OWNER UI REVIEW REQUIRED
-Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Owner
+Status: BUILDER ACTION REQUIRED
+Phase: Security Phase 2 — Owner-corrected credential flow package
+Actor: Builder
 
 ## Accepted baseline
 
@@ -705,3 +705,20 @@ Do not begin Phase 2D. Do not ask the Owner for backend/server work. The next in
 - If "Secure storage" reads **Not set up**, that is the platform-operator master-key provisioning item, not an Owner task. The Builder will record `BLOCKED — INFRASTRUCTURE KEY PROVISIONING REQUIRED` when told.
 
 Not started: Phase 2D, Phase 3. `main` is unchanged (`da93493`).
+
+
+## Owner direction — single Builder workload (2026-10-06)
+
+The Owner accepts the Security/API Keys placement and restores the intended credential flow: an authorised Admin Station user manages provider API keys entirely through Services → Settings → Security → API Keys. QSD owns the internal secure-storage and broker machinery required for that flow. Normal admin use must not require server-file edits, shell access, hosting setup, or direct database work.
+
+Builder must execute this as one uninterrupted workload, using separate local commits for each phase and no intermediate review stops:
+
+- Phase A: correct roadmap, credential-broker contract and affected Code Map authority to this Owner-approved flow.
+- Phase B: correct the existing Security backend so first provider-key save works through Admin Station without a separate operator setup prerequisite. Reuse the existing credential store/cipher/broker; do not create a parallel system.
+- Phase C: complete/verify short-lived scoped broker access so Tools receive only broker authority, never the long-lived provider credential. Preserve server-derived user/caller identity, provider/operation binding, expiry, atomic single-use and replay protection.
+- Phase D: correct rotation/re-seal so QSD owns the normal operation while preserving fail-closed, all-or-nothing guarantees and never exposing internal key material.
+- Phase E: remove operator-setup UI copy/state, preserve View Only as zero-mutation, update tests/contracts/maps, then run npm test and npm run docs:check from wp-content/plugins/qsd-platform/.
+
+Create one local commit per phase. Do not push, deploy or merge any implementation phase individually. Continue through all phases unless a genuine QSD platform-architecture conflict, destructive migration, new Platform ID/entity decision, production/deployment widening, or another repository hard stop gate is discovered; in that case stop and report the conflict instead of improvising.
+
+After all phases and validation are complete, stop before the first implementation push. Report the ordered local commit SHAs, changed scope, validation results, deviations and working-tree status, then wait for explicit Owner push approval.
