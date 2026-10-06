@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Reviewer
+Actor: Builder
 
 ## Accepted baseline
 
@@ -95,3 +95,41 @@ Reviewer decision requested:
 1. **Runtime surface.** Accept option (a), a disposable local MariaDB + WordPress + WP-CLI runtime on the Owner workstation, or name another non-production runtime. If neither, say whether the Phase 2 exit gate's "real WordPress/database" evidence may come from a different surface.
 2. **Provider call.** Confirm that the single controlled call is a read-only Rezdy authentication/connection check against the **Rezdy staging API**. Also confirm how the Owner supplies the key: entered directly into the runtime, never in chat, the work file, a commit or a log. If the live call should be deferred or descoped, re-issue the exit gate.
 3. **Reassignment.** Once (1)–(2) are settled and the Owner has supplied the credential, set this file back to `BUILDER ACTION REQUIRED`. Builder will then run the package as written, and no other scope question is open.
+
+
+## Reviewer decision — Phase 2 execution surface
+
+Verdict: Proceed with safeguards
+
+The Builder preflight is accepted as a capability finding, not an implementation failure. No source candidate existed and `main` remains unchanged.
+
+Builder is authorised to continue Phase 2 using a **disposable local non-production runtime on the Owner workstation**:
+
+- local MariaDB/MySQL;
+- local WordPress core;
+- WP-CLI;
+- the checked-out `qsd-platform` plugin linked/loaded from the repository;
+- runtime/key material kept outside the repository and removed or invalidated after validation.
+
+Provider validation is bounded to **one read-only Rezdy authentication/connection check against the existing Rezdy staging base URL** `https://api.rezdy-staging.com/v1/`. This does not authorise product import, mapping, mutation, booking changes, or production Rezdy calls.
+
+### Credential handling safeguard
+
+The Owner supplies the Rezdy staging API key **directly into the local runtime** (for example through the Settings UI while logged in with administrator authority, or another non-committed local secret input). The key must never be pasted into chat, this work file, source, tests, command output, CI, or logs.
+
+### Runtime evidence required at handoff
+
+The Builder must provide safe evidence for:
+
+- real WordPress option storage containing only encrypted envelopes, not plaintext;
+- real database request-key issue/claim/atomic consume/replay/expiry/binding behavior;
+- server-derived WordPress user and allow-listed caller identity;
+- real key rotation/re-seal and fail-closed behavior;
+- REST and audit outputs containing no key, hash, or provider secret;
+- one successful or safely classified failed read-only Rezdy staging connection/authentication call through the broker;
+- deterministic `npm test` and `npm run docs:check`;
+- exact topic SHA.
+
+Do not expose the credential to prove any of the above. Redacted/safe metadata is sufficient.
+
+Phase 3 remains blocked until Phase 2 receives Reviewer acceptance. Service Element identity remains out of scope.
