@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: REVIEW REQUIRED
 Phase: Security Phase 2 — rotation concurrency correction
-Actor: Builder
+Actor: Reviewer
 
 ## Accepted baseline
 
@@ -866,3 +866,34 @@ Keep the existing QSD-owned keyring, broker, UI and API design. Correct only rot
 7. Commit and push only this bounded correction to the same topic branch, then continue the workload. Do not deploy `8a88833` to staging.
 
 No other Phase A–E architecture is reopened by this verdict.
+
+
+## Builder correction — rotation concurrency (2026-10-06)
+
+Bounded correction for the Reviewer's blocking finding on `8a88833`. Only rotation/concurrent-save safety changed; keyring, broker, UI and API design are untouched.
+
+- **Commit:** `957427d10ad3c7c3f1571599bc51c66b20fe1208` (single commit on `8a88833`), pushed to `docs/settings-security-roadmap`.
+- **Remote verification (`git ls-remote`):**
+
+  | Branch | SHA | Note |
+  |---|---|---|
+  | `docs/settings-security-roadmap` | `957427d` | pushed |
+  | `staging` | `81f749d` | unchanged; `8a88833` was not deployed |
+  | `main` | `da93493` | unchanged |
+- **Files:** `Security/CredentialRotation.php`, `Security/CredentialKeyring.php`, `tests/settings-credential-rotation.php`, `docs/architecture/credential-broker-contract.md` (Key operations step 3).
+
+### What changed (against the Reviewer's items)
+
+1. **Conflicts detected, not silently skipped.** After the replacement write, `rotate()` re-reads every stored secret (the commit check). Any slot not on the new key is re-planned against the stored envelope, including a save that raced the rotation; its current value is re-sealed under the new key and written again (with the same changed-since-planning guard). The check runs for at most `MAX_PASSES` = 3 passes.
+2. **No early retirement.** Older generations are retired only when the commit check finds no slot left to move. `CredentialKeyring::retireInactive()` is replaced by `retireUnreferenced($referenced)`, which reads the stored envelopes' key ids immediately before retiring and never drops a generation a stored secret still names. Success is reported only when, after retirement, every stored envelope names the new key.
+3. **Failure is never reported as success.** If the guarantee cannot be confirmed within 3 passes, rotation returns `ok: false` with "Saved API keys kept changing while the key was rotating. Every key still works; rotate again." The route answers 409. Every generation still in use is kept and every key still opens. An unreadable slot found during the check also stops with failure.
+4. **Boundary unchanged.** The report still carries slot names and counts only; the route is still administrator-only `qsd/v1` POST with no input.
+5. **Deterministic regressions.** A test seam (`checkpoint` closure, unused in production) covers:
+   - a key replaced under the old generation after planning and before staging: rotation succeeds, the new value survives, it sits on the new key, and only the new generation remains;
+   - a save that keeps landing under the old generation after every write: rotation reports failure (never success), the old generation is kept, every key opens, the report holds no secret or key id, and the next rotation completes once saves settle;
+   - `retireUnreferenced()` keeps any generation a stored secret names.
+6. **Validation:** `npm test` exit 0; `npm run docs:check` passed (46 Markdown files, 19 Code Maps).
+
+### Handoff to Reviewer
+
+Reviewer: inspect `957427d` (diff `8a88833..957427d`). On approval of that exact SHA, the Builder will promote it to `staging` through the existing guarded workflow, verify CI and the bundle, collect the staging2 runtime evidence through API Keys, and continue to Phase 2 closeout. Not started: Phase 3. Production untouched.
