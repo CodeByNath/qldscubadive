@@ -13,6 +13,7 @@ use QSD\Platform\Modules\Settings\Http\SettingsConnectionsController;
 use QSD\Platform\Modules\Settings\Http\SettingsSecurityController;
 use QSD\Platform\Modules\Settings\ServiceMeta\ServiceMetaSchema;
 use QSD\Platform\Modules\Settings\Security\BrokerAuditLog;
+use QSD\Platform\Modules\Settings\Security\BrokeredAccess;
 use QSD\Platform\Modules\Settings\Security\CredentialBroker;
 use QSD\Platform\Modules\Settings\Security\BrokerValidation;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
@@ -56,6 +57,18 @@ class SettingsModule
             null,
             self::brokerCallers(),
         );
+    }
+
+    /**
+     * The provider authority a Tool receives: bound to its allow-listed caller
+     * and the session user, never a credential or request key.
+     */
+    public function brokeredAccess(string $caller): BrokeredAccess
+    {
+        if (!array_key_exists($caller, self::brokerCallers())) {
+            throw new \LogicException("'{$caller}' is not an allow-listed broker caller.");
+        }
+        return new BrokeredAccess($this->credentialBroker(), $caller, static fn(): int => get_current_user_id());
     }
 
     /** The Phase 2 runtime validation run against the real install. */

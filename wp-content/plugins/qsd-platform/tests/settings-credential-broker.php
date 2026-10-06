@@ -71,6 +71,7 @@ use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
 use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
 use QSD\Platform\Modules\Settings\Connectors\RezdyConnector;
 use QSD\Platform\Modules\Settings\Security\BrokerAuditLog;
+use QSD\Platform\Modules\Settings\Security\BrokeredAccess;
 use QSD\Platform\Modules\Settings\Security\BrokeredProviderOperation;
 use QSD\Platform\Modules\Settings\Security\BrokerGrant;
 use QSD\Platform\Modules\Settings\Security\BrokerRejected;
@@ -267,5 +268,27 @@ for ($i = 0; $i < BrokerAuditLog::MAX + 5; $i++) {
     $audit->record(BrokerAuditLog::ISSUED, ['request_id' => "req_{$i}"], $now);
 }
 check_broker(count($audit->entries()) === BrokerAuditLog::MAX, 'the audit is bounded to its newest 200 entries');
+
+// ── Tool access: brokered authority only ────────────────────────────────
+$sessionUser = 11;
+$operation->mode = 'safe';
+$tool = new BrokeredAccess($broker, 'service-import', static function () use (&$sessionUser): int { return $sessionUser; });
+$toolResult = $tool->run('testpay', 'catalogue.read', ['subject' => 'QSDS2A7KZ'], 'QSDS2A7KZ');
+check_broker($toolResult === ['scope' => 'catalogue.read', 'items' => 3, 'subject' => 'QSDS2A7KZ'] && $operation->sawSecret === SECRET, 'a Tool gets the operation result; only the Settings-owned operation saw the credential');
+$toolEvents = array_slice($audit->entries(), -2); // the audit is bounded and already full here
+check_broker(array_column($toolEvents, 'event') === [BrokerAuditLog::ISSUED, BrokerAuditLog::USED] && $toolEvents[0]['caller'] === 'service-import' && $toolEvents[0]['user_id'] === 11, 'each Tool call issues and consumes one key bound to its caller and the session user');
+check_broker(array_filter(array_keys($wpdb->rows), static fn(string $name) => str_starts_with($name, WpdbRequestKeyStore::PREFIX) && json_decode($wpdb->rows[$name]['option_value'], true)['user_id'] === 11) === [], 'no Tool request key is left usable');
+$operation->mode = 'leak';
+check_broker(rejected(fn() => $tool->run('testpay', 'catalogue.read')) === BrokerRejected::SECRET_IN_RESULT, 'a result carrying the credential is withheld from the Tool');
+$operation->mode = 'safe';
+check_broker(rejected(fn() => $tool->run('testpay', 'catalogue.write')) === BrokerRejected::UNDECLARED_SCOPE && rejected(fn() => (new BrokeredAccess($broker, 'booking-sync', static fn(): int => 11))->run('testpay', 'catalogue.read')) === BrokerRejected::UNKNOWN_CALLER, 'a Tool is held to its own caller allow-list and the declared scopes');
+$sessionUser = 0;
+check_broker(rejected(fn() => $tool->run('testpay', 'catalogue.read')) === BrokerRejected::UNAUTHENTICATED, 'with no session user a Tool gets nothing');
+$exposed = print_r($tool, true);
+try { serialize($tool); $serialised = true; } catch (LogicException) { $serialised = false; }
+check_broker(!str_contains($exposed, SECRET) && !str_contains($exposed, 'qrk_') && !$serialised, 'a Tool\'s access object exposes no credential or key and cannot be serialised');
+$toolApi = array_map(static fn(ReflectionMethod $m) => $m->getName(), (new ReflectionClass(BrokeredAccess::class))->getMethods(ReflectionMethod::IS_PUBLIC));
+sort($toolApi);
+check_broker($toolApi === ['__construct', '__debugInfo', '__serialize', 'run'], 'the Tool-facing API is run() only — no issue, key or credential accessor');
 
 echo "All credential broker checks passed: {$checks} checks.\n";

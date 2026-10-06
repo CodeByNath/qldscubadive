@@ -6,6 +6,7 @@ namespace QSD\Platform\Modules\Settings\Security;
 final class BrokerRejected extends \RuntimeException
 {
     public const INVALID_REQUEST      = 'invalid_request';
+    public const UNAUTHENTICATED      = 'unauthenticated';
     public const UNKNOWN_PROVIDER     = 'unknown_provider';
     public const UNDECLARED_SCOPE     = 'undeclared_scope';
     public const UNKNOWN_CALLER       = 'unknown_caller';
