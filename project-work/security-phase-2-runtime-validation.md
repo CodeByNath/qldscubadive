@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: REVIEW REQUIRED
-Phase: Security Phase 2 — rotation concurrency correction
-Actor: Reviewer
+Status: BUILDER ACTION REQUIRED
+Phase: Security Phase 2 — close save/rotation concurrency boundary
+Actor: Builder
 
 ## Accepted baseline
 
@@ -897,3 +897,37 @@ Bounded correction for the Reviewer's blocking finding on `8a88833`. Only rotati
 ### Handoff to Reviewer
 
 Reviewer: inspect `957427d` (diff `8a88833..957427d`). On approval of that exact SHA, the Builder will promote it to `staging` through the existing guarded workflow, verify CI and the bundle, collect the staging2 runtime evidence through API Keys, and continue to Phase 2 closeout. Not started: Phase 3. Production untouched.
+
+
+## Reviewer decision — rotation correction `957427d` (2026-10-06)
+
+Verdict: Stop — architectural risk
+
+Reviewer inspected exact pushed correction `957427d10ad3c7c3f1571599bc51c66b20fe1208` against the prior concurrency finding and actual source. The correction improves detection/retry, but the retirement race is still not closed.
+
+### Remaining race
+
+After the commit-check sees no stragglers, `CredentialRotation::rotate()` calls:
+
+`retireUnreferenced($this->referencedKids())`
+
+The referenced-key list is a snapshot taken before retirement. A credential-save request may already hold an old-generation sealing cipher from before rotation staged the new generation, then write that old-generation envelope **after** `referencedKids()` takes its snapshot but **before** `retireUnreferenced()` drops the old generation. The old generation can therefore still be retired while a just-written credential names it. The later post-retirement check detects the old kid only after the generation is gone, so it cannot preserve readability.
+
+The new tests cover races before staging and after replacement writes, but not this final snapshot → retire window.
+
+### Required bounded correction
+
+Do not deploy `957427d`.
+
+Close the save/rotation race at the authority boundary rather than with another observation loop. Use one shared Security-owned concurrency guard for provider-secret mutation and rotation so that:
+
+1. a secret save cannot obtain/use a sealing generation while rotation can retire that generation;
+2. rotation cannot enter its retirement/commit section while a secret save is in flight;
+3. failure/timeout of the guard fails closed without deleting or exposing credentials;
+4. non-secret configuration writes do not need to be serialized unless required by implementation safety;
+5. the guard stays inside the existing Settings/Security authority and does not create a second credential system or new Platform identity;
+6. add deterministic regressions for both orderings: save starts first then rotation, and rotation starts first then save; prove every successful save remains readable and rotation never falsely reports success;
+7. keep the existing no-secret output, administrator-only `qsd/v1` route and QSD-owned keyring model;
+8. run `npm test` and `npm run docs:check`, push the bounded correction to the same topic branch, and continue the workload.
+
+No other Phase A–E architecture is reopened.
