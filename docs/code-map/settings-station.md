@@ -1,69 +1,145 @@
-# Settings Station
+# Settings and Security
 
-Settings is the platform and business configuration authority. It owns:
+Settings is a reusable tab pattern inside a Station. It is not a separate Station identity or domain record.
 
-- the Connections/Security Tool, which is a credential broker;
-- the Service Meta field-definition schema.
+The current standalone Settings navigation/deck on `main` is an accepted foundation implementation but is transitional presentation. The approved target presentation is inside the Services Station:
 
-It owns no domain record, no lifecycle, no drawer, and no Platform ID family. It is unrelated to Service Home's `Settings` lane (Create Service / Create Category).
+```text
+Services Station
+├─ Details
+├─ Connections
+└─ Settings
+   ├─ General
+   ├─ Tools
+   │  ├─ Rezdy importer
+   │  ├─ Stripe-related tools
+   │  └─ future operational tools
+   └─ Security
+      ├─ API keys
+      ├─ credentials
+      ├─ encryption
+      ├─ request-key broker
+      ├─ permissions
+      ├─ rotation/re-seal
+      └─ audit
+```
 
-## Backend
+Other Stations may surface `General`, `Tools`, and/or `Security` where relevant. Shared General/Security data is owned once by the platform authority; presentation in another Station does not duplicate persistence or transfer authority.
 
-Root: `src/Modules/Settings/`, wired by [SettingsModule.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/SettingsModule.php) from `Core\Plugin`. Every route is under `qsd/v1/admin/settings/*` and gated by `PlatformAccess::CAP`. Changing a secret also needs administrator authority (see Permission).
+## Ownership boundaries
 
-- **Connections.**
-  - [ConnectionProviderDefinition.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Connections/ConnectionProviderDefinition.php) declares a provider's fields and brokered `scopes`.
-  - [ConnectionStore.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Connections/ConnectionStore.php) is the sole reader and writer of the non-autoloaded `qsd_settings_connections` option. Secrets in it are encrypted envelopes.
-  - [ConnectionProviders.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Connections/ConnectionProviders.php) lists the providers. Rezdy is the only one.
-- **Encryption at rest.** [CredentialCipher.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Security/CredentialCipher.php) seals secrets with XChaCha20-Poly1305 under the `QSD_CREDENTIAL_KEY` wp-config constant and fails closed when there is no key.
-  - [SettingsConnectionsController.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Http/SettingsConnectionsController.php) seals secrets on PUT and refuses with 409 when there is no key. An empty secret keeps the stored value; `clear` removes it; DELETE disconnects.
-  - Its projection reports only `configured`, and only when the secret decrypts. The list reports `encryption.available` and `permissions.manage_secrets`.
-- **Permission.** [CredentialAuthority.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Security/CredentialAuthority.php) is the existing administrator capability `manage_options`.
-  - Setting, replacing or clearing a secret, and disconnecting, need it.
-  - Reading safe state and saving non-secret configuration need only `manage_qsd`.
-- **Key rotation.** [CredentialRotation.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Security/CredentialRotation.php) re-seals every secret from `QSD_CREDENTIAL_KEY_PREVIOUS` to `QSD_CREDENTIAL_KEY`, all or nothing.
-  - It runs only from the shell as `wp qsd credentials reseal` ([CredentialRotationCommand.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Security/CredentialRotationCommand.php)). There is no REST route.
-- **Credential broker.** [CredentialBroker.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Security/CredentialBroker.php) issues short-lived, single-use request keys bound to provider, scope, caller, user and subject.
-  - Keys are stored as hashes by [WpdbRequestKeyStore.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Security/WpdbRequestKeyStore.php) and consumed with an atomic row delete.
-  - The broker performs the provider's `BrokeredProviderOperation` server-side. Consumers never receive a secret.
-  - Outcomes are recorded by `BrokerAuditLog`.
-  - [ConnectorCredentials.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Connections/ConnectorCredentials.php) is internal to Settings. Only the broker reads a decrypted secret.
-  - [RezdyConnector.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Connectors/RezdyConnector.php) declares no brokered scope, makes no HTTP call, and maps nothing.
-  - See the [Credential broker contract](../architecture/credential-broker-contract.md).
-- **Service Meta schema.** [ServiceMetaSchema.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/ServiceMeta/ServiceMetaSchema.php) owns field definitions in the `qsd_settings_service_meta_schema` option; [ServiceMetaSchemaController.php](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Http/ServiceMetaSchemaController.php) exposes list, create, update, reorder, retire, and restore — no delete.
+- `Services Station → Connections` remains Service-domain relationships.
+- `Settings → General` may surface global/platform settings relevant to the hosting Station plus Station-owned settings where appropriate.
+- `Settings → Tools` contains operational tools/importers. Rezdy importer belongs here.
+- `Settings → Security` owns the UI for API keys and credential/security controls.
+- Tools consume Security-governed authority. They never own/read long-lived provider credentials.
+- The database remains storage implementation only. Browser/domain consumers go through `qsd/v1` and the owning Settings/Security services.
 
-## Service Meta identity and policy
+## Backend authority
 
-Types: text, textarea, number, boolean, select, image, gallery, repeater (sub-fields of any non-repeater type). A field is a rung-2 scoped child of the schema: its `fld_…` id, and each option's `opt_…` id, is minted server-side and never derived from label, slug, or position; order is presentation only. Removal is **retire/restore**; type is immutable; existing option and sub-field ids cannot be dropped, so stored Service values never orphan. Per-Service values stay with Service Station — see the [Service Meta schema contract](../architecture/service-meta-schema-contract.md).
+Root: `src/Modules/Settings/`, wired by `SettingsModule.php`. The backend module remains the configuration/security authority even while presentation moves into the Services Station Settings tab.
 
-## Frontend
+All browser-facing settings operations use `qsd/v1/admin/settings/*` and `PlatformAccess::CAP`; secret mutation additionally requires administrator authority.
 
-Root: `resources/ts/settings-station/`.
+### Credential storage
 
-- [register.ts](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/register.ts) registers the `settings` navigation row (order 90), the destination, the empty `settings-home` source, and the `settings-deck` kit. Admin places the binding in `registerPresentationPolicy()`.
-- [SettingsDeck.tsx](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/presentation/SettingsDeck.tsx) hosts two lanes on the shared tab set:
-  - [SettingsConnectionsLane.tsx](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/presentation/SettingsConnectionsLane.tsx) has write-only secrets, a no-encryption-key warning, and a `useInlineConfirm` Disconnect. Without `manage_secrets`, secret inputs are read-only and Disconnect is not offered.
-  - [ServiceMetaSchemaLane.tsx](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/presentation/ServiceMetaSchemaLane.tsx) carries its editor.
-- Lanes call only `useSettingsConnections` / `useServiceMetaSchema`; [api.ts](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/api.ts) is the one endpoint module.
+- `Connections/ConnectionProviderDefinition.php` declares provider fields and brokered scopes.
+- `Connections/ConnectionStore.php` is the sole reader/writer of the non-autoloaded `qsd_settings_connections` option.
+- `Connections/ConnectionProviders.php` registers providers; Rezdy is currently the only one.
+- Stored secrets are encrypted envelopes, never plaintext.
 
-## Open decision gates
+### Encryption and secret authority
 
-- **Real credentials and key provisioning.** No real credential is stored and no key is provisioned on staging or production until the Phase 2 validation package.
-- **Element-definition identity.** Whether reusable definitions need their own Platform ID family is deferred to the Service Manager phase.
-- **Field purge.** Permanent removal needs an approved Service-value recovery rule.
-- **Rezdy importer.** Brokered Rezdy scopes and operations are Phase 3 work, after the Owner's importer reference is audited.
+- `Security/CredentialCipher.php` seals provider secrets with XChaCha20-Poly1305 under external `QSD_CREDENTIAL_KEY`.
+- Missing/invalid key material fails closed.
+- `Security/CredentialAuthority.php` uses existing `manage_options` authority for set/replace/clear/disconnect.
+- Safe state/non-secret configuration remains available under `manage_qsd`.
+- REST projection reports safe state only, such as configured/encryption/permission state.
+
+### Request-key broker
+
+- `Security/CredentialBroker.php` issues short-lived, single-use request keys bound to provider, scope, caller, WordPress user and optional subject.
+- `Security/WpdbRequestKeyStore.php` stores only hashes and consumes with an atomic delete.
+- `Connections/ConnectorCredentials.php` is internal; only the broker may obtain decrypted provider secrets.
+- Provider operations execute server-side and consumers receive only safe operation results.
+- `BrokerAuditLog` records bounded safe metadata and never request keys, hashes, encryption keys or provider secrets.
+
+### Rotation/re-seal
+
+- `Security/CredentialRotation.php` re-seals all stored provider secrets from `QSD_CREDENTIAL_KEY_PREVIOUS` to `QSD_CREDENTIAL_KEY`, all-or-nothing.
+- Current accepted execution is shell-only through `wp qsd credentials reseal`.
+- There is no REST rotation route.
+- The future Security UI may expose safe readiness/status/operator guidance, but must not add a browser/REST rotation trigger without a separate Owner/Reviewer approval.
+
+## Approved presentation roadmap
+
+### Phase 2A — runtime/API validation
+
+Validate encryption, storage, server-derived caller/user identity, request-key consume/replay/expiry/binding, permissions, audit, rotation/re-seal and one controlled provider authentication/connection check on a real non-production WordPress runtime.
+
+The database is evidence/storage infrastructure only. Do not create a direct SQL/query platform path or bypass `qsd/v1`, the broker, or owning stores.
+
+### Phase 2B — Services Station Settings placement
+
+Move the presentation into `Services Station → Settings → General | Tools | Security`.
+
+Do not create a second Settings system. Retire the standalone Settings presentation only after replacement parity exists.
+
+### Phase 2C — Security → API Keys UI
+
+The Security surface must provide:
+
+- provider name/identity and environment;
+- configured/not-configured state;
+- encryption available/unavailable state;
+- administrator permission state;
+- write-only add/replace API-key flow;
+- explicit clear/disconnect with confirmation;
+- safe success/failure notifications;
+- no secret, request key/hash, encryption key or key fingerprint projected into browser state, REST responses, audit UI or logs.
+
+Rezdy importer belongs under Tools; Rezdy API credentials belong under Security → API Keys.
+
+### Mandatory Owner UI gate
+
+As soon as `Services Station → Settings → Security → API Keys` is browser-ready, stop and notify the Owner.
+
+Set the active work state to `BLOCKED — OWNER UI REVIEW REQUIRED`, provide the exact candidate SHA/runtime surface, and wait for explicit Owner acceptance/corrections.
+
+A normal `run the cycle`, `continue the work`, or equivalent instruction must **not** move work past this gate.
+
+### Phase 2D — rotation operator flow
+
+After explicit Owner UI acceptance, finish safe rotation readiness/status/operator guidance around the existing shell-only re-seal operation.
+
+Do not add REST/browser execution of master-key rotation without a separate approval.
+
+### Phase 2E — closeout
+
+Update this map and any changed contract to landed reality, formalise the reusable `Settings → General | Tools | Security` pattern, remove stale presentation naming, run `npm test` and `npm run docs:check`, then obtain Reviewer acceptance before Phase 3.
+
+## Service Meta
+
+`ServiceMeta/ServiceMetaSchema.php` owns field definitions in `qsd_settings_service_meta_schema`; `Http/ServiceMetaSchemaController.php` exposes list/create/update/reorder/retire/restore.
+
+Field and option identity remains scoped and server-minted as already defined by the Service Meta schema contract. This work is separate from the Security presentation migration.
+
+## Current frontend reality
+
+The present implementation under `resources/ts/settings-station/` remains the accepted foundation until Phase 2B replaces its presentation:
+
+- `register.ts` currently registers standalone Settings navigation/destination.
+- `presentation/SettingsDeck.tsx` currently hosts Connections/Security and Service Meta lanes.
+- `presentation/SettingsConnectionsLane.tsx` currently presents safe credential state/write-only secret controls.
+- `api.ts` is the frontend settings endpoint module.
+
+Treat those paths as current implementation, not the final Station placement.
 
 ## Validation
 
-From the plugin root: `npm test` and `npm run docs:check`. `npm test` includes:
+From `wp-content/plugins/qsd-platform/`:
 
-- `tests/settings-connections.php`;
-- `tests/settings-credential-broker.php`;
-- `tests/settings-credential-rotation.php`;
-- `tests/settings-service-meta-schema.php`;
-- `contract:settings-station`;
-- `regression:settings-home`.
+- `npm test`
+- `npm run docs:check`
 
-## Related Code Maps
-
-[Station Manager](station-manager.md), [Admin Station Navigation](admin-station-navigation.md), [Station Tab Set](station-tab-set.md), and [Service Station](service-station.md).
+Relevant current tests include settings connections, credential broker, credential rotation, Service Meta schema, Settings Station contract and Settings-home regression.
