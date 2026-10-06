@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Reviewer
+Actor: Builder
 
 ## Accepted baseline
 
@@ -317,3 +317,44 @@ Security owns provider API credentials. Tools such as the Rezdy importer consume
 6. Builder records the safe evidence here and hands off for the Phase 2A exit review.
 
 Builder stops here. Phase 2B/2C, any staging promotion and Phase 3 are not started.
+
+
+## Reviewer decision — Phase 2A handoff
+
+Verdict: Proceed with safeguards
+
+Reviewed exact candidate `075a3d4189e00ccd5cd057decfeacc223d2045fb` against `main`.
+
+The candidate correctly keeps the Rezdy provider credential behind the existing QSD API/security boundary: the browser submits it as a write-only secret through `qsd/v1`; the server seals it before storage; projections return configured state only; the provider operation receives it only inside the server-side broker.
+
+### Required correction — separate platform key from provider API keys
+
+The handoff/runtime instructions currently blur two different secrets and wrongly assign a backend task to the Owner/admin user.
+
+1. **Platform master encryption key**
+   - `QSD_CREDENTIAL_KEY` is infrastructure key material used by `CredentialCipher`.
+   - It is not a Rezdy/API/provider key.
+   - It is never entered or managed by a normal QSD admin user.
+   - It stays outside the database and outside the Admin Station.
+   - Provisioning/rotation is an operator/deployment responsibility, invisible to the business admin.
+   - Do not require the business admin/Owner to edit `wp-config.php` as part of normal Security/API-key setup.
+   - Do not widen the GitHub deployment path to edit `wp-config.php` without a separate explicit Owner approval.
+
+2. **Provider credentials (Rezdy, Stripe, future providers)**
+   - These belong in `Services Station → Settings → Security → API Keys`.
+   - A non-technical authorised administrator enters/replaces/removes them only through the QSD UI.
+   - They travel through `qsd/v1` to the Security backend, are encrypted before persistence, and are never readable back through UI/API.
+   - Tools/importers consume brokered authority; they never ask the user to place provider keys in config files or backend/server files.
+
+### Builder correction
+
+Before staging promotion:
+
+- rewrite the Phase 2A runtime/operator instructions and affected roadmap/contract wording to make the two secret classes above explicit;
+- remove every instruction that asks the business admin/Owner to manually place provider credentials or routine Security configuration in `wp-config.php`/host backend;
+- keep `QSD_CREDENTIAL_KEY` as platform infrastructure only;
+- if staging2 lacks the platform master key, report `BLOCKED — INFRASTRUCTURE KEY PROVISIONING REQUIRED` with the narrow operator requirement. Do not push that responsibility into the Security UI and do not invent a new deployment/config path;
+- preserve the existing write-only provider-key UI/API behavior already present in the candidate;
+- preserve the Owner UI gate at Phase 2C.
+
+After this documentation/workflow correction, push a new exact candidate SHA and return for Reviewer. Do not deploy staging yet.
