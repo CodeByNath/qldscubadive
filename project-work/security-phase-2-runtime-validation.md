@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: REVIEW REQUIRED
 Phase: Security Phase 2 — close save/rotation concurrency boundary
-Actor: Builder
+Actor: Reviewer
 
 ## Accepted baseline
 
@@ -931,3 +931,49 @@ Close the save/rotation race at the authority boundary rather than with another 
 8. run `npm test` and `npm run docs:check`, push the bounded correction to the same topic branch, and continue the workload.
 
 No other Phase A–E architecture is reopened.
+
+
+## Builder correction — shared credential mutation guard (2026-10-07)
+
+Bounded correction for the Reviewer's finding on `957427d`. It closes the save/rotation race at the authority boundary, not with an observation loop. Keyring, broker, UI, API and output are unchanged.
+
+- **Commit:** `efae006bf300b19ce9e8a4af3b4332e4bcd1ce41` (single commit on `957427d`), pushed to `docs/settings-security-roadmap`.
+- **Remote verification:**
+
+  | Branch | SHA | Note |
+  |---|---|---|
+  | `docs/settings-security-roadmap` | `efae006` | pushed |
+  | `staging` | `81f749d` | unchanged; nothing deployed |
+  | `main` | `da93493` | unchanged |
+
+### Against the Reviewer's items
+
+1. **A save cannot use a generation rotation may retire.** `SettingsConnectionsController::saveConnection()` runs its whole read → seal (including first-save keyring creation) → write inside `CredentialMutationGuard::hold()`. Rotation runs entirely inside the same guard, so retirement can never overlap a save holding an old sealing generation.
+2. **Rotation cannot commit while a save is in flight.** Same guard; it is not re-entrant. Configuration-only saves and disconnect are also guarded. Implementation safety requires this: each is a read-modify-write of the stored record, including secret envelopes, and could otherwise write back pre-rotation envelopes after retirement. The deterministic test proves that case.
+3. **Fails closed.** If the guard is busy beyond a 10 s wait, the save, disconnect or rotation changes nothing and returns 409 "Another change to API keys is in progress. Nothing was changed; try again in a moment." A lease left by a crashed request expires after 60 s and is broken only by a delete matching its exact stored value. Nothing is deleted or exposed.
+4. **Inside the existing authority.** New files:
+   - `Security/CredentialMutationGuard.php` (interface);
+   - `Security/WpdbCredentialMutationGuard.php`: one non-autoloaded options row `qsd_settings_credential_guard` holding a random token and expiry only. It is taken by an atomic `$wpdb->insert` on the options unique key, the same reason and pattern as `WpdbRequestKeyStore` (the cached options API is check-then-act), and released by a token-matched delete;
+   - `Security/CredentialMutationBusy.php`.
+
+   No second credential system, no Platform ID, no new route.
+5. **Rotation simplified.** The retry loop is gone. Under the guard, rotation plans, stages, replaces, confirms every stored secret opens under the new key, then `retireUnreferenced()` (still never drops a generation a stored secret names). Anything left means failure, with nothing retired.
+6. **Deterministic regressions for both orderings** (`tests/settings-connections.php`, real controller, real rotation, real `WpdbCredentialMutationGuard` over a unique-key `$wpdb` double in `tests/support-credential-guard.php`):
+   - **Save first:** a rotation started while a save holds the guard reports failure, changes nothing, and the guard is released.
+   - **Rotation first:**
+     - a secret save mid-rotation gets 409 and echoes nothing; the rotation succeeds; the stored key still opens on the single new generation; a later save succeeds and stays readable;
+     - a configuration save mid-rotation gets 409 and cannot write back stale envelopes;
+     - a disconnect mid-rotation gets 409 and removes nothing.
+   - **Lease:** an expired lease is broken; a live lease times the waiter out with nothing run and the holder intact.
+   - **Rotation test:** a busy guard means nothing is written. A write that bypasses the guard and lands under the old generation makes rotation report failure; no generation is retired, every key opens, and the report holds no secret or key id.
+7. **Boundary unchanged.** No-secret output, the administrator-only `qsd/v1` route and the QSD-owned keyring model are as before.
+8. **Validation:**
+   - `npm test` exit 0 (PHP tests, typecheck, build, 24/24 contract/regression scripts);
+   - `contract:settings-station` 65 checks; new guard checks: every connection write and the whole rotation run inside the guard, and the guard uses an atomic insert;
+   - `npm run docs:check` passed.
+
+Docs updated: the credential-broker contract's Key operations (the commit check and a new "One guard for every credential write" step), the Settings Code Map, and the Settings backend `CLAUDE.md`.
+
+### Handoff to Reviewer
+
+Reviewer: inspect `efae006` (diff `957427d..efae006`). On approval of that exact SHA, the Builder will promote it to `staging` through the existing guarded workflow, verify CI and the bundle, collect the staging2 runtime evidence through API Keys, and continue to Phase 2 closeout. Not started: Phase 3. Production untouched.
