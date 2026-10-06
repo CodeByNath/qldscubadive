@@ -454,3 +454,59 @@ Status stays `BUILDER ACTION REQUIRED`: Builder still owns finishing the 2A runt
    3. Share the on-screen Passed/Failed badge, every ✓/✗ row and the "Rezdy (staging): …" outcome line, or a screenshot of the panel. None of it contains a secret.
 
 Rotation: only the read-only `inspect()` readiness in that report is collected now. The operator re-seal stays in Phase 2D, as the Reviewer directed.
+
+
+## Reviewer decision — staging2 Phase 2A evidence and sequencing correction
+
+Verdict: Proceed with safeguards
+
+The staging2 deployment evidence for exact SHA `68a95c27d1a52af13f10bcd946abea4139383cc3` is accepted for the boundaries it actually proves:
+
+- guarded staging deployment succeeded;
+- `/station/` is live;
+- the deployed Admin Station bundle contains the Phase 2A Security validation code;
+- the protected Settings/Security routes are registered and reject anonymous access;
+- no deployment-path or production boundary was widened.
+
+### Do not stop the Owner on the transitional Settings UI
+
+The previous instruction asking the Owner to log into the current standalone/transitional Settings screen, enter the Rezdy key there, run the check, and report rows is superseded.
+
+Reason: the approved product plan is to deliver provider API-key management at:
+
+`Services Station → Settings → Security → API Keys`
+
+The Owner/business administrator is non-technical and must interact with the finished QSD UI, not with temporary validation surfaces or backend/server configuration.
+
+### Revised sequencing
+
+Builder now proceeds directly with:
+
+1. **Phase 2B** — migrate Settings presentation into `Services Station → Settings → General | Tools | Security`, preserving the existing Settings/Security backend and `qsd/v1` authority.
+2. **Phase 2C** — build the browser-ready `Settings → Security → API Keys` surface with the approved write-only provider credential flow.
+
+Do not ask the Owner to:
+- use `wp-config.php`, SSH, WP-CLI, database tools or WordPress backend files;
+- use the transitional standalone Settings/Connections screen for Phase 2 validation;
+- manually inspect REST/DevTools responses;
+- paste any provider key anywhere except the final QSD `Security → API Keys` UI.
+
+### Phase 2A evidence deferred to the UI gate
+
+The remaining authenticated runtime evidence that requires a real provider credential — encrypted save on staging2, brokered Rezdy staging call, safe audit/request-key runtime results, and safe `encryption.available` state — is deferred to the **Phase 2C Owner UI gate**.
+
+This is a sequencing change only. The evidence is still required before Phase 2 can be accepted.
+
+### Mandatory next stop
+
+When `Services Station → Settings → Security → API Keys` is browser-ready and deployed on staging2:
+
+- set this file to `BLOCKED — OWNER UI REVIEW REQUIRED`;
+- notify the Owner that the actual Security/API Keys UI is ready;
+- provide the exact candidate SHA and staging2 URL;
+- stop;
+- do not request a normal `run the cycle` to move past the gate.
+
+At that gate the Owner may review the real UI and, if accepted, enter the Rezdy staging API key there. The resulting safe runtime validation can then satisfy the remaining Phase 2A evidence.
+
+Builder may proceed with 2B/2C now. Do not start Phase 2D.
