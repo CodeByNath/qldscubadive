@@ -81,6 +81,11 @@ Do not begin importer/product mapping here.
 
 ### Security Phase 2B — Services Station Settings placement
 
+**Status: built with 2C, awaiting the Owner UI gate.**
+- `Services → Settings` presents `General | Tools | Security` through a Station Manager station-settings registry. Each panel's owner registers it, and the shared `StationSettings` presentation renders it.
+- General holds Service's creation launchers and the Settings-owned Service fields; Tools holds the Rezdy importer slot; Security holds API Keys.
+- The standalone Settings navigation, destination and deck are retired; the backend and `qsd/v1` routes are unchanged.
+
 Migrate the configuration presentation into:
 
 `Services Station → Settings → General | Tools | Security`
@@ -95,6 +100,8 @@ Requirements:
 - remove/retire the standalone Settings presentation only when its replacement has parity.
 
 ### Security Phase 2C — Security → API Keys UI
+
+**Status: built, awaiting the Owner UI gate.** `SecurityApiKeysPanel` covers the list below, plus Test connection, which runs the 2A validation route.
 
 Build the administrator-facing Security surface in the Station shell.
 

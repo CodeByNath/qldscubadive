@@ -29,7 +29,7 @@ The Code Map points to the **current implementation**: the small set of authorit
 
 ### Configuration
 
-- [Settings Station](settings-station.md)
+- [Settings and Security](settings-station.md)
 
 ### Shared backend
 

@@ -141,7 +141,7 @@ check(
 check(
   serviceDeck.includes('<ServiceConnectionsLane onIntent={props.onIntent} />')
     && serviceDeck.includes('<ServiceSettingsLane onIntent={props.onIntent} />'),
-  'Connections renders the Category-connections lane and Settings renders the two creation launchers, each fed the surface host\'s own intent dispatcher rather than a second one',
+  'Connections renders the Category-connections lane and Settings renders Service\'s Settings lane (the shared General | Tools | Security pattern), each fed the surface host\'s own intent dispatcher rather than a second one',
 );
 // The deck cannot grow content it never imported, so its import list is the
 // honest boundary: the shared tab primitive, the station glyph its context bar

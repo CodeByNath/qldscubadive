@@ -30,6 +30,10 @@ import {
   _enableDrawerTemplateResolvers,
   _finalizeDrawerTemplateRegistry,
 } from './drawerTemplates';
+import {
+  _enableStationSettingsResolvers,
+  _finalizeStationSettingsRegistry,
+} from './stationSettings';
 
 let finalizationStarted = false;
 
@@ -81,6 +85,7 @@ export function finalizeStationRegistry(): void {
   _finalizeDataSourceRegistry();
   _finalizeTemplateKitRegistry();
   _finalizeDrawerTemplateRegistry();
+  _finalizeStationSettingsRegistry();
 
   assertBindingsResolvable(bindings);
   assertNavigationDestinationsResolvable(navItems);
@@ -91,4 +96,5 @@ export function finalizeStationRegistry(): void {
   _enableDataSourceResolvers();
   _enableTemplateKitResolvers();
   _enableDrawerTemplateResolvers();
+  _enableStationSettingsResolvers();
 }

@@ -10,6 +10,7 @@ Root: `wp-content/plugins/qsd-platform/resources/ts/station-manager/`
 - [destinations.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/destinations.ts) registers destination projections and resolves activation keys.
 - [surfaceBindings.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/surfaceBindings.ts) registers presentation bindings, resolves stable order-sorted placement rows, and holds the Admin-authored default Home value.
 - [dataSources.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/dataSources.ts), [templateKits.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/templateKits.ts), and [drawerTemplates.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/drawerTemplates.ts) register and resolve read hooks, presentation contracts, and owning-Station drawer contracts.
+- [stationSettings.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/stationSettings.ts) registers Station Settings contributions (`general` / `tools` / `security` panels, each naming the Stations that present it) and resolves a Station's sections in that fixed order, contributions sorted by `order`. Each panel's owner registers it; the registry names no Station or panel.
 - [StationSurfaceHost.tsx](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/StationSurfaceHost.tsx) resolves one binding into its source hook and kit, then transports native-id intents and the originating wall's refresh handle.
 - [drawerTypes.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/drawerTypes.ts), [recordIdentity.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/recordIdentity.ts), and [useRetainedCollection.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/useRetainedCollection.ts) are shared coordinator contracts/infrastructure.
 
@@ -26,7 +27,7 @@ registerServiceStation()
 → runtime registry.register(AdminStation)
 ```
 
-[boot.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/boot.ts) locks navigation, destinations, bindings, sources, kits, and drawers; builds indexes; asserts every binding source/kit and navigation destination resolves; then enables every public resolver. A second finalize throws.
+[boot.ts](../../wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/boot.ts) locks navigation, destinations, bindings, sources, kits, drawers, and Station Settings contributions; builds indexes; asserts every binding source/kit and navigation destination resolves; then enables every public resolver. A second finalize throws.
 
 ## Invariants
 

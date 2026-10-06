@@ -52,4 +52,4 @@ Values flow through the Service draft → settle → projection path like Inclus
 
 Service Meta value persistence, editors, publish-readiness enforcement, public projection, and Rezdy field mapping. Rezdy mapping into Service Meta waits for the Owner's pre-built Rezdy importer.
 
-See the [Settings Station](../code-map/settings-station.md) Code Map.
+See the [Settings and Security](../code-map/settings-station.md) Code Map.

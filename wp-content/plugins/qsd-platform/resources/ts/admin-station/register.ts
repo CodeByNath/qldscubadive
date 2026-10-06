@@ -59,18 +59,6 @@ export function registerPresentationPolicy(): void {
         { id: 'create-category', target: 'drawer', mode: 'view', drawerTemplateKey: 'category' },
       ],
     },
-    // Settings Home: the Settings Station's one deck of configuration Tools.
-    // It reads no record collection and dispatches no drawer intent.
-    {
-      stationId: 'settings',
-      surfaceId: 'settings-deck',
-      placement: 'presentation',
-      order: 1,
-      dataSourceKey: 'settings-home',
-      templateKitKey: 'settings-deck',
-      conditions: { scope: 'current' },
-      actionIntents: [],
-    },
   ]);
 
   setDefaultHomeStation('services');

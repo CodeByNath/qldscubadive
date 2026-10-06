@@ -14,7 +14,7 @@ Root: `wp-content/plugins/qsd-platform/resources/ts/station-manager/registry/`
 { id, stationId, surfaceId, placement, mode, conditions? }
 ```
 
-Service's destination declares `surfaceId: 'catalog'`, `mode: 'table'`; Settings' declares `surfaceId: 'settings-home'`, `mode: 'summary'`; both use `placement: 'body'` and `conditions.scope: 'current'`. They are navigation declarations; current visible content is composed independently from presentation bindings.
+Service's destination declares `surfaceId: 'catalog'`, `mode: 'table'`, `placement: 'body'` and `conditions.scope: 'current'`. Settings has no navigation row or destination: it is a tab inside a Station (see [Settings and Security](settings-station.md)). They are navigation declarations; current visible content is composed independently from presentation bindings.
 
 Registration rejects duplicate navigation ids, destination ids, and identical destination projections. `finalizeStationRegistry()` locks registration, builds stable order-sorted header and menu arrays, and asserts that every navigation activation key names a registered destination. Public navigation and destination resolvers throw before finalization. `resolveDestination()` returns `null` for a null or unmapped activation.
 

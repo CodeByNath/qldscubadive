@@ -99,4 +99,4 @@ The re-seal refuses to start when either key is missing or invalid, or when both
   - an administrator enters one real Rezdy staging API key through the QSD UI.
   Production stays out of scope.
 
-See [Settings Station](../code-map/settings-station.md).
+See [Settings and Security](../code-map/settings-station.md).

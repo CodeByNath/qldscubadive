@@ -3,7 +3,9 @@ import { registerDataSources } from '@/station-manager/registry/dataSources';
 import { registerDestinations } from '@/station-manager/registry/destinations';
 import { registerDrawerTemplates } from '@/station-manager/registry/drawerTemplates';
 import { registerNavItems } from '@/station-manager/registry/navigation';
+import { registerStationSettings } from '@/station-manager/registry/stationSettings';
 import { registerTemplateKits } from '@/station-manager/registry/templateKits';
+import { ServiceCreateLaunchers } from './presentation/ServiceCreateLaunchers';
 import { ServiceLowerDeck } from './presentation/ServiceLowerDeck';
 import { ServiceDrawerHost } from './surface/ServiceDrawerHost';
 import { useServiceCards } from './surface/useServiceCards';
@@ -43,6 +45,18 @@ export function registerServiceStation(): void {
   registerTemplateKits({
     'service-lower-deck': ServiceLowerDeck,
   });
+
+  // Services → Settings → General: Service's own creation launchers.
+  registerStationSettings([
+    {
+      id: 'service.create',
+      section: 'general',
+      stationIds: ['services'],
+      label: 'Create',
+      order: 10,
+      panel: ServiceCreateLaunchers,
+    },
+  ]);
 
   registerDrawerTemplates([
     {

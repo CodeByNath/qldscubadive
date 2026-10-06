@@ -1,6 +1,6 @@
 # Settings and Security
 
-Settings is a reusable tab pattern inside a Station, not a separate Station identity or domain record. The standalone Settings navigation/deck on `main` is an accepted foundation, but it is transitional presentation. The approved target is inside the Services Station:
+Settings is a reusable tab pattern inside a Station, not a separate Station identity or domain record. It is presented inside the Services Station; the standalone Settings navigation and deck are retired:
 
 ```text
 Services Station
@@ -47,24 +47,22 @@ See the [Credential broker contract](../architecture/credential-broker-contract.
 
 ## Roadmap and Owner gate
 
-Phases 2A–2E are defined in the [roadmap](../roadmap.md): runtime validation, Services Station placement, the `Security → API Keys` UI, rotation operator flow, and closeout. When API Keys is browser-ready, work stops at `BLOCKED — OWNER UI REVIEW REQUIRED`. A normal cycle request never crosses that gate.
+Phases 2A–2E are defined in the [roadmap](../roadmap.md). When API Keys is browser-ready, work stops at `BLOCKED — OWNER UI REVIEW REQUIRED`. A normal cycle request never crosses that gate.
 
 ## Service Meta
 
 `ServiceMeta/ServiceMetaSchema.php` owns field definitions in `qsd_settings_service_meta_schema`; `Http/ServiceMetaSchemaController.php` offers list, create, update, reorder, retire and restore. Field and option identity is scoped and server-minted, per the [Service Meta schema contract](../architecture/service-meta-schema-contract.md).
 
-## Current frontend
+## Frontend
 
-`resources/ts/settings-station/` remains the foundation until Phase 2B:
-
-- `register.ts` registers the standalone Settings navigation and destination.
-- `presentation/SettingsDeck.tsx` hosts the Connections and Service Meta lanes.
-- `presentation/SettingsConnectionsLane.tsx` shows safe credential state, write-only secret controls and, for administrators, the Security check.
-- `api.ts` is the single endpoint module.
+- **Pattern.** `station-manager/registry/stationSettings.ts` holds contributions; [`StationSettings.tsx`](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/presentation/StationSettings.tsx) renders a Station's sections. Service's `ServiceSettingsLane.tsx` hosts it for `services`, and Service registers `ServiceCreateLaunchers` under General.
+- **Settings peer** (`resources/ts/settings-station/`). `register.ts` contributes three panels to `services`: General → `ServiceMetaSchemaLane` (Service fields), Tools → `RezdyImporterTool` (not available yet), Security → [`SecurityApiKeysPanel.tsx`](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/presentation/SecurityApiKeysPanel.tsx).
+- **API Keys.** It shows secure-storage and access state, plus one card per provider with environment and key state. A key is typed into a password input that exists only while adding or replacing, and is cleared on save. Remove and Disconnect confirm in place. Test connection runs the validation route. A `manage_qsd` user sees safe state only.
+- `useSettingsConnections.ts` holds state and actions; `api.ts` is the single endpoint module.
 
 ## Validation
 
-From `wp-content/plugins/qsd-platform/`: `npm test` and `npm run docs:check`. Relevant tests: `tests/settings-connections.php`, `tests/settings-credential-broker.php`, `tests/settings-credential-rotation.php`, `tests/settings-security-validation.php`, `tests/settings-service-meta-schema.php`, `contract:settings-station` and `regression:settings-home`.
+From `wp-content/plugins/qsd-platform/`: `npm test` and `npm run docs:check`. Relevant tests: `tests/settings-connections.php`, `tests/settings-credential-broker.php`, `tests/settings-credential-rotation.php`, `tests/settings-security-validation.php`, `tests/settings-service-meta-schema.php`, `contract:settings-station` and `regression:services-settings`.
 
 ## Related Code Maps
 

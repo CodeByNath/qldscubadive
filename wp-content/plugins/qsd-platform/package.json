@@ -29,7 +29,7 @@
     "regression:service-home-bin": "node scripts/service-home-bin-regression.mjs",
     "regression:service-home-connections": "node scripts/service-home-connections-regression.mjs",
     "regression:publish-activation-guard": "node scripts/publish-activation-guard-regression.mjs",
-    "regression:settings-home": "node scripts/settings-home-regression.mjs",
+    "regression:services-settings": "node scripts/services-settings-regression.mjs",
     "regression:service-open-save-race": "node scripts/service-open-save-race-regression.mjs",
     "snapshot:mode-renderer": "node scripts/mode-renderer-snapshot.mjs",
     "snapshot:module-state": "node scripts/module-state-snapshot.mjs",

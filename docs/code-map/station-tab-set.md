@@ -21,9 +21,9 @@ It imports only Preact. It names no station, entity, drawer route, data source, 
 
 ## Consumers
 
-- **Service Home** — [ServiceLowerDeck.tsx](../../wp-content/plugins/qsd-platform/resources/ts/service-station/presentation/ServiceLowerDeck.tsx) is Service-owned composition. `Details` holds the existing Service Catalogue, handed the template-kit props unchanged; `Connections` renders Service's own read-only Category-connections lane (every live Category, All / Connected / Unassigned), `Settings` renders Service's own two creation launchers (Create Service, Create Category), and `Bin` renders Service's own archived/trashed travel lane. See [Service Catalogue](service-catalogue.md).
+- **Service Home** — [ServiceLowerDeck.tsx](../../wp-content/plugins/qsd-platform/resources/ts/service-station/presentation/ServiceLowerDeck.tsx) is Service-owned composition. `Details` holds the existing Service Catalogue, handed the template-kit props unchanged; `Connections` renders Service's own read-only Category-connections lane (every live Category, All / Connected / Unassigned), `Settings` hosts the shared Station Settings pattern (below), and `Bin` renders Service's own archived/trashed travel lane. See [Service Catalogue](service-catalogue.md).
 
-- **Settings Home** — [SettingsDeck.tsx](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/presentation/SettingsDeck.tsx) is Settings-owned composition with two Tool lanes, Connections & Security and Service Meta. See [Settings Station](settings-station.md).
+- **Station Settings** — [StationSettings.tsx](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/presentation/StationSettings.tsx) is the shared `General | Tools | Security` pattern a Station shows inside its own Settings lane (Service Home's today). Its sections and panels come from the Station Manager station-settings registry. See [Settings and Security](settings-station.md).
 
 A future Station deck consumes the same primitive with its own lanes, rows, and models. Only the tab behaviour is shared.
 

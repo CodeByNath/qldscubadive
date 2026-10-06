@@ -1,14 +1,15 @@
-// Contract: the Settings Station is a real peer registered through Station
-// Manager, and its ownership boundaries hold.
+// Contract: Settings is a tab pattern inside a Station, registered through
+// Station Manager, and its ownership boundaries hold.
 //
-// Two halves:
+// Three parts:
 //   1. Executed registration — the real Service, Settings and Admin register
-//      modules run through the real finalize, then the public resolvers prove
-//      Settings' navigation, destination, binding, source and kit resolve, with
-//      no drawer and no record collection.
+//      modules run through the real finalize. The public resolvers prove the
+//      Services Station presents `Settings → General | Tools | Security`, with
+//      each panel registered by its owner, and that the standalone Settings
+//      Station (navigation, destination, deck) is retired.
 //   2. Source boundaries — presentation never calls ./api; Settings imports no
-//      Service peer; register.ts is entry-only; the secret projection type has
-//      no value slot; Service Home's own Settings lane is untouched.
+//      Service peer and Service imports no Settings panel; register.ts is
+//      entry-only; the secret projection type has no value slot.
 //   3. Security boundaries — only the credential broker reads a decrypted
 //      secret; secret mutation needs administrator authority; key rotation is
 //      shell-only; Settings exposes no Service Element surface.
@@ -22,10 +23,12 @@ import { finalizeStationRegistry } from '../resources/ts/station-manager/registr
 import { headerNavItems, menuNavItems } from '../resources/ts/station-manager/registry/navigation';
 import { resolveDestination } from '../resources/ts/station-manager/registry/destinations';
 import { resolveSurfaceBindings, defaultHomeStation } from '../resources/ts/station-manager/registry/surfaceBindings';
-import { resolveTemplateKit } from '../resources/ts/station-manager/registry/templateKits';
-import { resolveDataSource } from '../resources/ts/station-manager/registry/dataSources';
 import { resolveDrawerTemplate } from '../resources/ts/station-manager/registry/drawerTemplates';
-import { SettingsDeck } from '../resources/ts/settings-station/presentation/SettingsDeck';
+import { resolveStationSettings } from '../resources/ts/station-manager/registry/stationSettings';
+import { SecurityApiKeysPanel } from '../resources/ts/settings-station/presentation/SecurityApiKeysPanel';
+import { ServiceMetaSchemaLane } from '../resources/ts/settings-station/presentation/ServiceMetaSchemaLane';
+import { RezdyImporterTool } from '../resources/ts/settings-station/presentation/RezdyImporterTool';
+import { ServiceCreateLaunchers } from '../resources/ts/service-station/presentation/ServiceCreateLaunchers';
 
 const root = resolve(import.meta.dirname, '..');
 let checks = 0;
@@ -56,21 +59,20 @@ registerAdminStation();
 registerPresentationPolicy();
 finalizeStationRegistry();
 
-const header = headerNavItems().map((item) => item.id);
-check(header.includes('settings') && header.indexOf('settings') > header.indexOf('services'), 'Settings appears in the header after Services');
-check(menuNavItems().some((item) => item.id === 'settings' && item.label === 'Settings'), 'Settings appears in the slide menu');
-
-const destination = resolveDestination('settings');
-check(destination?.stationId === 'settings' && destination.surfaceId === 'settings-home', 'the settings activation key resolves to the Settings station');
+check(!headerNavItems().some((item) => item.id === 'settings') && !menuNavItems().some((item) => item.id === 'settings'), 'there is no standalone Settings Station in the header or menu');
+check(resolveDestination('settings') === null, 'the retired settings activation key resolves to nothing');
+check(resolveSurfaceBindings('settings', 'presentation').length === 0, 'no Settings deck binding remains');
 check(defaultHomeStation() === 'services', 'Service remains the default Home');
-
-const bindings = resolveSurfaceBindings('settings', 'presentation');
-check(bindings.length === 1 && bindings[0].templateKitKey === 'settings-deck' && bindings[0].dataSourceKey === 'settings-home', 'Settings Home binds one deck to its own source');
-check(bindings[0].actionIntents.length === 0 && bindings[0].drawerTemplateKey === undefined, 'Settings Home dispatches no drawer intent');
-check(resolveTemplateKit('settings-deck') === SettingsDeck, 'the settings-deck kit resolves to SettingsDeck');
-const home = resolveDataSource('settings-home')();
-check(Array.isArray(home.items) && home.items.length === 0 && home.loading === false && home.error === null, 'the Settings Home source is an honest empty collection — no fabricated record');
 check(resolveDrawerTemplate('settings') === null, 'Settings registers no drawer — it has no lifecycle-managed record');
+
+const servicesSettings = resolveStationSettings('services');
+check(servicesSettings.map((s) => s.section).join() === 'general,tools,security', 'Services → Settings presents General, Tools, Security in that order');
+const panelsOf = (section: string) => servicesSettings.find((s) => s.section === section)?.contributions ?? [];
+check(panelsOf('general').map((c) => c.id).join() === 'service.create,settings.service-meta'
+  && panelsOf('general')[0].panel === ServiceCreateLaunchers && panelsOf('general')[1].panel === ServiceMetaSchemaLane, 'General holds Service\'s creation launchers, then the Settings-owned Service fields');
+check(panelsOf('tools').length === 1 && panelsOf('tools')[0].label === 'Rezdy importer' && panelsOf('tools')[0].panel === RezdyImporterTool, 'Tools holds the Rezdy importer slot');
+check(panelsOf('security').length === 1 && panelsOf('security')[0].label === 'API Keys' && panelsOf('security')[0].panel === SecurityApiKeysPanel, 'Security holds the API Keys panel');
+check(resolveStationSettings('settings').length === 0 && resolveStationSettings('packages').length === 0, 'no other Station presents these panels yet');
 
 // ── 2. Source boundaries ─────────────────────────────────────────────────────
 
@@ -97,9 +99,20 @@ check(api.includes("field.type === 'secret'") && api.includes('configured: field
 
 const serviceSettingsLane = source('resources/ts/service-station/presentation/ServiceSettingsLane.tsx');
 check(
-  serviceSettingsLane.includes("onIntent('new', 'create-service')") && serviceSettingsLane.includes("onIntent('new', 'create-category')") && !serviceSettingsLane.includes('settings-station'),
-  "Service Home's Settings lane is still its two creation launchers and independent of the Settings Station",
+  serviceSettingsLane.includes('<StationSettings stationId="services" onIntent={onIntent} />') && !serviceSettingsLane.includes('settings-station'),
+  "Service Home's Settings lane hosts the shared Settings pattern and imports no Settings panel",
 );
+const launchers = source('resources/ts/service-station/presentation/ServiceCreateLaunchers.tsx');
+check(launchers.includes("onIntent('new', 'create-service')") && launchers.includes("onIntent('new', 'create-category')"), 'the creation launchers still open the mature drawers at the new sentinel');
+const sharedSettings = source('resources/ts/admin-station/presentation/StationSettings.tsx');
+check(!/settings-station|service-station/.test(sharedSettings) && sharedSettings.includes('resolveStationSettings(stationId)'), 'the shared Station Settings presentation names no Station and resolves its panels from Station Manager');
+const stationSettingsRegistry = source('resources/ts/station-manager/registry/stationSettings.ts');
+check(!/from '@\/(admin-station|settings-station|service-station)/.test(stationSettingsRegistry), 'the station-settings registry imports no peer or Admin Station');
+
+const apiKeys = source('resources/ts/settings-station/presentation/SecurityApiKeysPanel.tsx');
+check(apiKeys.includes('type="password"') && apiKeys.includes('autocomplete="new-password"') && /setValue\(''\)/.test(apiKeys), 'API keys are typed into a write-only password input that is cleared after save');
+check(!/wp-config|QSD_CREDENTIAL_KEY|SSH|WP-CLI/i.test(apiKeys.replace(/\/\/[^\n]*/g, '')), 'the API Keys UI names no server file, master key or shell step');
+check(/useInlineConfirm/.test(apiKeys) && /:remove`/.test(apiKeys) && /:disconnect`/.test(apiKeys), 'Remove key and Disconnect are armed in place before anything is sent');
 
 const phpModule = source('src/Modules/Settings/SettingsModule.php');
 check(!phpModule.includes('PlatformIdentifier'), 'the Settings backend mints no Platform ID family');

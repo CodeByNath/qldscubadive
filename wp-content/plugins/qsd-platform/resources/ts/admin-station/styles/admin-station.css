@@ -2506,62 +2506,65 @@ button.cz-station-status-pill {
   letter-spacing: var(--station-tracking-wide);
 }
 
-/* ── Settings Station deck ─────────────────────────────────────────────────
-   Settings Home's framed deck (context bar, tab strip, active Tool lane),
-   restated under Settings' own class names: matching Service Home's look is a
-   styling decision and carries no Service meaning across. Controls inside the
-   lanes are painted by the field system (cz-tf-*), never here. */
+/* ── Station Settings (General | Tools | Security) ──────────────────────────
+   The shared Settings tab pattern inside a Station's deck, and the Settings
+   panels it hosts. Controls inside panels are painted by the field system
+   (cz-tf-*), never here. */
 
-.cz-settings-deck {
+.cz-station-settings__tabs {
+  margin-bottom: 16px;
+}
+
+.cz-station-settings__section {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--station-border);
-  border-radius: var(--station-card-radius);
-  background: var(--station-surface-elevated);
-  color: var(--station-text);
-  overflow: hidden;
+  gap: 20px;
 }
 
-.cz-settings-deck__bar {
+.cz-station-settings__block {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--station-card-divider);
+  flex-direction: column;
+  gap: 10px;
 }
 
-.cz-settings-deck__context-icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: var(--station-card-icon-size);
-  height: var(--station-card-icon-size);
-  border-radius: var(--station-card-icon-radius);
-  background: var(--station-accent-soft-bg);
-  color: var(--station-accent-fg);
-}
-
-.cz-settings-deck__context-icon > svg {
-  width: var(--station-card-glyph-size);
-  height: var(--station-card-glyph-size);
-}
-
-.cz-settings-deck__context-name {
+.cz-station-settings__heading {
   margin: 0;
   color: var(--station-text);
   font-size: var(--station-text-sm);
   font-weight: 700;
 }
 
-.cz-settings-deck__tabs {
-  padding-inline: 20px;
+.cz-api-keys__status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--station-text-muted);
+  font-size: var(--station-text-xs);
 }
 
-.cz-settings-deck__panel {
-  padding: 18px 20px 20px;
+.cz-api-keys__secret-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
-/* Tool lanes: Connections & Security, Service Meta. */
+.cz-api-keys__checks > summary {
+  cursor: pointer;
+  color: var(--station-text-muted);
+  font-size: var(--station-text-xs);
+}
+
+.cz-settings-notice {
+  margin: 0;
+  color: var(--station-text);
+  font-size: var(--station-text-sm);
+}
+
+/* Settings panels: API Keys, Service fields. */
 .cz-settings-lane {
   display: flex;
   flex-direction: column;
