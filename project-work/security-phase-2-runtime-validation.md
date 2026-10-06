@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Builder
+Actor: Reviewer
 
 ## Accepted baseline
 
@@ -259,3 +259,61 @@ Services Station
 ```
 
 Security owns provider API credentials. Tools such as the Rezdy importer consume Security-governed authority and must never own/read the long-lived credential.
+
+
+## Builder handoff — Phase 2A candidate (2026-10-06)
+
+**What this handoff is.** The Phase 2A code candidate, submitted for Reviewer review and **approval to promote to `staging`** under the staging2 authorisation above (steps 3–4). This is **not** the Phase 2 exit gate. No staging2 runtime evidence exists yet because nothing has been deployed. Phases 2B and 2C have not started.
+
+- **Branch:** `docs/settings-security-roadmap`. It is the single permitted topic branch, so Builder continued on the Reviewer's prepared docs branch rather than opening a second one.
+- **Candidate SHA:** `075a3d4189e00ccd5cd057decfeacc223d2045fb`. Remote verified with `git ls-remote`.
+- **Base:** `5a197a6` (Reviewer docs) on top of `main` `da934936edafcf892ebab33e870e6f5f511d147f`; `main` is an ancestor. Diff vs `main`: 20 files, +1158 / −104. That includes the Reviewer's two docs commits.
+- **`main` / `staging`:** unchanged (`da93493` / `69f68ca`). No deploy, no provider call, no credential and no key were used.
+
+### Changes
+
+| Area | Change |
+|---|---|
+| Caller identity (safeguard 1) | `CredentialBroker` takes a server-side caller allow-list (caller → `provider:scope`). A caller that is not listed is refused with the new reason `unknown_caller`, and a broker with no list issues nothing. The list lives in `SettingsModule::brokerCallers()`, and its one entry is `settings.security-validation` → `rezdy:connection.verify`. |
+| Provider scope (minimum) | `RezdyConnector` declares only `connection.verify`. New `Connectors/RezdyConnectionCheck.php` sends one `GET https://api.rezdy-staging.com/v1/products?limit=1` (the `apiKey` query parameter is Rezdy's documented auth) with no redirects and a 10 s timeout. It reads only the HTTP status and `requestStatus.success`, and the body is discarded. It returns `{provider, environment, outcome, http_status, latency_ms}`. Outcomes: `authenticated`, `unauthorized`, `rate_limited`, `upstream_error`, `unexpected_response`, `network_error`. **Phase 2 bound enforced in code:** an environment other than `staging` returns `refused_environment` with no request. |
+| Governed `qsd/v1` flow | New `Security/BrokerValidation.php` and `Http/SettingsSecurityController.php`: `POST qsd/v1/admin/settings/security/broker-validation`, gated by `manage_qsd` + `manage_options`. User = `get_current_user_id()`; caller = the constant. The request is never read, so a client-supplied `user_id`, `caller`, `provider` or `subject` is ignored (tested). |
+| Validation run | One run, on the real install, against the real option and `$wpdb` stores:<br>(1) the encryption key is present;<br>(2) each Rezdy secret is a `{v,alg,kid,nonce,ct}` envelope that opens under the current key, and its plaintext is absent from the stored option;<br>(3) rotation readiness via the new read-only `CredentialRotation::inspect()`;<br>(4) issue → row stored by hash only, bound to provider/scope/caller/user/per-run subject, TTL 60;<br>(5) consume + perform, the **single provider call**;<br>(6) replay refused;<br>(7) a TTL-1 key refused as expired after a real 2 s wait;<br>(8) an abandoned TTL-1 key swept;<br>(9) wrong binding refused and the key burned;<br>(10) zero rows left;<br>(11) the run's audit events are recorded, and the audit holds no key, hash or secret.<br>The report is leak-guarded against every issued key, key hash, decrypted secret and the key id before it is returned. |
+| Browser trigger | The Settings Connections lane shows administrators a **Security check** panel with the button "Run security check". It sends a bodyless POST and renders pass/fail rows plus the provider outcome line. It is hidden for platform managers. This is the minimum UI needed for the Owner to run the check on staging2 (Builder has no browser), and it is transitional until Phase 2B/2C. |
+| Rotation | Re-seal is unchanged and still shell-only. `inspect()` is read-only, and the contract now asserts that only `CredentialRotationCommand` calls `->reseal(`. |
+| Docs | `credential-broker-contract.md` (status, Issue step, Permission, Current boundaries), the roadmap 2A status, Settings `CLAUDE.md`, and the Settings Code Map. |
+
+### Deterministic validation (local, PHP 8.5.6 / Node, at `075a3d4`)
+
+- `npm test` → **exit 0**: typecheck, every PHP test, Vite build, JS 24/24, docs check.
+  - `tests/settings-security-validation.php`: **40/40** (new).
+  - `tests/settings-credential-broker.php`: 65.
+  - `tests/settings-connections.php`: 54.
+  - `tests/settings-credential-rotation.php`: 25.
+  - `contract:settings-station`: 50.
+  - `regression:settings-home`: 41 (adds sections 9–10 for the Security check).
+- `npm run docs:check` → passed: 46 Markdown files, 19 Code Maps.
+- CI does not run on topic-branch pushes; it will run on promotion to `staging`.
+
+### Deviations / flags for Reviewer
+
+1. **Code Map rewritten for length.** The Reviewer's `5a197a6` version of `docs/code-map/settings-station.md` failed `docs:check` at 751 prose words against the 600 limit, so the docs check was red on the branch before Builder touched it. Builder kept the Owner tree, the ownership rules and the Owner UI gate verbatim in meaning, and moved the 2A–2E phase detail to a pointer to `docs/roadmap.md`, which carries it in full. The map is now within the limit.
+2. **Settings `CLAUDE.md` boundary changed.** It used to say "no brokered scopes or provider HTTP calls on RezdyConnector before the importer review". It now allows only `RezdyConnectionCheck` / `connection.verify`, which this work file authorises, and adds "never take a grant's user or caller from client input".
+3. **Rezdy auth uses the `apiKey` query parameter** (Rezdy v1). QSD never logs, returns or stores the URL, and WordPress HTTP does not log requests by default. The key will appear in Rezdy-side request logs, which is inherent to Rezdy's API.
+4. **Concurrent-race proof stays deterministic.** On the runtime, atomic single use is shown by the real `DELETE` affecting one row (consume, then replay refused). A true two-process race is covered by the existing `StaleReadStore` test only.
+5. **Permission choice.** The validation route requires administrator authority, not just `manage_qsd`, because it spends the stored credential. Relaxing that for Tools is a Phase 3 decision.
+
+### Runtime plan once approved (staging2), with Owner-only steps marked
+
+1. Reviewer/Owner approves `075a3d4` for staging. Builder pushes that exact SHA to `staging` (fast-forward check first), and the existing workflow deploys it. Builder verifies the `test` and `deploy-staging` jobs.
+2. **Owner:** add `define('QSD_CREDENTIAL_KEY', '<base64 32 bytes>');` to staging2 `wp-config.php` (the workflow cannot write it, and Builder has no host shell). Generate the key with `php -r "echo base64_encode(random_bytes(32));"`, and never paste it anywhere.
+3. **Owner:** in `/station/` → Settings → Connections, set Rezdy environment to *Staging (sandbox)* and enter the Rezdy staging API key. Save.
+4. **Owner:** click **Run security check**. Report back only the on-screen pass/fail rows and the Rezdy outcome line (no secret is shown), or a screenshot. Optionally check DevTools → Network for the `broker-validation` and `connections` JSON bodies (safe).
+5. **Owner, rotation on real storage** (host shell, which Builder lacks):
+   1. Move the key to `QSD_CREDENTIAL_KEY_PREVIOUS` and add a new `QSD_CREDENTIAL_KEY`.
+   2. Run the check again. Expected fail-closed result: rotation shows `previous: ["rezdy:api_key"]`, Rezdy reads as not configured, and no provider call is made.
+   3. Run `wp qsd credentials reseal`. The output is slot names and counts only.
+   4. Run the check again. Expected: passes, `current: ["rezdy:api_key"]`.
+   5. Remove `_PREVIOUS`.
+6. Builder records the safe evidence here and hands off for the Phase 2A exit review.
+
+Builder stops here. Phase 2B/2C, any staging promotion and Phase 3 are not started.
