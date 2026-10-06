@@ -80,7 +80,7 @@ Mandatory operations vs. this execution surface (Owner's macOS workstation, Clau
 
 Required execution surface / Owner inputs before Builder can run the phase end-to-end:
 
-1. **Runtime** — either (a) Owner authorises Builder to stand up a disposable local runtime on this workstation (Homebrew MariaDB + WordPress core + WP-CLI phar, outside the repo, plugin symlinked from the checkout, torn down after), or (b) Owner names an existing non-production WordPress + MySQL runtime Builder may use. Staging deploy is excluded by this file, so (a) or a named local/dev host is assumed.
+1. **Runtime — RESOLVED.** Use the existing QSD staging2 WordPress runtime. Do not stand up a separate local WordPress/database stack.
 2. **Credential** — Owner places one Rezdy API key directly into the runtime (Settings UI as a `manage_options` user, or a non-committed local file Builder reads only into the runtime). It must not be pasted into chat, the work file, a commit, or a log.
 3. **Target** — Owner confirms which Rezdy endpoint the single connection/authentication call may hit (Rezdy staging API preferred) and that one read-only authentication call is acceptable.
 
@@ -103,15 +103,38 @@ Verdict: Proceed with safeguards
 
 The Builder preflight is accepted as a capability finding, not an implementation failure. No source candidate existed and `main` remains unchanged.
 
-Builder is authorised to continue Phase 2 using a **disposable local non-production runtime on the Owner workstation**:
+Builder is authorised to continue Phase 2 using the **existing QSD staging2 WordPress runtime as the normal real-runtime validation surface**.
 
-- local MariaDB/MySQL;
-- local WordPress core;
-- WP-CLI;
-- the checked-out `qsd-platform` plugin linked/loaded from the repository;
-- runtime/key material kept outside the repository and removed or invalidated after validation.
+Canonical runtime:
+- WordPress host: `staging2.qldscubadive.com.au`
+- QSD Admin Station: `/station/`
+- deployment path is the repository's existing GitHub Actions staging workflow only;
+- deployment target remains exactly `/home/customer/www/staging2.qldscubadive.com.au/public_html`;
+- the workflow may write only the already-authorised `wp-content/plugins/qsd-platform/` and `wp-content/themes/qsd-shell/` destinations.
+
+Do **not** create a second/local WordPress + database stack for this phase unless the Owner later explicitly authorises that fallback.
 
 Provider validation is bounded to **one read-only Rezdy authentication/connection check against the existing Rezdy staging base URL** `https://api.rezdy-staging.com/v1/`. This does not authorise product import, mapping, mutation, booking changes, or production Rezdy calls.
+
+
+
+### Staging2 deployment authorisation for this Phase 2 package
+
+For this active Phase 2 package, the Owner authorises Builder to deploy an approved Phase 2 candidate to **staging2** through the repository's existing GitHub Actions staging deployment when runtime/browser evidence is required.
+
+Builder may therefore:
+1. implement on the authorised topic branch;
+2. run deterministic validation;
+3. hand off the exact candidate SHA for Reviewer review;
+4. after Reviewer/Owner approval for that candidate, promote that exact approved SHA to the existing `staging` deployment boundary;
+5. let the existing GitHub Actions workflow deploy it to staging2;
+6. validate the real `/station/` UI, `qsd/v1`, credential broker, encrypted WordPress storage, request-key behavior, audit and permitted provider check there.
+
+This is **not** standing permission to deploy arbitrary/unreviewed changes. Deployment requires the candidate being approved for staging use. Do not alter the workflow, destination, SSH scope, `--delete` scope, production site, or hosting paths.
+
+Production deployment remains prohibited.
+
+The database on staging2 is runtime/storage evidence only. Do not introduce direct SQL/query application paths or bypass the existing QSD API, broker or owning stores.
 
 ### Credential handling safeguard
 
