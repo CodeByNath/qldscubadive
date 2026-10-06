@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: BLOCKED — OWNER PUSH APPROVAL REQUIRED
 Phase: Security Phase 2 — Owner-corrected credential flow package
-Actor: Builder
+Actor: Owner
 
 ## Accepted baseline
 
@@ -740,3 +740,51 @@ The proposed bootstrap design is approved **with safeguards**:
 - Tools continue to receive only short-lived scoped broker authority, never the long-lived provider credential.
 
 The Builder's stop for confirmation was correct because this was a security-architecture choice. That choice is now resolved. Resume Phase A from the current uncommitted documentation edits, then continue through B–E without intermediate review stops. Keep one local commit per phase and stop before the first implementation push as already instructed.
+
+
+## Builder report — Owner-corrected credential flow, Phases A–E complete locally (2026-10-06)
+
+Executed as one workload on topic branch `docs/settings-security-roadmap`, one local commit per phase, no intermediate stops. **Nothing is pushed, deployed or merged.** Remote topic branch and `staging` remain at `81f749d`; `main` unchanged (`da93493`).
+
+### Ordered local commits (on top of `81f749d`)
+
+| Phase | Commit | Scope |
+|---|---|---|
+| A | `3f9c199` | Contract (`Key ownership` replaces `Two secret classes`; Encryption at rest; Key operations; Permission; Current boundaries), roadmap (credential-flow direction, Owner gate passed, 2D redefined as QSD-owned rotation), Settings Code Map. |
+| B | `93c31b5` | New `Security/CredentialKeyring.php`; `CredentialCipher` opens under several key generations; `ConnectorCredentials`, `SettingsConnectionsController`, `BrokerValidation`, `SettingsModule` use the keyring; shell-only `CredentialRotationCommand` removed; tests. |
+| C | `64c5689` | New `Security/BrokeredAccess.php`, `SettingsModule::brokeredAccess()`, `BrokerRejected::UNAUTHENTICATED`; broker tests for the Tool path. |
+| D | `8b28ff7` | `CredentialRotation::rotate()`/`inspect()` rewritten for the keyring; `POST qsd/v1/admin/settings/security/rotation` in `SettingsSecurityController`; `ConnectionStore::replaceSecrets()` skips slots saved since planning; `BrokerAuditLog::ROTATED`; rotation and validation tests; contract checks. |
+| E | `8a88833` | API Keys UI: operator-setup copy removed; Rotate encryption key (administrators, armed in place, no body, count-only result); api/hook/types; regression and contract checks; frontend CLAUDE.md. |
+
+### Design as built (per the Owner safeguards in `93bc8c8`)
+
+- **First save, no setup.** The first provider-secret save generates a random 32-byte data key (DEK). It is stored only sealed (XChaCha20-Poly1305) in the non-autoloaded option `qsd_settings_credential_keyring`, bound to the versioned context `keyring:v1:<key id>`.
+- **Wrapping authority.** HKDF-SHA256 over WordPress `SECURE_AUTH_KEY` + `SECURE_AUTH_SALT`, with info `qsd-credential-wrap:v1` (QSD-specific context separation). It is never stored. Missing, short (<32 chars) or placeholder values mean storage is unavailable (fail closed, 409 on save). An optional `QSD_CREDENTIAL_KEY` is derived the same way and preferred when defined; it is never required, never an admin step, and envelopes sealed directly under it by earlier builds still open (the next rotation migrates them).
+- **Same boundaries.** Same `CredentialCipher`/broker/`ConnectionStore`, same envelope format (`v:1`, provider/field AAD); no parallel credential system.
+- **WordPress secret keys change.** No generation opens, so affected keys read as not set and the broker refuses (not configured). The admin re-enters them in API Keys; that save starts a new generation and keeps the old sealed one. Nothing is deleted. A refused save (validation error) never creates a generation.
+- **Rotation.** Administrator-only `qsd/v1` POST, no input. It plans every secret first; any unreadable slot means nothing is written and a plain 409 message is returned. Otherwise it stages the new generation (old kept), replaces secrets in one write, then retires old generations and rewraps under the preferred wrapper. Response: re-sealed count plus unreadable slot names; audited as `rotated` with the session user. No key, wrapped key or key id appears in the UI, REST, logs or audit.
+- **Tools.** `BrokeredAccess` is bound to one allow-listed caller; the user comes from the session on every call; `run()` issues and consumes a short-lived bound key internally and returns only the leak-checked result. Its public API is `run()` only; it is not serialisable. Allow-list unchanged (validation caller only); no new scope, provider call or importer.
+
+### Validation (local, PHP 8.5.6, from `wp-content/plugins/qsd-platform/`)
+
+- `npm test` → exit 0 (typecheck, all PHP tests, build, all JS scripts, docs check). Settings-specific results:
+  - `settings-connections.php` — all checks passed, including the new keyring, refusal, wrapping-change and constant-source checks.
+  - `settings-credential-broker.php` — 73 checks (was 65).
+  - `settings-credential-rotation.php` — rewritten, 23 checks.
+  - `settings-security-validation.php` — all passed, including rotation route, audit and refusal.
+  - `contract:settings-station` — 62 checks (was 57).
+  - `regression:services-settings` — all passed, including new section 11 (rotation) and the updated unavailable/View Only checks.
+- `npm run docs:check` → passed (46 Markdown files, 19 Code Maps).
+- Working tree clean after `8a88833`.
+
+### Deviations and residual risks
+
+1. **Shell command removed.** `wp qsd credentials reseal` (`CredentialRotationCommand`) was removed in Phase B, not D, because the operator previous/current constant pair it depended on was replaced there. QSD-owned rotation landed in D.
+2. **Rotation is a REST route.** The earlier roadmap 2D line "no browser/REST trigger without separate approval" is superseded by the Owner direction and the `93bc8c8` safeguards (administrator-only, `qsd/v1`, no key material, all-or-nothing).
+3. **Residual risk: concurrency.** A secret saved under the old generation in the narrow window between rotation staging and retiring could become unreadable. It then reads as not set and can be re-entered; there is no plaintext or partial-write exposure. Saves landing after planning are protected by the `replaceSecrets` expectation check.
+4. **Residual risk: non-standard installs.** An install whose WordPress secret keys are not defined in server configuration (WordPress falling back to database-stored salts) reports secure storage unavailable rather than wrapping under database-held material. Standard installs, staging2 included as far as is known, define them.
+5. **Not yet verified on staging2.** Real-runtime evidence (first save on staging2, Test connection, Rotate) requires the push/deploy that this workload stops before.
+
+### Next action
+
+Owner: approve (or decline) pushing `3f9c199..8a88833` to the topic branch. Staging2 promotion and runtime evidence follow only with Reviewer approval of the exact candidate. Not started: Phase 3; no production work.
