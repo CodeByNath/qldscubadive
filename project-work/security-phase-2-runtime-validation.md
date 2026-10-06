@@ -1,6 +1,6 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BLOCKED — OWNER PUSH APPROVAL REQUIRED
+Status: BUILDER ACTION REQUIRED
 Phase: Security Phase 2 — Owner-corrected credential flow package
 Actor: Owner
 
@@ -788,3 +788,20 @@ Executed as one workload on topic branch `docs/settings-security-roadmap`, one l
 ### Next action
 
 Owner: approve (or decline) pushing `3f9c199..8a88833` to the topic branch. Staging2 promotion and runtime evidence follow only with Reviewer approval of the exact candidate. Not started: Phase 3; no production work.
+
+
+## Owner push approval — corrected Security package (2026-10-06)
+
+The Owner approves pushing the completed local Phase A–E commit chain **exactly as reported** to the existing topic branch `docs/settings-security-roadmap`:
+
+`3f9c199` → `93c31b5` → `64c5689` → `8b28ff7` → `8a88833`
+
+Builder may now push that exact commit chain to the topic branch and verify the remote head. Do not amend, squash, reorder, add unrelated commits, deploy to `staging`, merge to `main`, or begin Phase 3.
+
+After push:
+1. verify the remote branch head is exactly `8a88833` (full SHA in report);
+2. update this work file with the exact pushed SHA and remote verification;
+3. set status to `AWAITING REVIEWER REVIEW`;
+4. stop for independent Reviewer inspection of the pushed source/diff and evidence.
+
+This approval is for the topic-branch push only. Staging deployment remains separately gated by Reviewer approval of the exact pushed candidate.
