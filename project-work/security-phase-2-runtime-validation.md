@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: BLOCKED — OWNER UI REVIEW REQUIRED
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Builder
+Actor: Owner
 
 ## Accepted baseline
 
@@ -677,3 +677,31 @@ After deployment:
 5. stop.
 
 Do not begin Phase 2D. Do not ask the Owner for backend/server work. The next interaction after deployment is Owner visual/interaction review of the actual QSD UI.
+
+
+## Builder staging2 deployment — Phase 2B/2C `81f749d`; Owner UI gate opened (2026-10-06)
+
+**Status set to `BLOCKED — OWNER UI REVIEW REQUIRED`.** The Builder has stopped. A normal "run the cycle" does not cross this gate; only an explicit Owner acceptance or correction of the UI does.
+
+**Promotion**
+- Fast-forward check passed: `origin/staging` (`68a95c2`) is an ancestor of `81f749d7cf35b232369cf6af9db94fe6a312f2be`.
+- Pushed `68a95c2..81f749d` to `staging`; `git ls-remote` shows `staging` = `81f749d7cf35b232369cf6af9db94fe6a312f2be`.
+
+**CI and deploy:** Actions run `37448258470` ("Test and deploy"), head `81f749d`: `test` completed success, `deploy-staging` completed success. The workflow, paths and scope are unchanged, and production was not touched.
+
+**Live checks (unauthenticated, from Builder)**
+- `https://staging2.qldscubadive.com.au/station/` → 200.
+- The deployed `qsd-platform/dist/js/admin-station.js` contains the 2B/2C UI: `settings.api-keys`, "Secure storage:", "Test connection", "View only. Only a site administrator…", and "Rezdy importer" / "Not available yet". The retired `'settings-deck'` kit is absent.
+- `POST qsd/v1/admin/settings/security/broker-validation` anonymously → 401, so the route is registered and protected.
+
+**Owner review surface**
+- URL: `https://staging2.qldscubadive.com.au/station/` → **Services** → **Settings** → **Security** → **API Keys**.
+- Candidate SHA: `81f749d7cf35b232369cf6af9db94fe6a312f2be`.
+- Also visible there: Settings → **General** (Create Service / Create Category, Service fields) and **Tools** (Rezdy importer, not available yet). The old standalone Settings header entry is gone.
+
+**What the Owner can do at the gate (UI only)**
+- Review the look and interaction, then accept or give corrections.
+- If "Secure storage" reads **Ready**, the Owner may set Rezdy Environment to *Staging (sandbox)*, **Add** the Rezdy staging API key, **Save**, then **Test connection**. Its safe result supplies the deferred 2A runtime evidence.
+- If "Secure storage" reads **Not set up**, that is the platform-operator master-key provisioning item, not an Owner task. The Builder will record `BLOCKED — INFRASTRUCTURE KEY PROVISIONING REQUIRED` when told.
+
+Not started: Phase 2D, Phase 3. `main` is unchanged (`da93493`).
