@@ -37,17 +37,18 @@ Other Stations may surface `General`, `Tools` and/or `Security`. Shared data is 
 Root `src/Modules/Settings/`, wired by [`SettingsModule.php`](../../wp-content/plugins/qsd-platform/src/Modules/Settings/SettingsModule.php). Every route is `qsd/v1/admin/settings/*` behind `PlatformAccess::CAP`; secret mutation also needs administrator authority.
 
 - **Storage.** `Connections/ConnectionProviderDefinition.php` declares fields and brokered scopes. `Connections/ConnectionStore.php` is the sole reader/writer of the non-autoloaded `qsd_settings_connections` option. Rezdy is the only provider. Secrets are encrypted envelopes, never plaintext.
-- **Encryption and authority.** `Security/CredentialCipher.php` seals with XChaCha20-Poly1305 under `QSD_CREDENTIAL_KEY` and fails closed. That is the platform master key, operator-provisioned outside the database and never managed in the UI; provider API keys are entered only through the UI. `Security/CredentialAuthority.php` (`manage_options`) gates set/replace/clear/disconnect; safe state and non-secret configuration need only `manage_qsd`.
+- **Encryption and authority.** `Security/CredentialCipher.php` seals with XChaCha20-Poly1305 and fails closed. `Security/CredentialKeyring.php` owns the key: QSD generates the data key on the first save and stores it only sealed under a wrapping key derived from the site's WordPress secret keys. Admins enter provider keys in the UI and never handle key material. `Security/CredentialAuthority.php` (`manage_options`) gates set/replace/clear/disconnect; safe state and non-secret configuration need only `manage_qsd`.
 - **Request-key broker.** `Security/CredentialBroker.php` issues short-lived, single-use keys bound to provider, scope, caller, WordPress user and optional subject. The caller must be on the server-side allow-list (`SettingsModule::brokerCallers()`). `Security/WpdbRequestKeyStore.php` stores hashes only and consumes with an atomic delete. Only the broker obtains a decrypted secret through `Connections/ConnectorCredentials.php`. `BrokerAuditLog` records bounded safe metadata.
 - **Provider check.** `Connectors/RezdyConnector.php` declares one scope, `connection.verify`. [`RezdyConnectionCheck.php`](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Connectors/RezdyConnectionCheck.php) performs it: one read-only GET to the Rezdy staging API, returning outcome, HTTP status and latency only. Other environments are refused without a request.
 - **Runtime validation.** [`BrokerValidation.php`](../../wp-content/plugins/qsd-platform/src/Modules/Settings/Security/BrokerValidation.php), served by `Http/SettingsSecurityController.php` at `POST admin/settings/security/broker-validation` (administrators only). It checks encrypted storage, rotation readiness, the request-key lifecycle (issue, consume, replay, expiry, binding burn, sweep), audit, and makes one provider call. User and caller are server-derived; the request body is ignored; the report is leak-guarded.
-- **Rotation.** `Security/CredentialRotation.php` re-seals all secrets from `QSD_CREDENTIAL_KEY_PREVIOUS` to `QSD_CREDENTIAL_KEY`, all or nothing, only via `wp qsd credentials reseal`. Its read-only `inspect()` feeds the validation report. There is no REST rotation trigger.
+- **Rotation.** `Security/CredentialRotation.php` moves every secret to a new data key, all or nothing, from `POST admin/settings/security/rotation` (administrators). Its read-only `inspect()` feeds the validation report.
+- **Tool access.** `SettingsModule::brokeredAccess()` gives a Tool a `Security/BrokeredAccess.php` bound to its allow-listed caller: one call runs a scope for the session user. A Tool never holds a key or credential.
 
 See the [Credential broker contract](../architecture/credential-broker-contract.md).
 
-## Roadmap and Owner gate
+## Roadmap
 
-Phases 2A–2E are defined in the [roadmap](../roadmap.md). When API Keys is browser-ready, work stops at `BLOCKED — OWNER UI REVIEW REQUIRED`. A normal cycle request never crosses that gate.
+Phases 2A–2E are defined in the [roadmap](../roadmap.md). The Owner accepted the API Keys placement on 2026-10-06 and corrected the credential flow to the one above.
 
 ## Service Meta
 
@@ -57,7 +58,7 @@ Phases 2A–2E are defined in the [roadmap](../roadmap.md). When API Keys is bro
 
 - **Pattern.** `station-manager/registry/stationSettings.ts` holds contributions; [`StationSettings.tsx`](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/presentation/StationSettings.tsx) renders a Station's sections. Service's `ServiceSettingsLane.tsx` hosts it for `services`, and Service registers `ServiceCreateLaunchers` under General.
 - **Settings peer** (`resources/ts/settings-station/`). `register.ts` contributes three panels to `services`: General → `ServiceMetaSchemaLane` (Service fields), Tools → `RezdyImporterTool` (not available yet), Security → [`SecurityApiKeysPanel.tsx`](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/presentation/SecurityApiKeysPanel.tsx).
-- **API Keys.** It shows secure-storage and access state, plus one card per provider with environment and key state. A key is typed into a password input that exists only while adding or replacing, and is cleared on save. Remove and Disconnect confirm in place. Test connection runs the validation route. A `manage_qsd` user sees safe state only.
+- **API Keys.** It shows secure-storage and access state, Rotate encryption key for administrators, plus one card per provider with environment and key state. A key is typed into a password input that exists only while adding or replacing, and is cleared on save. Remove and Disconnect confirm in place. Test connection runs the validation route. A `manage_qsd` user sees safe state only.
 - `useSettingsConnections.ts` holds state and actions; `api.ts` is the single endpoint module.
 
 ## Validation

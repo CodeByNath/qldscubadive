@@ -69,19 +69,19 @@ Complete the accepted Security backend against a real non-production WordPress r
 
 Do not begin importer/product mapping here.
 
-**Two secret classes.** The platform master key `QSD_CREDENTIAL_KEY` is operator-provisioned infrastructure: outside the database and the Admin Station, and never a business-admin task. Provider API keys (Rezdy, Stripe, …) are entered, replaced and removed by an authorised administrator through the QSD UI only, and are never readable back. See the [Credential broker contract](architecture/credential-broker-contract.md#two-secret-classes).
+**Credential flow (Owner direction, 2026-10-06).** An authorised administrator manages provider API keys (Rezdy, Stripe, …) entirely through `Services → Settings → Security → API Keys`. They are never readable back. QSD owns the secure-storage machinery: a QSD-generated data key, sealed under a wrapping key derived from the site's existing WordPress secret keys, and admin-run rotation. Normal use needs no server-file edit, shell access, hosting setup or database work. This supersedes the earlier operator-provisioned master-key model. See the [Credential broker contract](architecture/credential-broker-contract.md#key-ownership).
 
-**Status: built, awaiting Reviewer review, then staging2 runtime evidence.**
+**Status: built and deployed to staging2 (`81f749d`); runtime evidence is collected through API Keys.**
 - The broker refuses any caller not on the server-side allow-list.
 - Rezdy declares one read-only `connection.verify` scope (`RezdyConnectionCheck`), bound to the Rezdy staging API.
-- An administrator-only `POST qsd/v1/admin/settings/security/broker-validation` route runs one server-side validation on the real install, started from the Settings lane's **Security check**. It covers storage, rotation readiness, the request-key lifecycle and audit, and makes the single provider call.
+- An administrator-only `POST qsd/v1/admin/settings/security/broker-validation` route runs one server-side validation on the real install, started from **Test connection** in API Keys. It covers storage, rotation readiness, the request-key lifecycle and audit, and makes the single provider call.
 - See the [Credential broker contract](architecture/credential-broker-contract.md).
 
 **Runtime/deployment:** use the existing QSD staging2 WordPress at `staging2.qldscubadive.com.au` and its `/station/` Admin Station. Do not create a second local WordPress/database stack for this phase. When real runtime/browser evidence is required, an exact reviewed candidate may be promoted to `staging` and deployed by the existing GitHub Actions workflow to the guarded staging2 WordPress path. Do not alter the deployment workflow/path/scope. Production remains prohibited.
 
 ### Security Phase 2B — Services Station Settings placement
 
-**Status: built with 2C, awaiting the Owner UI gate.**
+**Status: built with 2C; placement accepted by the Owner (2026-10-06).**
 - `Services → Settings` presents `General | Tools | Security` through a Station Manager station-settings registry. Each panel's owner registers it, and the shared `StationSettings` presentation renders it.
 - General holds Service's creation launchers and the Settings-owned Service fields; Tools holds the Rezdy importer slot; Security holds API Keys.
 - The standalone Settings navigation, destination and deck are retired; the backend and `qsd/v1` routes are unchanged.
@@ -101,7 +101,7 @@ Requirements:
 
 ### Security Phase 2C — Security → API Keys UI
 
-**Status: built, awaiting the Owner UI gate.** `SecurityApiKeysPanel` covers the list below, plus Test connection, which runs the 2A validation route.
+**Status: built; placement accepted by the Owner (2026-10-06), credential flow corrected as below.** `SecurityApiKeysPanel` covers the list below, plus Test connection, which runs the 2A validation route.
 
 Build the administrator-facing Security surface in the Station shell.
 
@@ -109,7 +109,7 @@ The API Keys area must provide safe provider credential management without ever 
 
 - provider identity/name and environment;
 - configured / not configured state;
-- encryption available/unavailable state;
+- secure-storage available/unavailable state, in plain words and with no setup steps;
 - administrator permission state;
 - write-only add/replace credential flow;
 - explicit clear/disconnect flow with confirmation;
@@ -131,21 +131,20 @@ As soon as `Services Station → Settings → Security → API Keys` is browser-
 
 Work may continue past this gate only after the Owner explicitly accepts the UI or gives corrections. Reviewer/Builder automation must not infer acceptance from another cycle request.
 
-### Security Phase 2D — key rotation/re-seal operator flow
+**Passed 2026-10-06:** the Owner accepted the Security/API Keys placement and corrected the credential flow (above).
 
-After the Owner UI gate is accepted, complete the rotation operating model around the existing all-or-nothing re-seal engine.
+### Security Phase 2D — QSD-owned rotation/re-seal
+
+Rotation is a normal QSD operation, run by an administrator from **Rotate encryption key** in API Keys (`POST qsd/v1/admin/settings/security/rotation`). It replaces the QSD data key; no key material is entered, shown or sent. This supersedes the earlier shell-only `wp qsd credentials reseal` model by Owner direction (2026-10-06).
 
 Backend guarantees remain mandatory:
 
-- active and previous master keys stay outside the database;
+- key material stays out of the database in usable form: the data key is stored only sealed under a wrapping key that is never stored;
 - every credential is planned/readable before any write;
 - re-seal uses a fresh nonce and preserves provider/field binding;
 - unreadable/malformed credentials fail the whole operation without partial writes;
-- repeated re-seal is idempotent;
-- output/audit exposes slot/count/status metadata only, never secret material;
-- the previous key can be removed only after successful verification.
-
-The accepted contract currently makes execution shell-only through `wp qsd credentials reseal`. The Security UI may show safe rotation readiness/status and operator guidance. **Do not add a browser/REST trigger for master-key rotation without a separate Owner/Reviewer approval**, because that changes the accepted security boundary.
+- the old generation is retired only after every secret is re-sealed and stored;
+- output/audit exposes slot/count/status metadata only, never secret material.
 
 ### Security Phase 2E — closeout and reusable Settings contract
 
