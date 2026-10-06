@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Builder
+Actor: Reviewer
 
 ## Accepted baseline
 
@@ -510,3 +510,70 @@ When `Services Station → Settings → Security → API Keys` is browser-ready 
 At that gate the Owner may review the real UI and, if accepted, enter the Rezdy staging API key there. The resulting safe runtime validation can then satisfy the remaining Phase 2A evidence.
 
 Builder may proceed with 2B/2C now. Do not start Phase 2D.
+
+
+## Builder handoff — Phase 2B/2C candidate, before staging (2026-10-06)
+
+**What this handoff is.** Code review of the 2B/2C candidate, **and a request for approval to deploy it to staging2** so the Owner UI gate can open. The Owner was asked whether to deploy straight away under the gate wording ("browser-ready and deployed on staging2") and chose **"Reviewer first"**. So, per the staging authorisation (deploy only an approved candidate), nothing has been deployed.
+
+- **Candidate SHA:** `7b6864b3b7ca6c4584662cf6efc22b2896365f07` on `docs/settings-security-roadmap`. Remote verified; it fast-forwards `staging`.
+- **Diff vs the staged `68a95c2`:** 32 files, +814 / −536.
+- **`staging`:** still `68a95c2`, the 2A build. **`main`:** `da93493`.
+- No credential was used, no provider call was made, and production was not touched.
+
+### 2B — Services Station Settings placement
+
+| Area | Change |
+|---|---|
+| Reusable pattern | New `station-manager/registry/stationSettings.ts`. Owners register contributions `{id, section: general\|tools\|security, stationIds, label, order, panel}`. `resolveStationSettings(stationId)` returns sections in General → Tools → Security order, omitting empty ones, with contributions sorted by `order`. `boot.ts` locks and enables it like the other registries. It imports no peer and no Admin Station. |
+| Shared presentation | New `admin-station/presentation/StationSettings.tsx`. It renders a Station's sections on the shared `StationTabSet` and names no Station, panel or endpoint. |
+| Services | `ServiceSettingsLane.tsx` now hosts `<StationSettings stationId="services">`. The two creation launchers moved unchanged into `ServiceCreateLaunchers.tsx`, which Service registers under General. The `ServiceLowerDeck` lanes (Details / Connections / Settings / Bin) are unchanged. |
+| Settings panels | `settings-station/register.ts` now only contributes: General → *Service fields* (`ServiceMetaSchemaLane`, unchanged); Tools → *Rezdy importer* (`RezdyImporterTool`, which says "Not available yet" and that the importer will use the Security key through the server); Security → *API Keys*. |
+| Retired standalone Settings | The Settings nav row, destination, `settings-home` source, `settings-deck` kit, the Admin binding, `SettingsDeck.tsx`, `SettingsConnectionsLane.tsx` and `useSettingsHome.ts` are removed. Every function they had is in the new placement, so the parity condition is met. Backend and `qsd/v1` routes are unchanged. |
+| Boundaries | Service imports no Settings panel and Settings imports no Service peer; the contract asserts both. There is still one Settings backend, broker and API family. |
+
+### 2C — Security → API Keys (`SecurityApiKeysPanel.tsx`)
+
+Checked against the roadmap list:
+- **Status lines.** "Secure storage: Ready" or "Not set up … one-time platform setup step for the platform operator". "Your access: Administrator" or "View only".
+- **Provider card.** Name, description, environment select (saves on change), and state badge (Not set up / Incomplete / Ready).
+- **API key row.**
+  - State reads *Saved* or *Not added*.
+  - **Add/Replace** opens a password input (`autocomplete=new-password`), with Save and Cancel. The input exists only while adding, is dropped on save, and the key is never rendered.
+  - **Remove** asks inline ("… stops working until a new one is added") and then sends `clear`.
+- **Disconnect.** "Disconnect Rezdy" asks inline, then sends one `DELETE`.
+- **Notices.** Safe success notices (`role=status`) and errors (`role=alert`).
+- **Test connection** (administrators). It runs the 2A route with a bodyless POST. The outcome shows in plain words (e.g. "Connected. Rezdy accepted the saved API key."), with a "Needs attention" or "Passed" badge and a collapsible "Security checks: N of M passed".
+- **Platform manager view.** Safe state only: no Add/Replace/Remove/Disconnect and no test.
+- **Nothing server-side named.** No server file, master key or shell step appears; contract and regression both assert this.
+
+**CSS.** The retired `cz-settings-deck*` rules were replaced by `cz-station-settings*`, `cz-api-keys*` and `cz-settings-notice`. Net +3 lines in `admin-station.css`, which was already over the size limit and is not substantively expanded.
+
+### Deterministic validation (local, at `7b6864b`)
+
+- `npm test` → **exit 0**: typecheck, all PHP tests, build, JS **24/24**, docs check (46 Markdown files, 19 Code Maps).
+- `contract:settings-station`: 56 checks, rewritten for the registry and retirement.
+- `regression:services-settings`: **47** checks. It replaces `regression:settings-home` and mounts the real `ServiceSettingsLane` through the real registry. It covers structure, launcher intents, the write-only key flow, remove/disconnect confirmation, no secure storage, the platform-manager view, Test connection, and the Service-fields flows.
+- `contract:station-tabset`: 66.
+
+### Docs updated
+
+- Settings Code Map: placement, Frontend section, test names.
+- Station Manager map: new registry and the boot lock.
+- Station Tab Set map: consumers.
+- Admin Station Navigation: Settings has no destination.
+- Service Catalogue and List System: the launchers moved.
+- `ai-index` and the Code Map index: now "Settings and Security".
+- Roadmap: 2B/2C status lines.
+- Settings, Service and backend `CLAUDE.md` files.
+
+### Flags for Reviewer
+
+1. **Retirement is in this candidate.** The standalone Settings navigation is gone once this deploys. Parity is complete (Connections → API Keys, Service Meta → General → Service fields, Security check → Test connection), but it is still a visible change for anyone who used the old Settings entry.
+2. **Bin is kept** in the Services deck, although the Owner tree lists only Details / Connections / Settings. The tree defines the Settings hierarchy, and Bin is accepted Phase 6 function.
+3. **The Tools Rezdy slot is a placeholder** that states the importer is not available. Reviewer may prefer to omit Tools until Phase 3, since the pattern allows omitting a section.
+4. **Test connection is the 2A validation route.** Each click makes one Rezdy staging call (staging only, administrators only). The route name is still `broker-validation`.
+
+### Next, after approval
+
+Builder pushes exactly `7b6864b` to `staging`, verifies CI, `deploy-staging` and the live bundle, then sets this file to `BLOCKED — OWNER UI REVIEW REQUIRED` with the SHA and `https://staging2.qldscubadive.com.au/station/` (Services → Settings → Security → API Keys), and stops. Phase 2D is not started.
