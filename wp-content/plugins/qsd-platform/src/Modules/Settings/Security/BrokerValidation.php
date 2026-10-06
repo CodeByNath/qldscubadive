@@ -22,8 +22,9 @@ use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
  * One run, for the server-derived WordPress user and the allow-listed
  * `settings.security-validation` caller, proves on the live storage:
  *
- *   - stored provider secrets are encryption envelopes that open under the
- *     current key, with no plaintext in the option (plus rotation readiness);
+ *   - secure storage is available, and stored provider secrets are encryption
+ *     envelopes that open under the keyring, with no plaintext in the option
+ *     (plus key-generation state);
  *   - a request key is stored only as its hash, bound to provider, scope,
  *     caller, user and a per-run subject;
  *   - the key is consumed once and the provider operation runs server-side —
@@ -34,7 +35,7 @@ use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
  *   - the audit trail records each outcome with no key, hash or secret.
  *
  * The report is safe metadata only and is checked for leaks before it leaves.
- * It never contains a request key, a key hash, a secret, or a key id.
+ * It never contains a request key, a key hash, a secret, or any key id.
  */
 final class BrokerValidation
 {
@@ -57,7 +58,7 @@ final class BrokerValidation
         private RequestKeyStore $keys,
         private BrokerAuditLog $audit,
         private ConnectionStore $store,
-        private CredentialCipher $cipher,
+        private CredentialKeyring $keyring,
         private CredentialRotation $rotation,
         private string $provider,
         private string $scope,
@@ -121,7 +122,8 @@ final class BrokerValidation
 
     private function checkStorage(): void
     {
-        $this->check('credential encryption key is configured on this server', $this->cipher->isAvailable());
+        $this->check('secure storage is available on this site', $this->keyring->isAvailable());
+        $cipher = $this->keyring->cipher();
 
         $record = $this->store->read($this->provider);
         $stored = serialize($record);
@@ -129,7 +131,7 @@ final class BrokerValidation
         $allSealed = $record['secrets'] !== [];
         foreach ($record['secrets'] as $field => $envelope) {
             $field = (string) $field;
-            $plaintext = $this->cipher->open($envelope, CredentialCipher::context($this->provider, $field));
+            $plaintext = $cipher->open($envelope, CredentialCipher::context($this->provider, $field));
             if ($plaintext !== null) {
                 $this->forbidden[] = $plaintext;
             }
@@ -258,8 +260,7 @@ final class BrokerValidation
 
     private function leaks(string $text): bool
     {
-        $keyId = $this->cipher->keyId();
-        foreach ([...$this->forbidden, ...($keyId !== null ? [$keyId] : [])] as $value) {
+        foreach ([...$this->forbidden, ...$this->keyring->cipher()->keyIds()] as $value) {
             if ($value !== '' && str_contains($text, $value)) {
                 return true;
             }

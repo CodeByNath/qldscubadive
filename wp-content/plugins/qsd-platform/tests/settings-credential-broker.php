@@ -76,6 +76,7 @@ use QSD\Platform\Modules\Settings\Security\BrokerGrant;
 use QSD\Platform\Modules\Settings\Security\BrokerRejected;
 use QSD\Platform\Modules\Settings\Security\CredentialBroker;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
+use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 use QSD\Platform\Modules\Settings\Security\ProviderSecrets;
 use QSD\Platform\Modules\Settings\Security\RequestKeyStore;
 use QSD\Platform\Modules\Settings\Security\WpdbRequestKeyStore;
@@ -125,10 +126,11 @@ $unconfigured = new ConnectionProviderDefinition('idle', 'Idle', 'Never configur
     ['key' => 'api_key', 'label' => 'API key', 'type' => 'secret', 'required' => true],
 ], ['catalogue.read']);
 
-$cipher = new CredentialCipher(random_bytes(32));
+$keyring = new CredentialKeyring([new CredentialCipher(random_bytes(32))]);
+$cipher = $keyring->sealingCipher();
 $store  = new ConnectionStore();
 $store->write('testpay', ['config' => [], 'secrets' => ['api_key' => $cipher->seal(SECRET, CredentialCipher::context('testpay', 'api_key'))]]);
-$credentials = new ConnectorCredentials($store, $cipher);
+$credentials = new ConnectorCredentials($store, $keyring);
 
 $now = 1_800_000_000;
 $clock = static function () use (&$now): int { return $now; };

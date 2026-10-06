@@ -102,6 +102,7 @@ use QSD\Platform\Modules\Settings\Security\BrokerAuditLog;
 use QSD\Platform\Modules\Settings\Security\BrokerValidation;
 use QSD\Platform\Modules\Settings\Security\CredentialBroker;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
+use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 use QSD\Platform\Modules\Settings\Security\CredentialRotation;
 use QSD\Platform\Modules\Settings\Security\ProviderSecrets;
 use QSD\Platform\Modules\Settings\Security\WpdbRequestKeyStore;
@@ -118,10 +119,11 @@ function check_validation(bool $condition, string $message): void
 
 const API_KEY = 'rz-stg-SECRET-5e1d9a';
 
-$keyRaw = random_bytes(32);
-$cipher = new CredentialCipher($keyRaw);
+$wrapRaw = random_bytes(32);
+$keyring = new CredentialKeyring([new CredentialCipher($wrapRaw)]);
+$cipher = $keyring->sealingCipher();
 $store = new ConnectionStore();
-$credentials = new ConnectorCredentials($store, $cipher);
+$credentials = new ConnectorCredentials($store, $keyring);
 
 /** Records every request; answers with the queued status and body. */
 final class RecordingTransport
@@ -187,12 +189,12 @@ check_validation($threw && $transport->calls === [], 'any other scope is refused
 $now = 1_800_000_000;
 $clock = static function () use (&$now): int { return $now; };
 $sleep = static function (int $seconds) use (&$now): void { $now += $seconds; };
-$build = static function (?CredentialCipher $previous = null) use ($store, $cipher, $credentials, $clock, $sleep, &$transport): BrokerValidation {
+$build = static function (?CredentialCipher $previous = null) use ($store, $keyring, $credentials, $clock, $sleep, &$transport): BrokerValidation {
     $transport = new RecordingTransport();
     $broker = new CredentialBroker(ConnectionProviders::all(), $credentials, new WpdbRequestKeyStore(), new BrokerAuditLog(),
         ['rezdy' => new RezdyConnectionCheck($credentials, Closure::fromCallable($transport))], $clock, SettingsModule::brokerCallers());
-    return new BrokerValidation($broker, new WpdbRequestKeyStore(), new BrokerAuditLog(), $store, $cipher,
-        new CredentialRotation($store, $previous ?? new CredentialCipher(null), $cipher), 'rezdy', RezdyConnector::SCOPE_VERIFY, $sleep);
+    return new BrokerValidation($broker, new WpdbRequestKeyStore(), new BrokerAuditLog(), $store, $keyring,
+        new CredentialRotation($store, $previous ?? new CredentialCipher(null), $keyring->cipher()), 'rezdy', RezdyConnector::SCOPE_VERIFY, $sleep);
 };
 
 check_validation(SettingsModule::brokerCallers() === [BrokerValidation::CALLER => ['rezdy:connection.verify']], 'the only allow-listed caller is the validation run, for Rezdy connection.verify only');
@@ -212,7 +214,7 @@ foreach (['a replayed key is refused', 'an expired key is refused', 'a key prese
 $events = array_values(array_filter($report['checks'], static fn($c) => $c['check'] === "the audit records this run's outcomes"))[0]['detail']['events'];
 check_validation($events === ['expired' => 1, 'issued' => 4, 'rejected_binding' => 1, 'rejected_expired' => 1, 'rejected_unknown' => 2, 'used' => 1], 'the audit records every lifecycle outcome of the run');
 $text = json_encode($report) . serialize($report) . serialize($__options[BrokerAuditLog::OPTION]);
-check_validation(!str_contains($text, API_KEY) && !str_contains($text, 'qrk_') && !str_contains($text, (string) $cipher->keyId()) && !str_contains($text, base64_encode($keyRaw)), 'the report and audit hold no secret, request key or key id');
+check_validation(!str_contains($text, API_KEY) && !str_contains($text, 'qrk_') && !str_contains($text, (string) $cipher->keyId()) && !str_contains($text, base64_encode($wrapRaw)), 'the report and audit hold no secret, request key or key id');
 check_validation(preg_match('/[0-9a-f]{64}/', json_encode($report)) === 0, 'the report holds no key hash');
 
 // Server-derived identity: a different session user is bound, whatever the client sends.

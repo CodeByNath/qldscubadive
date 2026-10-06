@@ -23,6 +23,8 @@ use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
 use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
 use QSD\Platform\Modules\Settings\Security\CredentialAuthority;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
+use QSD\Platform\Modules\Settings\Security\CredentialCipherUnavailable;
+use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 
 /**
  * SettingsConnectionsController — the Connections/Security Tool's admin REST
@@ -30,10 +32,11 @@ use QSD\Platform\Modules\Settings\Security\CredentialCipher;
  * ConnectionStore and projects only safe connection state.
  *
  * Secret contract: a secret value enters on PUT and is never returned. It is
- * sealed by CredentialCipher before it reaches storage; with no encryption key
- * configured the save is refused (409) rather than stored in plaintext. The
+ * sealed under the CredentialKeyring data key before it reaches storage; the
+ * first save creates that key, with no setup step. When secure storage is
+ * unavailable the save is refused (409) rather than stored in plaintext. The
  * projection reports a secret field only as `configured: true|false` — true
- * only when the stored value decrypts under the current key.
+ * only when the stored value decrypts under the keyring.
  * An empty or omitted secret leaves the stored value unchanged; `clear` names
  * secret fields to remove.
  *
@@ -46,9 +49,9 @@ class SettingsConnectionsController
 {
     private ConnectorCredentials $credentials;
 
-    public function __construct(private ConnectionStore $store, private CredentialCipher $cipher)
+    public function __construct(private ConnectionStore $store, private CredentialKeyring $keyring)
     {
-        $this->credentials = new ConnectorCredentials($store, $cipher);
+        $this->credentials = new ConnectorCredentials($store, $keyring);
     }
 
     public function register(): void
@@ -94,8 +97,8 @@ class SettingsConnectionsController
         return rest_ensure_response([
             'success'     => true,
             'connections' => $connections,
-            // Whether this server can seal secrets at all (QSD_CREDENTIAL_KEY).
-            'encryption'  => ['available' => $this->cipher->isAvailable()],
+            // Whether this site can seal secrets at all. Never a key or key id.
+            'encryption'  => ['available' => $this->keyring->isAvailable()],
             // Whether this user may set, replace, clear or disconnect secrets.
             'permissions' => ['manage_secrets' => CredentialAuthority::allows()],
         ]);
@@ -135,24 +138,36 @@ class SettingsConnectionsController
             $config[$key] = $value;
         }
 
+        $incoming = [];
         foreach ($secrets as $key => $value) {
             if (!$definition->isSecret((string) $key)) {
                 return $this->error("'{$key}' is not a secret field of {$definition->label}.", 422);
             }
             $value = trim((string) $value);
-            if ($value === '') {
-                continue;
+            if ($value !== '') {
+                $incoming[(string) $key] = $value;
             }
-            if (!$this->cipher->isAvailable()) {
-                return $this->error('Credential encryption is not configured on this server, so secrets cannot be saved.', 409);
-            }
-            $vault[$key] = $this->cipher->seal($value, CredentialCipher::context($definition->key, (string) $key));
         }
 
         foreach ($clear as $key) {
             if (!$definition->isSecret((string) $key)) {
                 return $this->error("'{$key}' is not a secret field of {$definition->label}.", 422);
             }
+        }
+
+        // Sealed only once the request is otherwise valid, so a refused save
+        // never creates the keyring's first generation.
+        if ($incoming !== []) {
+            try {
+                $cipher = $this->keyring->sealingCipher();
+            } catch (CredentialCipherUnavailable $e) {
+                return $this->error($e->getMessage(), 409);
+            }
+            foreach ($incoming as $key => $value) {
+                $vault[$key] = $cipher->seal($value, CredentialCipher::context($definition->key, $key));
+            }
+        }
+        foreach ($clear as $key) {
             unset($vault[$key]);
         }
 

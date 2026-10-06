@@ -13,7 +13,7 @@ namespace QSD\Platform\Modules\Settings\Connections;
  * `secrets`.
  *
  * Every secret is stored as a Security\CredentialCipher envelope (encrypted at
- * rest under the wp-config key); this class never sees a plaintext secret.
+ * rest under the CredentialKeyring data key); this class never sees a plaintext secret.
  */
 final class ConnectionStore
 {

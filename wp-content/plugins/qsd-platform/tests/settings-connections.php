@@ -6,7 +6,9 @@ declare(strict_types=1);
 // and Rezdy connector seam against an in-memory option boundary. Proves the
 // secret contract: a secret enters on save, is readable server-side through
 // ConnectorCredentials only, and never appears in any REST projection, and
-// that changing a secret needs administrator authority (manage_options).
+// that changing a secret needs administrator authority (manage_options). The
+// QSD keyring needs no setup: the first save creates its data key, and a
+// changed wrapping key fails closed without deleting anything.
 
 $__settingsOptions = [];
 $__routes = [];
@@ -61,6 +63,7 @@ use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
 use QSD\Platform\Modules\Settings\Connectors\RezdyConnector;
 use QSD\Platform\Modules\Settings\Http\SettingsConnectionsController;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
+use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 
 function check_settings(bool $condition, string $message): void
 {
@@ -74,10 +77,11 @@ function check_settings(bool $condition, string $message): void
 const SECRET = 'rz-live-SECRET-9f3a7c';
 
 $store = new ConnectionStore();
-$cipher = new CredentialCipher(random_bytes(32));
-$controller = new SettingsConnectionsController($store, $cipher);
+$wrapRaw = random_bytes(32);
+$keyring = new CredentialKeyring([new CredentialCipher($wrapRaw)]);
+$controller = new SettingsConnectionsController($store, $keyring);
 $controller->registerRoutes();
-$credentials = new ConnectorCredentials($store, $cipher);
+$credentials = new ConnectorCredentials($store, $keyring);
 $rezdy = new RezdyConnector($credentials);
 
 $encoded = static fn(WP_REST_Response $response): string => json_encode($response->get_data());
@@ -125,6 +129,7 @@ $list = $controller->listConnections(new WP_REST_Request());
 $rezdyRow = $list->get_data()['connections'][0] ?? [];
 check_settings(count($list->get_data()['connections']) === 1 && $rezdyRow['provider'] === 'rezdy', 'Rezdy is the one registered provider');
 check_settings($rezdyRow['state'] === 'not_configured' && $rezdyRow['updated_at'] === null, 'an unsaved provider reads not_configured');
+check_settings($list->get_data()['encryption'] === ['available' => true] && !isset($__settingsOptions[CredentialKeyring::OPTION]), 'secure storage is available before any setup, and reading creates no key');
 $apiKeyField = array_values(array_filter($rezdyRow['fields'], static fn($f) => $f['key'] === 'api_key'))[0];
 check_settings($apiKeyField['type'] === 'secret' && $apiKeyField['configured'] === false && !array_key_exists('value', $apiKeyField), 'a secret field projects configured:false and no value key');
 check_settings($rezdy->connectionState() === ['configured' => false, 'environment' => null, 'base_url' => null], 'Rezdy seam reports unconfigured');
@@ -143,6 +148,15 @@ check_settings(!str_contains($encoded($controller->listConnections(new WP_REST_R
 check_settings(($__settingsOptions[ConnectionStore::OPTION]['autoload'] ?? null) === 'no', 'the connection option is not autoloaded');
 check_settings($list->get_data()['encryption'] === ['available' => true], 'the list reports that this server can seal secrets');
 
+// ── The first save created the keyring ──────────────────────────────────
+$ring = $__settingsOptions[CredentialKeyring::OPTION] ?? null;
+$cipher = $keyring->cipher();
+check_settings(is_array($ring) && $ring['autoload'] === 'no' && $ring['value']['active'] === $cipher->keyId() && count($ring['value']['keys']) === 1, 'the first secret save generated one data key, stored in a non-autoloaded option');
+$wrapped = $ring['value']['keys'][$cipher->keyId()];
+check_settings($wrapped['alg'] === 'xchacha20poly1305-ietf' && $wrapped['kid'] === CredentialCipher::idOf($wrapRaw), 'the data key is stored only sealed under the wrapping key');
+check_settings(!str_contains(serialize($__settingsOptions), $wrapRaw) && !str_contains(serialize($__settingsOptions), base64_encode($wrapRaw)), 'the wrapping key is never stored');
+check_settings(CredentialKeyring::derive('material') !== CredentialKeyring::derive('material' . "\0") && strlen(CredentialKeyring::derive('material')) === 32, 'the wrapping key is a 32-byte HKDF derivation of the site secret material');
+
 // ── Encrypted at rest ────────────────────────────────────────────────────
 $storedEnvelope = $__settingsOptions[ConnectionStore::OPTION]['value']['rezdy']['secrets']['api_key'];
 check_settings(is_array($storedEnvelope) && $storedEnvelope['alg'] === 'xchacha20poly1305-ietf' && $storedEnvelope['kid'] === $cipher->keyId(), 'the stored secret is an XChaCha20-Poly1305 envelope under the current key id');
@@ -154,9 +168,9 @@ check_settings($cipher->open($storedEnvelope, CredentialCipher::context('rezdy',
 $tampered = $storedEnvelope;
 $tampered['ct'] = base64_encode(substr(base64_decode($storedEnvelope['ct']), 0, -1) . 'x');
 check_settings($cipher->open($tampered, CredentialCipher::context('rezdy', 'api_key')) === null, 'a tampered ciphertext does not open');
-$otherKey = new CredentialCipher(random_bytes(32));
-check_settings($otherKey->open($storedEnvelope, CredentialCipher::context('rezdy', 'api_key')) === null && (new ConnectorCredentials($store, $otherKey))->secret('rezdy', 'api_key') === null, 'a different server key cannot read the secret');
-check_settings((new SettingsConnectionsController($store, $otherKey))->listConnections(new WP_REST_Request())->get_data()['connections'][0]['state'] === 'incomplete', 'a secret sealed under another key does not count as configured');
+$otherRing = new CredentialKeyring([new CredentialCipher(random_bytes(32))]);
+check_settings((new CredentialCipher(random_bytes(32)))->open($storedEnvelope, CredentialCipher::context('rezdy', 'api_key')) === null && (new ConnectorCredentials($store, $otherRing))->secret('rezdy', 'api_key') === null, 'a different key, or a different wrapping key, cannot read the secret');
+check_settings((new SettingsConnectionsController($store, $otherRing))->listConnections(new WP_REST_Request())->get_data()['connections'][0]['state'] === 'incomplete', 'a secret the keyring cannot open does not count as configured');
 check_settings($cipher->open(SECRET, CredentialCipher::context('rezdy', 'api_key')) === null, 'a plaintext (non-envelope) value is never accepted as a secret');
 
 check_settings($credentials->secret('rezdy', 'api_key') === SECRET, 'ConnectorCredentials returns the trimmed secret server-side');
@@ -176,20 +190,48 @@ check_settings($controller->saveConnection(new WP_REST_Request(['provider' => 'r
 check_settings($controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'moon']]))->get_status() === 422, 'a select value outside its options is refused');
 check_settings($controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['unknown' => 'x']]))->get_status() === 422, 'an unknown field is refused');
 
-// ── No key: fail closed, never plaintext ─────────────────────────────────
-$noKey = new CredentialCipher(null);
-$noKeyController = new SettingsConnectionsController($store, $noKey);
-check_settings($noKeyController->listConnections(new WP_REST_Request())->get_data()['encryption'] === ['available' => false], 'without QSD_CREDENTIAL_KEY the list reports encryption unavailable');
+// ── No wrapping key: fail closed, never plaintext ────────────────────────
+$noKeyController = new SettingsConnectionsController($store, new CredentialKeyring([]));
+check_settings($noKeyController->listConnections(new WP_REST_Request())->get_data()['encryption'] === ['available' => false], 'without a wrapping key the list reports secure storage unavailable');
 $before = serialize($__settingsOptions);
 check_settings($noKeyController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => SECRET]]))->get_status() === 409, 'without a key a secret save is refused (409)');
 check_settings(serialize($__settingsOptions) === $before, 'a refused secret save writes nothing');
 check_settings($noKeyController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'staging']]))->get_status() === 200, 'non-secret configuration still saves without a key');
 check_settings(!(new CredentialCipher('too-short'))->isAvailable(), 'a key that is not 32 bytes is treated as no key');
-check_settings(!CredentialCipher::fromEnvironment()->isAvailable(), 'no QSD_CREDENTIAL_KEY constant means encryption is unavailable');
+check_settings(!CredentialKeyring::fromEnvironment()->isAvailable(), 'with no WordPress secret keys or QSD_CREDENTIAL_KEY, secure storage is unavailable');
 
 // ── Disconnect ───────────────────────────────────────────────────────────
 $controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => SECRET]]));
 $gone = $controller->disconnect(new WP_REST_Request(['provider' => 'rezdy']));
 check_settings($gone->get_data()['connection']['state'] === 'not_configured' && $credentials->secret('rezdy', 'api_key') === null, 'disconnect removes the stored configuration and secret');
+
+// ── A refused save never creates the keyring ────────────────────────────
+$__settingsOptions = [];
+$controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => SECRET], 'clear' => ['environment']]));
+check_settings(!isset($__settingsOptions[CredentialKeyring::OPTION]), 'a save refused for another field generates no data key');
+
+// ── Wrapping key changes: fail closed, keep everything, allow re-entry ───
+$__settingsOptions = [];
+$controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'staging'], 'secrets' => ['api_key' => SECRET]]));
+$sealedBefore = $__settingsOptions[ConnectionStore::OPTION]['value']['rezdy']['secrets']['api_key'];
+$rotatedSite = new CredentialKeyring([new CredentialCipher(random_bytes(32))]);
+$rotatedController = new SettingsConnectionsController($store, $rotatedSite);
+$afterChange = $rotatedController->listConnections(new WP_REST_Request())->get_data();
+check_settings($afterChange['encryption'] === ['available' => true] && $afterChange['connections'][0]['state'] === 'incomplete', 'after the WordPress secret keys change, storage stays available and the key reads as not set');
+check_settings(!str_contains(json_encode($afterChange), SECRET), 'the unavailable key is never exposed');
+$reentered = $rotatedController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => 'rz-NEW-KEY-8c1f']]));
+check_settings($reentered->get_status() === 200 && $reentered->get_data()['connection']['state'] === 'configured', 'an administrator re-enters the key through API Keys and it reads configured');
+check_settings($rotatedSite->status() === ['generations' => 2, 'openable' => 1], 'the re-entry started a new data-key generation and kept the old sealed one');
+check_settings($keyring->status() === ['generations' => 2, 'openable' => 1] && $keyring->cipher()->open($sealedBefore, CredentialCipher::context('rezdy', 'api_key')) === SECRET, 'nothing was deleted: the original wrapping key still opens the old generation');
+
+// ── Server configuration sources (constants are process-wide, so last) ───
+define('SECURE_AUTH_KEY', 'put your unique phrase here');
+define('SECURE_AUTH_SALT', str_repeat('s', 64));
+check_settings(!CredentialKeyring::fromEnvironment()->isAvailable(), 'the WordPress sample placeholder is never used as key material');
+$legacyRaw = random_bytes(32);
+define('QSD_CREDENTIAL_KEY', base64_encode($legacyRaw));
+$envRing = CredentialKeyring::fromEnvironment();
+$legacyEnvelope = (new CredentialCipher($legacyRaw))->seal(SECRET, CredentialCipher::context('rezdy', 'api_key'));
+check_settings($envRing->isAvailable() && $envRing->cipher()->open($legacyEnvelope, CredentialCipher::context('rezdy', 'api_key')) === SECRET, 'an optional QSD_CREDENTIAL_KEY wraps the keyring, and a secret sealed directly under it by an earlier build still opens');
 
 echo "All Settings Connections checks passed.\n";

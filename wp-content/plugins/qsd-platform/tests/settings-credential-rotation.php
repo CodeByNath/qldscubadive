@@ -30,7 +30,6 @@ function update_option(string $key, mixed $value, string|bool|null $autoload = n
 require_once __DIR__ . '/autoload.php';
 
 use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
-use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
 use QSD\Platform\Modules\Settings\Security\CredentialRotation;
 
@@ -63,7 +62,7 @@ $seed = static function () use ($store, $old): void {
     ]]);
 };
 $secret = static fn(CredentialCipher $cipher, string $provider, string $field): ?string
-    => (new ConnectorCredentials($store, $cipher))->secret($provider, $field);
+    => $cipher->open($store->read($provider)['secrets'][$field] ?? null, CredentialCipher::context($provider, $field));
 $leaks = static function (mixed $haystack) use ($oldRaw, $newRaw): bool {
     $text = serialize($haystack);
     foreach ([API_KEY, OTHER, $oldRaw, $newRaw, base64_encode($oldRaw), base64_encode($newRaw)] as $needle) {
@@ -77,7 +76,7 @@ echo "Settings credential rotation\n";
 // ── 1. Replacing the key without a re-seal fails closed ─────────────────
 $seed();
 check_rotation($secret($new, 'rezdy', 'api_key') === null, 'after swapping in a new key, an old envelope does not decrypt');
-check_rotation(!(new ConnectorCredentials($store, $new))->hasSecret('rezdy', 'api_key'), 'an unreadable secret never reads as configured');
+check_rotation($secret($new, 'rezdy', 'api_key') === null, 'an unreadable secret never reads as configured');
 check_rotation($secret($old, 'rezdy', 'api_key') === API_KEY, 'the old key still opens it, so nothing was lost');
 
 // ── 2. Re-seal ──────────────────────────────────────────────────────────
@@ -113,7 +112,7 @@ $partial = (new CredentialRotation($store, $old, $new))->reseal();
 check_rotation($partial['ok'] === false && $partial['unreadable'] === ['broken:token'], 'a secret that opens under neither key is reported unreadable');
 check_rotation($partial['resealed'] === [] && is_string($partial['error']), 'a failed re-seal reports nothing re-sealed and an error');
 check_rotation(serialize($__options) === $snapshot, 'a failed re-seal writes nothing, so the readable secrets stay on the old key');
-check_rotation(!(new ConnectorCredentials($store, $new))->hasSecret('broken', 'token') && !(new ConnectorCredentials($store, $new))->hasSecret('rezdy', 'api_key'), 'nothing unreadable is marked configured under the new key');
+check_rotation($secret($new, 'broken', 'token') === null && $secret($new, 'rezdy', 'api_key') === null, 'nothing unreadable is marked configured under the new key');
 
 $seed();
 $store->write('plain', ['config' => [], 'secrets' => ['token' => 'plaintext-value']]);
@@ -130,6 +129,5 @@ check_rotation($noOld['ok'] === false && str_contains((string) $noOld['error'], 
 $same = (new CredentialRotation($store, $old, new CredentialCipher($oldRaw)))->reseal();
 check_rotation($same['ok'] === false && str_contains((string) $same['error'], 'same key'), 'the same key as previous and new is refused');
 check_rotation(serialize($__options) === $snapshot, 'a refused rotation writes nothing');
-check_rotation(!CredentialCipher::fromConstant(CredentialRotation::PREVIOUS_CONSTANT)->isAvailable(), 'no QSD_CREDENTIAL_KEY_PREVIOUS constant means no previous key');
 
 echo "All Settings credential rotation checks passed.\n";

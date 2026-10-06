@@ -3,6 +3,7 @@
 namespace QSD\Platform\Modules\Settings\Connections;
 
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
+use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 
 /**
  * ConnectorCredentials — Settings' internal read path for stored provider
@@ -18,17 +19,17 @@ use QSD\Platform\Modules\Settings\Security\CredentialCipher;
  */
 final class ConnectorCredentials
 {
-    public function __construct(private ConnectionStore $store, private CredentialCipher $cipher) {}
+    public function __construct(private ConnectionStore $store, private CredentialKeyring $keyring) {}
 
-    /** The decrypted secret, or null when absent, sealed under another key, or tampered. */
+    /** The decrypted secret, or null when absent, sealed under a key the keyring cannot open, or tampered. */
     public function secret(string $provider, string $field): ?string
     {
         $envelope = $this->store->read($provider)['secrets'][$field] ?? null;
-        $value = $this->cipher->open($envelope, CredentialCipher::context($provider, $field));
+        $value = $this->keyring->cipher()->open($envelope, CredentialCipher::context($provider, $field));
         return $value !== null && $value !== '' ? $value : null;
     }
 
-    /** A stored secret decrypts under the current key — without returning it. */
+    /** A stored secret decrypts under the keyring — without returning it. */
     public function hasSecret(string $provider, string $field): bool
     {
         return $this->secret($provider, $field) !== null;
