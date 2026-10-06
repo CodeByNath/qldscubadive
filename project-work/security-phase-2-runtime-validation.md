@@ -188,3 +188,51 @@ Rules:
 - Global General/Security data is owned once by the platform authority; presenting it in multiple Stations must not duplicate persistence or create parallel settings/security systems.
 - Screen placement never transfers persistence or domain authority.
 - A Station may omit any Settings subsection it does not need.
+
+
+## Owner UI stop gate
+
+The authoritative roadmap/code-map correction for the Settings/Security work is prepared on topic branch `docs/settings-security-roadmap`.
+
+Builder must follow the phased path recorded there:
+
+1. Phase 2A — real runtime/API/security validation.
+2. Phase 2B — place Settings inside Services Station as `General | Tools | Security`.
+3. Phase 2C — build `Settings → Security → API Keys` UI.
+4. **STOP at browser-ready UI.**
+5. Phase 2D — rotation operator flow only after explicit Owner UI acceptance.
+6. Phase 2E — closeout, then Reviewer acceptance before Phase 3.
+
+At the Phase 2C stop:
+
+- set this file to `BLOCKED — OWNER UI REVIEW REQUIRED`;
+- notify the Owner that the API Keys Security UI is ready;
+- record exact candidate SHA and browser/runtime surface;
+- do not continue implementation;
+- do not treat `run the cycle`, `continue the work`, `review the latest work`, or equivalent as permission to cross this gate.
+
+Only an explicit Owner acceptance/correction of the UI unlocks Phase 2D.
+
+The approved presentation model remains:
+
+```text
+Services Station
+├─ Details
+├─ Connections
+└─ Settings
+   ├─ General
+   ├─ Tools
+   │  ├─ Rezdy importer
+   │  ├─ Stripe-related tools
+   │  └─ future operational tools
+   └─ Security
+      ├─ API keys
+      ├─ credentials
+      ├─ encryption
+      ├─ request-key broker
+      ├─ permissions
+      ├─ rotation/re-seal
+      └─ audit
+```
+
+Security owns provider API credentials. Tools such as the Rezdy importer consume Security-governed authority and must never own/read the long-lived credential.
