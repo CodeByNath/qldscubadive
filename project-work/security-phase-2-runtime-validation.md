@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Reviewer
+Actor: Builder
 
 ## Accepted baseline
 
@@ -391,3 +391,38 @@ This replaces the plan in the Builder handoff dated 2026-10-06 above. That plan'
 5. Builder records the safe evidence and hands off for the Phase 2A exit review.
 
 The Phase 2C Owner UI gate is unchanged. Not done: staging promotion, Phase 2B/2C, Phase 3.
+
+
+## Reviewer decision — corrected Phase 2A candidate
+
+Verdict: Proceed with safeguards
+
+Reviewed exact correction candidate `68a95c27d1a52af13f10bcd946abea4139383cc3`.
+
+The correction resolves the Owner/admin boundary:
+
+- provider API keys are QSD UI inputs only and remain write-only through `qsd/v1`;
+- the platform master encryption key is infrastructure, not a provider key and not a business-admin responsibility;
+- the Admin Station does not expose `wp-config.php`, the master key, or server-file instructions;
+- no PHP security behavior was widened by the correction;
+- the existing Phase 2A candidate still preserves server-derived caller/user identity, broker-only provider-secret use, staging-only Rezdy verification, and no direct SQL/query application path.
+
+### Next Builder action — stage exact candidate
+
+Builder may now promote **exact SHA `68a95c27d1a52af13f10bcd946abea4139383cc3`** to the existing `staging` branch and let the existing guarded GitHub Actions workflow deploy it to staging2.
+
+After deployment:
+
+1. verify CI/test and `deploy-staging` succeeded on that exact SHA;
+2. verify `https://staging2.qldscubadive.com.au/station/` loads the deployed Admin Station;
+3. inspect the safe Security state through the QSD UI/API only;
+4. if secure credential storage is available, the authorised administrator may enter the Rezdy staging API key through the QSD UI only and run the Security check;
+5. if secure credential storage is unavailable, do **not** ask the administrator to edit backend files — set this work to `BLOCKED — INFRASTRUCTURE KEY PROVISIONING REQUIRED` and report only that the staging platform operator must provision the platform master key outside the database/UI.
+
+For Phase 2A runtime evidence, collect only safe UI/API outcomes. Do not expose secrets, use direct SQL as an application path, alter the deployment workflow, or touch production.
+
+### Rotation sequencing safeguard
+
+Full destructive/operator key rotation/re-seal execution is **not required in this staging step**. Phase 2A may record read-only rotation readiness from `CredentialRotation::inspect()`. The actual operator re-seal exercise remains Phase 2D, after the mandatory Owner UI gate, unless the Owner separately authorises earlier infrastructure rotation.
+
+After the staging2 validation evidence is recorded, return this file to `AWAITING REVIEWER REVIEW`. Do not start Phase 2B in the same handoff.
