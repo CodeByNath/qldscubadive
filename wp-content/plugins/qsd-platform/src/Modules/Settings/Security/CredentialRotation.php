@@ -5,104 +5,100 @@ namespace QSD\Platform\Modules\Settings\Security;
 use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
 
 /**
- * CredentialRotation — re-seals every stored provider secret under a new key.
+ * CredentialRotation — moves every stored provider secret to a new QSD data
+ * key. An administrator runs it from Security → API Keys
+ * (`POST admin/settings/security/rotation`); no key material is entered,
+ * shown or sent, and no server step is involved.
  *
- * Rotation is an explicit, privileged operation, run from the server shell
- * (`wp qsd credentials reseal`), never over REST:
+ *   1. A new data key is generated.
+ *   2. Every secret is planned first: opened under the keyring and sealed
+ *      again under the new key, bound to the same provider and field, with a
+ *      fresh nonce.
+ *   3. If any value opens under no generation (or is not an envelope), nothing
+ *      is written and the slot is reported unreadable; an unreadable
+ *      credential never reads as configured.
+ *   4. Otherwise the new generation is stored as active with the old one
+ *      kept, every planned secret is replaced in one write, and only then is
+ *      the old generation retired. An interruption between steps leaves every
+ *      secret openable.
  *
- *   1. Put the old key in `QSD_CREDENTIAL_KEY_PREVIOUS` and the new key in
- *      `QSD_CREDENTIAL_KEY` (wp-config.php, outside the database).
- *   2. Run the re-seal. Every secret is opened with the previous key and sealed
- *      under the new key, bound to the same provider and field.
- *   3. Remove `QSD_CREDENTIAL_KEY_PREVIOUS`.
- *
- * All or nothing: every secret is planned first, and nothing is written unless
- * every one opens under the previous key or is already sealed under the new
- * key. A value that opens under neither is reported unreadable and the store
- * is left untouched, so an unreadable credential never reads as configured.
- * The report carries provider and field names and counts only — never a key,
- * a key id, or a plaintext.
+ * The report carries provider:field slot names and counts only — never a key,
+ * a wrapped key, a key id, or a plaintext.
  */
 final class CredentialRotation
 {
-    public const PREVIOUS_CONSTANT = 'QSD_CREDENTIAL_KEY_PREVIOUS';
-
     public function __construct(
         private ConnectionStore $store,
-        private CredentialCipher $previous,
-        private CredentialCipher $current,
+        private CredentialKeyring $keyring,
     ) {}
 
     /**
-     * @return array{ok: bool, resealed: list<string>, already_current: list<string>, unreadable: list<string>, error: ?string}
+     * @return array{ok: bool, resealed: list<string>, unreadable: list<string>, error: ?string}
      *         Slot names are "provider:field".
      */
-    public function reseal(): array
+    public function rotate(): array
     {
-        $report = ['ok' => false, 'resealed' => [], 'already_current' => [], 'unreadable' => [], 'error' => null];
+        $report = ['ok' => false, 'resealed' => [], 'unreadable' => [], 'error' => null];
 
-        if (!$this->current->isAvailable()) {
-            $report['error'] = 'The new key (QSD_CREDENTIAL_KEY) is missing or invalid.';
+        if (!$this->keyring->isAvailable()) {
+            $report['error'] = 'Secure storage is unavailable on this site, so the encryption key cannot be rotated.';
             return $report;
         }
-        if (!$this->previous->isAvailable()) {
-            $report['error'] = 'The previous key (QSD_CREDENTIAL_KEY_PREVIOUS) is missing or invalid.';
-            return $report;
-        }
-        if ($this->previous->keyId() === $this->current->keyId()) {
-            $report['error'] = 'The previous and new keys are the same key.';
-            return $report;
-        }
+
+        $current = $this->keyring->cipher();
+        $nextKey = random_bytes(CredentialCipher::KEY_BYTES);
+        $next = new CredentialCipher($nextKey);
 
         $plan = [];
+        $expected = [];
         foreach ($this->slots() as [$provider, $field, $envelope, $context]) {
             $slot = "{$provider}:{$field}";
-            if ($this->current->open($envelope, $context) !== null) {
-                $report['already_current'][] = $slot;
-                continue;
-            }
-            $plaintext = $this->previous->open($envelope, $context);
+            $plaintext = $current->open($envelope, $context);
             if ($plaintext === null) {
                 $report['unreadable'][] = $slot;
                 continue;
             }
-            $plan[$provider][$field] = $this->current->seal($plaintext, $context);
+            $plan[$provider][$field] = $next->seal($plaintext, $context);
+            $expected[$provider][$field] = $envelope;
             $report['resealed'][] = $slot;
         }
 
         if ($report['unreadable'] !== []) {
             $report['resealed'] = [];
-            $report['error'] = 'Some secrets open under neither key; nothing was re-sealed.';
+            $report['error'] = 'Some saved API keys cannot be opened. Replace or remove them, then rotate again. Nothing was changed.';
             return $report;
         }
 
+        $this->keyring->stage($nextKey);
         if ($plan !== []) {
-            $this->store->replaceSecrets($plan);
+            $this->store->replaceSecrets($plan, $expected);
         }
+        $this->keyring->retireInactive();
         $report['ok'] = true;
         return $report;
     }
 
     /**
-     * Read-only readiness: which key each stored secret opens under. Writes
-     * nothing and works with either key absent. Slot names only.
+     * Read-only: which generation each stored secret opens under. Writes
+     * nothing. Slot names and counts only.
      *
-     * @return array{current_key: bool, previous_key: bool, current: list<string>, previous: list<string>, unreadable: list<string>}
+     * @return array{available: bool, generations: int, current: list<string>, previous: list<string>, unreadable: list<string>}
      */
     public function inspect(): array
     {
+        $cipher = $this->keyring->cipher();
         $report = [
-            'current_key'  => $this->current->isAvailable(),
-            'previous_key' => $this->previous->isAvailable(),
-            'current'      => [],
-            'previous'     => [],
-            'unreadable'   => [],
+            'available'   => $this->keyring->isAvailable(),
+            'generations' => $this->keyring->status()['generations'],
+            'current'     => [],
+            'previous'    => [],
+            'unreadable'  => [],
         ];
         foreach ($this->slots() as [$provider, $field, $envelope, $context]) {
             $bucket = match (true) {
-                $this->current->open($envelope, $context) !== null  => 'current',
-                $this->previous->open($envelope, $context) !== null => 'previous',
-                default                                             => 'unreadable',
+                $cipher->open($envelope, $context) === null                       => 'unreadable',
+                $cipher->isAvailable() && ($envelope['kid'] ?? null) === $cipher->keyId() => 'current',
+                default                                                           => 'previous',
             };
             $report[$bucket][] = "{$provider}:{$field}";
         }

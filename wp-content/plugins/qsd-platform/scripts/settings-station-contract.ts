@@ -152,14 +152,18 @@ check(/BrokerValidation::CALLER => \[RezdyConnector::PROVIDER \. ':' \. RezdyCon
 const securityController = code('src/Modules/Settings/Http/SettingsSecurityController.php');
 check(/'permission_callback' => \[\$this, 'requireAuthority'\]/.test(securityController) && /PlatformAccess::CAP\) && CredentialAuthority::allows\(\)/.test(securityController), 'the security validation route needs the platform capability and administrator authority');
 check(/->run\(get_current_user_id\(\)\)/.test(securityController) && !/get_param|get_json_params|get_body/.test(securityController), 'the validation route derives the user from the session and reads nothing from the request');
-check(backend.filter((file) => /->reseal\(/.test(code(file))).every((file) => file === 'src/Modules/Settings/Security/CredentialRotationCommand.php'), 'only the WP-CLI command performs a re-seal; the validation run only inspects');
+check(backend.filter((file) => /->rotate\(\)/.test(code(file))).join() === 'src/Modules/Settings/Http/SettingsSecurityController.php', 'only the administrator rotation route rotates; the validation run only inspects');
+check(/public function rotate\(\\WP_REST_Request \$request\)[\s\S]*?->rotate\(\)/.test(securityController) && !/get_param|get_json_params|get_body/.test(securityController), 'the rotation route takes no input: no key material crosses HTTP');
 
 const connectionsController = code('src/Modules/Settings/Http/SettingsConnectionsController.php');
 check(/'PUT',[\s\S]*?'permission_callback' => \[\$this, 'requireSaveAuthority'\]/.test(connectionsController)
   && /'DELETE',[\s\S]*?'permission_callback' => \[\$this, 'requireSecretAuthority'\]/.test(connectionsController), 'secret-changing routes are gated by secret authority, not the bare platform capability');
 check(/const CAP = 'manage_options'/.test(code('src/Modules/Settings/Security/CredentialAuthority.php')), 'secret authority is the existing administrator capability, with no new role or capability family');
 check(backend.every((file) => !/add_role|add_cap\(/.test(code(file)) || file === 'src/Core/PlatformAccess.php'), 'no role or capability is created outside PlatformAccess');
-check(backend.filter((file) => /CredentialRotation\b/.test(code(file))).every((file) => !/register_rest_route/.test(code(file))), 'key rotation has no REST route');
-check(/WP_CLI::add_command\('qsd credentials', CredentialRotationCommand::class\)/.test(code('src/Modules/Settings/SettingsModule.php')), 'key rotation is registered only as a WP-CLI command');
+check(/'\/admin\/settings\/security\/rotation', \[\s*'methods'\s*=> 'POST',\s*'callback'\s*=> \[\$this, 'rotate'\],\s*'permission_callback' => \[\$this, 'requireAuthority'\]/.test(securityController), 'key rotation is one administrator-only qsd/v1 POST route');
+check(backend.every((file) => !/WP_CLI::add_command\('qsd credentials'/.test(code(file))), 'no shell command is needed to manage credentials or keys');
+const keyring = code('src/Modules/Settings/Security/CredentialKeyring.php');
+check(/hash_hkdf\('sha256'/.test(keyring) && /WRAP_CONTEXT\s*= 'qsd-credential-wrap:v1'/.test(keyring) && /keyring:v1:/.test(keyring) && /'SECURE_AUTH_KEY', 'SECURE_AUTH_SALT'/.test(keyring), 'the keyring wraps its data key under an HKDF key from the WordPress secret keys, with QSD context separation');
+check(!/delete_option|unset\(\$ring\['keys'\]/.test(keyring), 'the keyring never deletes a generation outside a completed rotation');
 
 console.log(`Settings Station contract passed: ${checks} checks.`);

@@ -50,11 +50,13 @@ final class ConnectionStore
 
     /**
      * Replaces the named secret envelopes in one write (key rotation). Config,
-     * other secrets and `updated_at` are left as they are.
+     * other secrets and `updated_at` are left as they are. With `$expected`, a
+     * slot changed since it was planned (a save in between) is left as saved.
      *
      * @param array<string, array<string, mixed>> $secretsByProvider provider => [field => envelope]
+     * @param array<string, array<string, mixed>> $expected          provider => [field => envelope as planned]
      */
-    public function replaceSecrets(array $secretsByProvider): void
+    public function replaceSecrets(array $secretsByProvider, array $expected = []): void
     {
         $all = $this->all();
         foreach ($secretsByProvider as $provider => $secrets) {
@@ -62,6 +64,9 @@ final class ConnectionStore
                 continue;
             }
             foreach ($secrets as $field => $envelope) {
+                if (isset($expected[$provider]) && ($all[$provider]['secrets'][$field] ?? null) !== ($expected[$provider][$field] ?? null)) {
+                    continue;
+                }
                 $all[$provider]['secrets'][$field] = $envelope;
             }
         }

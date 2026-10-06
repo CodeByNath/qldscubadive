@@ -6,7 +6,8 @@ namespace QSD\Platform\Modules\Settings\Security;
  * BrokerAuditLog — the credential broker's safe audit trail.
  *
  * Entries carry only metadata: event, request id, provider, scope, caller,
- * user id, subject and timestamp. Never a request key, its hash, or any
+ * user id, subject and timestamp. A key rotation is recorded as `rotated`
+ * with the rotation caller and the administrator's user id. Never a request key, its hash, or any
  * provider secret. Bounded to the newest MAX entries in one non-autoloaded
  * option.
  */
@@ -23,6 +24,7 @@ final class BrokerAuditLog
     public const REJECTED_EXPIRED = 'rejected_expired';
     public const REJECTED_BINDING = 'rejected_binding';
     public const FAILED           = 'failed';
+    public const ROTATED          = 'rotated';
 
     private const FIELDS = ['request_id', 'provider', 'scope', 'caller', 'user_id', 'subject'];
 

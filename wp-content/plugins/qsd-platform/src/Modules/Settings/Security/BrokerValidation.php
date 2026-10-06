@@ -85,11 +85,11 @@ final class BrokerValidation
 
         $this->checkStorage();
         $rotation = $this->rotation->inspect();
-        $this->check('every stored secret opens under the current key (rotation state)', $rotation['previous'] === [] && $rotation['unreadable'] === [], [
-            'previous_key_defined' => $rotation['previous_key'],
-            'current'              => $rotation['current'],
-            'previous'             => $rotation['previous'],
-            'unreadable'           => $rotation['unreadable'],
+        $this->check('every stored secret opens under the active data key (rotation state)', $rotation['previous'] === [] && $rotation['unreadable'] === [], [
+            'generations' => $rotation['generations'],
+            'current'     => $rotation['current'],
+            'previous'    => $rotation['previous'],
+            'unreadable'  => $rotation['unreadable'],
         ]);
 
         $subject = 'val_' . bin2hex(random_bytes(6));
@@ -100,7 +100,7 @@ final class BrokerValidation
             'passed'         => !in_array(false, array_column($this->checks, 'ok'), true),
             'identity'       => $identity,
             'provider_check' => $providerCheck,
-            'rotation'       => ['previous_key_defined' => $rotation['previous_key']] + array_intersect_key($rotation, array_flip(['current', 'previous', 'unreadable'])),
+            'rotation'       => array_intersect_key($rotation, array_flip(['generations', 'current', 'previous', 'unreadable'])),
             'checks'         => $this->checks,
         ];
         return $this->guard($report);

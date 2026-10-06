@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-// Runs the real CredentialRotation, CredentialCipher, ConnectionStore and
-// ConnectorCredentials against an in-memory option boundary. Proves the key
-// operations contract: replacing the key without a re-seal fails closed, the
-// re-seal moves every secret to the new key bound to the same provider and
-// field, it is all or nothing, and no key or plaintext reaches storage or the
-// report.
+// Runs the real CredentialRotation, CredentialKeyring, CredentialCipher,
+// ConnectionStore and ConnectorCredentials against an in-memory option
+// boundary. Proves the QSD-owned rotation contract: a new data key is
+// generated, every secret moves to it bound to the same provider and field,
+// it is all or nothing, the old generation is retired only afterwards, and no
+// key, wrapped key, key id or plaintext reaches the report. Also proves the
+// site's WordPress secret keys are enough to make secure storage available.
 
 $__options = [];
 
@@ -30,7 +31,9 @@ function update_option(string $key, mixed $value, string|bool|null $autoload = n
 require_once __DIR__ . '/autoload.php';
 
 use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
+use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
+use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 use QSD\Platform\Modules\Settings\Security\CredentialRotation;
 
 function check_rotation(bool $condition, string $message): void
@@ -45,27 +48,27 @@ function check_rotation(bool $condition, string $message): void
 const API_KEY = 'rz-live-ROTATE-41d0';
 const OTHER   = 'other-SECRET-7b2e';
 
-$oldRaw = random_bytes(32);
-$newRaw = random_bytes(32);
-$old = new CredentialCipher($oldRaw);
-$new = new CredentialCipher($newRaw);
+$wrapRaw = random_bytes(32);
+$keyring = new CredentialKeyring([new CredentialCipher($wrapRaw)]);
 $store = new ConnectionStore();
+$rotation = new CredentialRotation($store, $keyring);
+$credentials = new ConnectorCredentials($store, $keyring);
 
-$seed = static function () use ($store, $old): void {
+$seed = static function () use ($store, $keyring): void {
     global $__options;
     $__options = [];
+    $cipher = $keyring->sealingCipher();
     $store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => [
-        'api_key' => $old->seal(API_KEY, CredentialCipher::context('rezdy', 'api_key')),
+        'api_key' => $cipher->seal(API_KEY, CredentialCipher::context('rezdy', 'api_key')),
     ]]);
     $store->write('other', ['config' => [], 'secrets' => [
-        'token' => $old->seal(OTHER, CredentialCipher::context('other', 'token')),
+        'token' => $cipher->seal(OTHER, CredentialCipher::context('other', 'token')),
     ]]);
 };
-$secret = static fn(CredentialCipher $cipher, string $provider, string $field): ?string
-    => $cipher->open($store->read($provider)['secrets'][$field] ?? null, CredentialCipher::context($provider, $field));
-$leaks = static function (mixed $haystack) use ($oldRaw, $newRaw): bool {
+$ringOf = static fn(): array => $GLOBALS['__options'][CredentialKeyring::OPTION];
+$leaks = static function (mixed $haystack) use ($wrapRaw): bool {
     $text = serialize($haystack);
-    foreach ([API_KEY, OTHER, $oldRaw, $newRaw, base64_encode($oldRaw), base64_encode($newRaw)] as $needle) {
+    foreach ([API_KEY, OTHER, $wrapRaw, base64_encode($wrapRaw)] as $needle) {
         if (str_contains($text, $needle)) return true;
     }
     return false;
@@ -73,61 +76,75 @@ $leaks = static function (mixed $haystack) use ($oldRaw, $newRaw): bool {
 
 echo "Settings credential rotation\n";
 
-// ── 1. Replacing the key without a re-seal fails closed ─────────────────
-$seed();
-check_rotation($secret($new, 'rezdy', 'api_key') === null, 'after swapping in a new key, an old envelope does not decrypt');
-check_rotation($secret($new, 'rezdy', 'api_key') === null, 'an unreadable secret never reads as configured');
-check_rotation($secret($old, 'rezdy', 'api_key') === API_KEY, 'the old key still opens it, so nothing was lost');
-
-// ── 2. Re-seal ──────────────────────────────────────────────────────────
+// ── 1. Rotate ───────────────────────────────────────────────────────────
 $seed();
 $before = $store->read('rezdy');
-$report = (new CredentialRotation($store, $old, $new))->reseal();
-check_rotation($report['ok'] === true && $report['error'] === null, 're-seal succeeds with the previous and new keys');
-check_rotation($report['resealed'] === ['rezdy:api_key', 'other:token'] && $report['already_current'] === [] && $report['unreadable'] === [], 'the report names every re-sealed provider:field slot');
-check_rotation($secret($new, 'rezdy', 'api_key') === API_KEY && $secret($new, 'other', 'token') === OTHER, 'every secret now opens under the new key');
-check_rotation($secret($old, 'rezdy', 'api_key') === null, 'the old key no longer opens anything');
+$oldKid = $ringOf()['active'];
+$report = $rotation->rotate();
+check_rotation($report['ok'] === true && $report['error'] === null, 'rotation succeeds with no key material supplied');
+check_rotation($report['resealed'] === ['rezdy:api_key', 'other:token'] && $report['unreadable'] === [], 'the report names every re-sealed provider:field slot');
+$ring = $ringOf();
+check_rotation($ring['active'] !== $oldKid && array_keys($ring['keys']) === [$ring['active']], 'a new data key is active and the old generation is retired');
+check_rotation($credentials->secret('rezdy', 'api_key') === API_KEY && $credentials->secret('other', 'token') === OTHER, 'every secret opens under the new data key');
 $after = $store->read('rezdy');
-check_rotation($after['secrets']['api_key']['kid'] === $new->keyId() && $after['secrets']['api_key']['nonce'] !== $before['secrets']['api_key']['nonce'], 'each envelope carries the new key id and a fresh nonce');
-check_rotation($new->open($after['secrets']['api_key'], CredentialCipher::context('other', 'token')) === null, 'a re-sealed value stays bound to its own provider and field');
-check_rotation($after['config'] === ['environment' => 'staging'] && $after['updated_at'] === $before['updated_at'], 're-seal leaves configuration and updated_at untouched');
-check_rotation(!$leaks($__options), 'storage holds no plaintext and neither key after re-seal');
-check_rotation(!$leaks($report), 'the report carries no plaintext and no key');
-check_rotation(!str_contains(serialize($report), (string) $old->keyId()) && !str_contains(serialize($report), (string) $new->keyId()), 'the report carries no key id');
+check_rotation($after['secrets']['api_key']['kid'] === $ring['active'] && $after['secrets']['api_key']['nonce'] !== $before['secrets']['api_key']['nonce'], 'each envelope carries the new key id and a fresh nonce');
+check_rotation($keyring->cipher()->open($after['secrets']['api_key'], CredentialCipher::context('other', 'token')) === null, 'a re-sealed value stays bound to its own provider and field');
+check_rotation($after['config'] === ['environment' => 'staging'] && $after['updated_at'] === $before['updated_at'], 'rotation leaves configuration and updated_at untouched');
+check_rotation(!$leaks($__options), 'storage holds no plaintext and no wrapping key after rotation');
+check_rotation(!$leaks($report) && !str_contains(serialize($report), $oldKid) && !str_contains(serialize($report), $ring['active']), 'the report carries no plaintext, key or key id');
+check_rotation($rotation->inspect() === ['available' => true, 'generations' => 1, 'current' => ['rezdy:api_key', 'other:token'], 'previous' => [], 'unreadable' => []], 'inspect reports every secret on the active key, read-only');
 
-// ── 3. Idempotent ───────────────────────────────────────────────────────
-$snapshot = serialize($__options);
-$again = (new CredentialRotation($store, $old, $new))->reseal();
-check_rotation($again['ok'] === true && $again['resealed'] === [] && $again['already_current'] === ['rezdy:api_key', 'other:token'], 'running the re-seal again reports every secret already current');
-check_rotation(serialize($__options) === $snapshot, 'a repeated re-seal writes nothing');
+// ── 2. Repeatable ───────────────────────────────────────────────────────
+$kid = $ringOf()['active'];
+$again = $rotation->rotate();
+check_rotation($again['ok'] && $ringOf()['active'] !== $kid && $credentials->secret('rezdy', 'api_key') === API_KEY, 'rotating again moves to a further key and every secret still opens');
 
-// ── 4. All or nothing ───────────────────────────────────────────────────
+// ── 3. All or nothing ───────────────────────────────────────────────────
 $seed();
 $foreign = new CredentialCipher(random_bytes(32));
 $store->write('broken', ['config' => [], 'secrets' => [
     'token' => $foreign->seal('lost', CredentialCipher::context('broken', 'token')),
 ]]);
 $snapshot = serialize($__options);
-$partial = (new CredentialRotation($store, $old, $new))->reseal();
-check_rotation($partial['ok'] === false && $partial['unreadable'] === ['broken:token'], 'a secret that opens under neither key is reported unreadable');
-check_rotation($partial['resealed'] === [] && is_string($partial['error']), 'a failed re-seal reports nothing re-sealed and an error');
-check_rotation(serialize($__options) === $snapshot, 'a failed re-seal writes nothing, so the readable secrets stay on the old key');
-check_rotation($secret($new, 'broken', 'token') === null && $secret($new, 'rezdy', 'api_key') === null, 'nothing unreadable is marked configured under the new key');
+$partial = $rotation->rotate();
+check_rotation($partial['ok'] === false && $partial['unreadable'] === ['broken:token'], 'a secret that opens under no generation is reported unreadable');
+check_rotation($partial['resealed'] === [] && is_string($partial['error']) && !str_contains($partial['error'], 'wp-config'), 'a failed rotation reports nothing re-sealed and a plain error with no server step');
+check_rotation(serialize($__options) === $snapshot, 'a failed rotation writes nothing: no new generation, no re-sealed secret');
+check_rotation($credentials->secret('broken', 'token') === null && $credentials->secret('rezdy', 'api_key') === API_KEY, 'nothing unreadable is marked configured, and readable secrets are unchanged');
 
 $seed();
 $store->write('plain', ['config' => [], 'secrets' => ['token' => 'plaintext-value']]);
-$plain = (new CredentialRotation($store, $old, $new))->reseal();
+$plain = $rotation->rotate();
 check_rotation($plain['ok'] === false && $plain['unreadable'] === ['plain:token'], 'a plaintext (non-envelope) value is unreadable, never sealed as if it were a secret');
 
-// ── 5. Refusals before any work ─────────────────────────────────────────
+// ── 4. Interrupted between steps: still openable ────────────────────────
+$seed();
+$keyring->stage(random_bytes(32)); // the new generation is stored, the secrets not yet moved
+check_rotation($credentials->secret('rezdy', 'api_key') === API_KEY && $rotation->inspect()['previous'] === ['rezdy:api_key', 'other:token'], 'after the staging step alone, every secret still opens under the kept generation');
+check_rotation($rotation->rotate()['ok'] && count($ringOf()['keys']) === 1 && $credentials->secret('other', 'token') === OTHER, 'the next rotation completes and retires every older generation');
+
+// ── 5. A save between planning and writing is kept ──────────────────────
+$seed();
+$planned = ['rezdy' => ['api_key' => $store->read('rezdy')['secrets']['api_key']]];
+$fresh = $keyring->sealingCipher()->seal('rz-NEWER-KEY', CredentialCipher::context('rezdy', 'api_key'));
+$store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => ['api_key' => $fresh]]);
+$store->replaceSecrets(['rezdy' => ['api_key' => ['stale' => true]]], $planned);
+check_rotation($store->read('rezdy')['secrets']['api_key'] === $fresh, 'a slot saved after it was planned is not overwritten by the rotation write');
+
+// ── 6. Refusal before any work ──────────────────────────────────────────
 $seed();
 $snapshot = serialize($__options);
-$noNew = (new CredentialRotation($store, $old, new CredentialCipher(null)))->reseal();
-check_rotation($noNew['ok'] === false && str_contains((string) $noNew['error'], 'QSD_CREDENTIAL_KEY'), 'a missing new key is refused');
-$noOld = (new CredentialRotation($store, new CredentialCipher(null), $new))->reseal();
-check_rotation($noOld['ok'] === false && str_contains((string) $noOld['error'], CredentialRotation::PREVIOUS_CONSTANT), 'a missing previous key is refused');
-$same = (new CredentialRotation($store, $old, new CredentialCipher($oldRaw)))->reseal();
-check_rotation($same['ok'] === false && str_contains((string) $same['error'], 'same key'), 'the same key as previous and new is refused');
+$unavailable = (new CredentialRotation($store, new CredentialKeyring([])))->rotate();
+check_rotation($unavailable['ok'] === false && str_contains((string) $unavailable['error'], 'Secure storage is unavailable'), 'with no wrapping key, rotation is refused in plain words');
 check_rotation(serialize($__options) === $snapshot, 'a refused rotation writes nothing');
+
+// ── 7. WordPress secret keys alone make storage available ───────────────
+define('SECURE_AUTH_KEY', str_repeat('k', 64));
+define('SECURE_AUTH_SALT', str_repeat('s', 64));
+$__options = [];
+$siteRing = CredentialKeyring::fromEnvironment();
+$sealed = $siteRing->sealingCipher()->seal(API_KEY, CredentialCipher::context('rezdy', 'api_key'));
+check_rotation($siteRing->isAvailable() && CredentialKeyring::fromEnvironment()->cipher()->open($sealed, CredentialCipher::context('rezdy', 'api_key')) === API_KEY, 'with only the standard WordPress secret keys, the first save works and the key reopens on the next request');
+check_rotation(!$leaks($__options) && !str_contains(serialize($__options), str_repeat('k', 64)) && !str_contains(serialize($__options), CredentialKeyring::derive(SECURE_AUTH_KEY . "\0" . SECURE_AUTH_SALT)), 'neither the WordPress secret keys nor the derived wrapping key is stored');
 
 echo "All Settings credential rotation checks passed.\n";

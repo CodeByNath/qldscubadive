@@ -189,12 +189,12 @@ check_validation($threw && $transport->calls === [], 'any other scope is refused
 $now = 1_800_000_000;
 $clock = static function () use (&$now): int { return $now; };
 $sleep = static function (int $seconds) use (&$now): void { $now += $seconds; };
-$build = static function (?CredentialCipher $previous = null) use ($store, $keyring, $credentials, $clock, $sleep, &$transport): BrokerValidation {
+$build = static function () use ($store, $keyring, $credentials, $clock, $sleep, &$transport): BrokerValidation {
     $transport = new RecordingTransport();
     $broker = new CredentialBroker(ConnectionProviders::all(), $credentials, new WpdbRequestKeyStore(), new BrokerAuditLog(),
         ['rezdy' => new RezdyConnectionCheck($credentials, Closure::fromCallable($transport))], $clock, SettingsModule::brokerCallers());
     return new BrokerValidation($broker, new WpdbRequestKeyStore(), new BrokerAuditLog(), $store, $keyring,
-        new CredentialRotation($store, $previous ?? new CredentialCipher(null), $keyring->cipher()), 'rezdy', RezdyConnector::SCOPE_VERIFY, $sleep);
+        new CredentialRotation($store, $keyring), 'rezdy', RezdyConnector::SCOPE_VERIFY, $sleep);
 };
 
 check_validation(SettingsModule::brokerCallers() === [BrokerValidation::CALLER => ['rezdy:connection.verify']], 'the only allow-listed caller is the validation run, for Rezdy connection.verify only');
@@ -229,17 +229,23 @@ $unconfigured = $build()->run(5);
 $issue = array_values(array_filter($unconfigured['checks'], static fn($c) => $c['check'] === 'a request key is issued for the allow-listed caller'))[0];
 check_validation($unconfigured['passed'] === false && $issue['detail']['reason'] === 'not_configured' && $transport->calls === [], 'an unconfigured provider fails the run before any provider call');
 
-$oldKey = new CredentialCipher(random_bytes(32));
-$store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => ['api_key' => $oldKey->seal(API_KEY, CredentialCipher::context('rezdy', 'api_key'))]]);
-$stale = $build($oldKey)->run(5);
-check_validation($stale['passed'] === false && $stale['rotation']['previous'] === ['rezdy:api_key'] && $stale['rotation']['previous_key_defined'] === true, 'a secret still under the previous key is reported as awaiting re-seal');
-check_validation($stale['provider_check'] === null && $transport->calls === [], 'until it is re-sealed the credential reads as not configured and no call is made');
-$reseal = (new CredentialRotation($store, $oldKey, $cipher))->reseal();
+$store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => ['api_key' => $keyring->cipher()->seal(API_KEY, CredentialCipher::context('rezdy', 'api_key'))]]);
+$keyring->stage(random_bytes(32)); // a rotation interrupted after its first step
+$staged = $build()->run(5);
+check_validation($staged['passed'] === false && $staged['rotation']['previous'] === ['rezdy:api_key'] && $staged['rotation']['generations'] === 2, 'a secret still on an older generation is reported as awaiting rotation');
+check_validation($staged['provider_check']['outcome'] === RezdyConnectionCheck::AUTHENTICATED, 'an older generation still opens, so the credential keeps working meanwhile');
+$rotated = (new CredentialRotation($store, $keyring))->rotate();
 $after = $build()->run(5);
-check_validation($reseal['ok'] && $after['passed'] && $after['rotation']['current'] === ['rezdy:api_key'], 'after the re-seal the run passes under the new key');
+check_validation($rotated['ok'] && $after['passed'] && $after['rotation'] === ['generations' => 1, 'current' => ['rezdy:api_key'], 'previous' => [], 'unreadable' => []], 'after the rotation the run passes on the single active data key');
+
+$store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => ['api_key' => (new CredentialCipher(random_bytes(32)))->seal(API_KEY, CredentialCipher::context('rezdy', 'api_key'))]]);
+$transport = null;
+$lost = $build()->run(5);
+check_validation($lost['passed'] === false && $lost['rotation']['unreadable'] === ['rezdy:api_key'] && $lost['provider_check'] === null && $transport->calls === [], 'a secret no generation opens reads as not configured and no call is made');
+$store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => ['api_key' => $keyring->cipher()->seal(API_KEY, CredentialCipher::context('rezdy', 'api_key'))]]);
 
 // ── 3. Route ────────────────────────────────────────────────────────────
-$controller = new SettingsSecurityController(static fn(): BrokerValidation => $build());
+$controller = new SettingsSecurityController(static fn(): BrokerValidation => $build(), static fn(): CredentialRotation => new CredentialRotation($store, $keyring), new BrokerAuditLog());
 $controller->registerRoutes();
 $route = $__routes['/admin/settings/security/broker-validation'] ?? null;
 check_validation($route !== null && $route['methods'] === 'POST', 'the validation route is registered as POST');
@@ -254,5 +260,20 @@ $response = $controller->runValidation(new WP_REST_Request(['user_id' => 1, 'cal
 $data = $response->get_data();
 check_validation($data['success'] === true && $data['validation']['identity'] === ['user_id' => 9, 'caller' => BrokerValidation::CALLER, 'source' => 'server'], 'client-supplied user, caller, provider and subject are ignored');
 check_validation(!str_contains(json_encode($data), API_KEY) && !str_contains(json_encode($data), 'qrk_'), 'the REST response carries no secret or request key');
+
+// ── 4. Rotation route ───────────────────────────────────────────────────
+$rotationRoute = $__routes['/admin/settings/security/rotation'] ?? null;
+check_validation($rotationRoute !== null && $rotationRoute['methods'] === 'POST' && $rotationRoute['permission_callback'] === [$controller, 'requireAuthority'], 'the rotation route is POST and administrator-only');
+$kidBefore = $keyring->cipher()->keyId();
+$rotatedResponse = $controller->rotate(new WP_REST_Request(['key' => base64_encode(random_bytes(32)), 'user_id' => 1]));
+$rotatedData = $rotatedResponse->get_data();
+check_validation($rotatedResponse->get_status() === 200 && $rotatedData === ['success' => true, 'rotation' => ['resealed' => 1, 'unreadable' => []]], 'an administrator rotates with no input; the response is a count only');
+check_validation($keyring->cipher()->keyId() !== $kidBefore && $credentials->secret('rezdy', 'api_key') === API_KEY, 'the data key changed and the credential still opens');
+$lastAudit = array_slice($__options[BrokerAuditLog::OPTION], -1)[0];
+check_validation($lastAudit['event'] === BrokerAuditLog::ROTATED && $lastAudit['user_id'] === 9 && $lastAudit['caller'] === SettingsSecurityController::ROTATION_CALLER, 'the rotation is audited for the session user, whatever the client sends');
+check_validation(!str_contains(json_encode($rotatedData) . serialize($lastAudit), API_KEY) && !str_contains(json_encode($rotatedData), (string) $kidBefore) && !str_contains(json_encode($rotatedData), (string) $keyring->cipher()->keyId()), 'the response and audit carry no secret or key id');
+$store->write('broken', ['config' => [], 'secrets' => ['token' => (new CredentialCipher(random_bytes(32)))->seal('lost', CredentialCipher::context('broken', 'token'))]]);
+$refused = $controller->rotate(new WP_REST_Request());
+check_validation($refused->get_status() === 409 && $refused->get_data()['rotation']['unreadable'] === ['broken:token'] && is_string($refused->get_data()['message']), 'an unreadable key refuses the rotation with a plain message and its slot name');
 
 echo "All Settings security validation checks passed.\n";

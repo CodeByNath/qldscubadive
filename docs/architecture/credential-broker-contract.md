@@ -58,12 +58,12 @@ Secrets are sealed with libsodium XChaCha20-Poly1305 (`CredentialCipher`), under
 
 ## Permission
 
-- **Safe state.** Reading connection state (`configured`, `encryption.available`, `encryption.rotation`) and saving non-secret configuration need the platform capability `manage_qsd`.
+- **Safe state.** Reading connection state (`configured`, `encryption.available`) and saving non-secret configuration need the platform capability `manage_qsd`.
 - **Secrets.** Setting, replacing or clearing a secret, and disconnecting a provider (which removes its secrets), need the WordPress administrator capability `manage_options` (`CredentialAuthority`). A business platform manager holds only `manage_qsd` and is refused with 403.
 - **Gates.** `PUT /admin/settings/connections/{provider}` is gated by `requireSaveAuthority`: a request that carries a non-empty secret or a `clear` needs administrator authority. `DELETE` is gated by `requireSecretAuthority`.
 - **Projection.** The list reports `permissions.manage_secrets`, so the lane makes secret inputs read-only and hides Disconnect for anyone else. The server enforces the rule either way.
 - **Runtime validation.** `POST /admin/settings/security/broker-validation` needs both `manage_qsd` and `manage_options`, because it uses the stored credential for one provider call.
-- **Rotation.** `POST /admin/settings/security/rotation` needs both `manage_qsd` and `manage_options`. It takes no input.
+- **Rotation.** `POST /admin/settings/security/rotation` needs both `manage_qsd` and `manage_options`. It takes no input, returns a re-sealed count and any unreadable slot names (409 when refused), and is audited as `rotated` with the session user.
 - No new role or capability family is created.
 
 ## Key operations
