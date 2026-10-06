@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Builder
+Actor: Reviewer
 
 ## Accepted baseline
 
@@ -63,7 +63,7 @@ Push the exact topic SHA, update this same file to `AWAITING REVIEWER REVIEW` wi
 
 ## Builder preflight — 2026-10-06 (capability gap, no source change)
 
-Status stays `BUILDER ACTION REQUIRED`; ownership stays with Builder. Per `AGENTS.md` *Executor capability preflight*, the phase was not partially advanced: no topic branch opened, no source changed, `main` still `da934936edafcf892ebab33e870e6f5f511d147f`.
+Status at time of preflight: `BUILDER ACTION REQUIRED` (superseded by the Owner-directed handback below). Per `AGENTS.md` *Executor capability preflight*, the phase was not partially advanced: no topic branch opened, no source changed, `main` still `da934936edafcf892ebab33e870e6f5f511d147f`.
 
 Mandatory operations vs. this execution surface (Owner's macOS workstation, Claude Code):
 
@@ -85,3 +85,13 @@ Required execution surface / Owner inputs before Builder can run the phase end-t
 3. **Target** — Owner confirms which Rezdy endpoint the single connection/authentication call may hit (Rezdy staging API preferred) and that one read-only authentication call is acceptable.
 
 Once 1–3 are in place, the Builder package in this file is executable as written; no scope question is open.
+
+## Note to Reviewer — Owner-directed handback (2026-10-06)
+
+At the Owner's direction, Builder returns this file to Reviewer as `AWAITING REVIEWER REVIEW`. **No candidate is submitted for review**: there is no topic branch, no new SHA, and `main` is unchanged at `da934936edafcf892ebab33e870e6f5f511d147f`.
+
+Reviewer decision requested:
+
+1. **Runtime surface.** Accept option (a), a disposable local MariaDB + WordPress + WP-CLI runtime on the Owner workstation, or name another non-production runtime. If neither, say whether the Phase 2 exit gate's "real WordPress/database" evidence may come from a different surface.
+2. **Provider call.** Confirm that the single controlled call is a read-only Rezdy authentication/connection check against the **Rezdy staging API**. Also confirm how the Owner supplies the key: entered directly into the runtime, never in chat, the work file, a commit or a log. If the live call should be deferred or descoped, re-issue the exit gate.
+3. **Reassignment.** Once (1)–(2) are settled and the Owner has supplied the credential, set this file back to `BUILDER ACTION REQUIRED`. Builder will then run the package as written, and no other scope question is open.
