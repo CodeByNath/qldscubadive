@@ -133,3 +133,35 @@ The Builder must provide safe evidence for:
 Do not expose the credential to prove any of the above. Redacted/safe metadata is sufficient.
 
 Phase 3 remains blocked until Phase 2 receives Reviewer acceptance. Service Element identity remains out of scope.
+
+
+## Owner-approved Station plan tree
+
+Preserve this hierarchy exactly in Phase 2 and carry it into `docs/roadmap.md` when the Phase 2 topic branch is opened:
+
+```text
+Services Station
+├─ Details
+├─ Connections
+└─ Settings
+   ├─ General
+   ├─ Tools
+   │  ├─ Rezdy importer
+   │  ├─ Stripe-related tools
+   │  └─ future operational tools
+   └─ Security
+      ├─ API keys
+      ├─ credentials
+      ├─ encryption
+      ├─ request-key broker
+      ├─ permissions
+      ├─ rotation/re-seal
+      └─ audit
+```
+
+Ownership meaning:
+- `Services Station → Connections` remains Service-domain relationships.
+- `Settings → Tools` contains operational tools/importers such as Rezdy.
+- `Settings → Security` owns API keys, credentials and the credential-security system.
+- Tools consume Security-governed authority; Tools do not own/read long-lived credentials directly.
+- Do not reintroduce a separate “Settings Station” or collapse Tools and Security into a “Connections/Security” UI concept.
