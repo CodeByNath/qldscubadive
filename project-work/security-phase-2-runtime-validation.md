@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Reviewer
+Actor: Builder
 
 ## Accepted baseline
 
@@ -644,3 +644,36 @@ Do not deploy `7b6864b` as-is. Phase 2D remains blocked.
 - `npm test` → **exit 0**: JS 24/24, all PHP tests, build, docs check (46 Markdown files, 19 Code Maps). `npm run docs:check` → passed.
 
 **Next, after approval:** Builder pushes exactly `81f749d` to `staging`, verifies CI, `deploy-staging` and the live bundle, then sets this file to `BLOCKED — OWNER UI REVIEW REQUIRED` with the SHA and staging2 URL, and stops. Phase 2D is not started.
+
+
+## Reviewer decision — corrected 2B/2C candidate
+
+Verdict: Proceed
+
+Reviewed exact correction candidate `81f749d7cf35b232369cf6af9db94fe6a312f2be` against `7b6864b3b7ca6c4584662cf6efc22b2896365f07`.
+
+The requested View Only correction is present and bounded:
+
+- provider configuration controls are disabled when `canManageSecrets` is false;
+- `setConfig` returns before mutation in View Only state;
+- Add/Replace/Remove/Disconnect/Test connection remain unavailable;
+- safe provider state remains visible;
+- no backend capability rule changed;
+- regression now asserts zero mutations from the View Only state;
+- contract pins the read-only guard.
+
+The correction touches only the intended presentation/tests and does not widen Phase 2C.
+
+### Next Builder action — deploy exact candidate
+
+Builder is authorised to promote **exact SHA `81f749d7cf35b232369cf6af9db94fe6a312f2be`** to `staging` using the existing guarded workflow.
+
+After deployment:
+
+1. verify CI/test and `deploy-staging` succeeded for that exact SHA;
+2. verify the deployed staging2 bundle contains the 2B/2C Settings/Security UI;
+3. set this work file to `BLOCKED — OWNER UI REVIEW REQUIRED`;
+4. provide the Owner the staging2 URL and path: `/station/` → Services → Settings → Security → API Keys;
+5. stop.
+
+Do not begin Phase 2D. Do not ask the Owner for backend/server work. The next interaction after deployment is Owner visual/interaction review of the actual QSD UI.
