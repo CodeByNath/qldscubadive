@@ -722,3 +722,21 @@ Builder must execute this as one uninterrupted workload, using separate local co
 Create one local commit per phase. Do not push, deploy or merge any implementation phase individually. Continue through all phases unless a genuine QSD platform-architecture conflict, destructive migration, new Platform ID/entity decision, production/deployment widening, or another repository hard stop gate is discovered; in that case stop and report the conflict instead of improvising.
 
 After all phases and validation are complete, stop before the first implementation push. Report the ordered local commit SHAs, changed scope, validation results, deviations and working-tree status, then wait for explicit Owner push approval.
+
+
+## Owner confirmation — continue A–E (2026-10-06)
+
+The Owner confirms that the direction recorded at coordination commit `390fb5062deeabef3f9db3feb0540382d0e77241` is authentic and should be followed. Continue Phases A–E as the single uninterrupted Builder workload.
+
+The proposed bootstrap design is approved **with safeguards**:
+
+- on first provider-secret save, QSD may generate a random internal data-encryption key (DEK) and store only a wrapped/encrypted form of that DEK;
+- derive the wrapping authority from existing WordPress secret-key material using a standard KDF/context separation, rather than storing a new plaintext platform root key in the database;
+- continue using the existing QSD credential cipher/broker boundaries and XChaCha20-Poly1305 for secret envelopes; do not create a parallel credential system;
+- bind the wrapped DEK to a QSD-specific context/version so it cannot be confused with other WordPress secret uses;
+- never expose the DEK, derived wrapping key, provider secret, request-key hash or equivalent secret material through UI, REST, logs or audit output;
+- if WordPress secret keys change and the wrapped DEK can no longer be opened, fail closed, preserve the encrypted provider records, report safe unavailable state, and allow an administrator to replace/re-enter provider credentials through Security → API Keys. Do not silently delete credentials;
+- do not invent a broader browser/server-secret-management system. Any rotation control must remain inside the existing QSD Security authority, be administrator-only, use `qsd/v1`, expose no raw key material, and preserve all-or-nothing re-seal guarantees;
+- Tools continue to receive only short-lived scoped broker authority, never the long-lived provider credential.
+
+The Builder's stop for confirmation was correct because this was a security-architecture choice. That choice is now resolved. Resume Phase A from the current uncommitted documentation edits, then continue through B–E without intermediate review stops. Keep one local commit per phase and stop before the first implementation push as already instructed.
