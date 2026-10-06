@@ -165,3 +165,26 @@ Ownership meaning:
 - `Settings → Security` owns API keys, credentials and the credential-security system.
 - Tools consume Security-governed authority; Tools do not own/read long-lived credentials directly.
 - Do not reintroduce a separate “Settings Station” or collapse Tools and Security into a “Connections/Security” UI concept.
+
+
+### Reusable Settings-tab pattern
+
+`Settings` is a reusable tab pattern inside a Station, not a separate Station.
+
+For any Station that needs it:
+
+```text
+Station
+└─ Settings
+   ├─ General
+   ├─ Tools
+   └─ Security
+```
+
+Rules:
+- `General` may surface global/platform settings relevant to that Station and may also contain Station-owned settings where appropriate.
+- `Tools` contains operational tools owned/used by that Station.
+- `Security` may surface global Security capabilities relevant across Stations.
+- Global General/Security data is owned once by the platform authority; presenting it in multiple Stations must not duplicate persistence or create parallel settings/security systems.
+- Screen placement never transfers persistence or domain authority.
+- A Station may omit any Settings subsection it does not need.
