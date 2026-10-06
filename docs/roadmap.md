@@ -69,6 +69,8 @@ Complete the accepted Security backend against a real non-production WordPress r
 
 Do not begin importer/product mapping here.
 
+**Runtime/deployment:** use the existing QSD staging2 WordPress at `staging2.qldscubadive.com.au` and its `/station/` Admin Station. Do not create a second local WordPress/database stack for this phase. When real runtime/browser evidence is required, an exact reviewed candidate may be promoted to `staging` and deployed by the existing GitHub Actions workflow to the guarded staging2 WordPress path. Do not alter the deployment workflow/path/scope. Production remains prohibited.
+
 ### Security Phase 2B — Services Station Settings placement
 
 Migrate the configuration presentation into:
