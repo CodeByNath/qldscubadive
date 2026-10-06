@@ -1,6 +1,6 @@
 # Credential Broker Contract
 
-**Status:** Draft. Pending Reviewer acceptance (Security Phase 1). Real provider credentials and key provisioning stay prohibited until this contract is accepted and the Phase 2 validation package runs.
+**Status:** Accepted for Security Phase 1 (`main` `da93493`). Security Phase 2A adds the caller allow-list, Rezdy's read-only `connection.verify` scope and the runtime validation route. Those additions await Reviewer acceptance and staging2 runtime evidence.
 
 ## Rule
 
@@ -8,7 +8,9 @@ A consumer (a future importer, a booking sync) never receives a stored long-live
 
 ## Flow
 
-1. **Issue.** `CredentialBroker::issue(BrokerGrant)` checks three things before issuing: the provider exists, it declares the requested scope, and it is configured. It then issues a request key.
+1. **Issue.** `CredentialBroker::issue(BrokerGrant)` checks four things before issuing: the provider exists, it declares the requested scope, the caller component is allow-listed for that provider scope, and the provider is configured. It then issues a request key.
+   - The allow-list is server code (`SettingsModule::brokerCallers()`, caller → `provider:scope` pairs). A caller that is not listed is refused with `unknown_caller`, and a broker with no allow-list issues nothing.
+   - The WordPress user and caller in a grant are always derived server-side. A route never takes either from client input.
    - The key is `qrk_` plus 32 random bytes in base64url.
    - It is bound to the provider, the scope, the caller component, the WordPress user, and an optional subject (for example a Service `QSDS` or an import id).
    - The default time to live is 60 seconds, and the maximum is 300.
@@ -41,6 +43,7 @@ Secrets are sealed with libsodium XChaCha20-Poly1305 (`CredentialCipher`).
 - **Secrets.** Setting, replacing or clearing a secret, and disconnecting a provider (which removes its secrets), need the WordPress administrator capability `manage_options` (`CredentialAuthority`). A business platform manager holds only `manage_qsd` and is refused with 403.
 - **Gates.** `PUT /admin/settings/connections/{provider}` is gated by `requireSaveAuthority`: a request that carries a non-empty secret or a `clear` needs administrator authority. `DELETE` is gated by `requireSecretAuthority`.
 - **Projection.** The list reports `permissions.manage_secrets`, so the lane makes secret inputs read-only and hides Disconnect for anyone else. The server enforces the rule either way.
+- **Runtime validation.** `POST /admin/settings/security/broker-validation` needs both `manage_qsd` and `manage_options`, because it uses the stored credential for one provider call.
 - No new role or capability family is created.
 
 ## Key operations
@@ -59,8 +62,19 @@ The re-seal refuses to start when either key is missing or invalid, or when both
 
 ## Current boundaries
 
-- **No brokered scopes yet.** No provider declares a brokered scope or operation. Rezdy declares none, so no request key can be issued until a reviewed Connector adds a scope and its operation. That is Phase 3 work, after the Owner's Rezdy importer reference is audited.
-- **Server-internal API.** The broker is server-internal and has no REST route.
-- **No real credentials yet.** No real provider credential is stored, no key is provisioned on staging or production, and no provider call is made in this phase.
+- **One brokered scope.** Rezdy declares only `connection.verify`, performed by `RezdyConnectionCheck`.
+  - It sends one read-only `GET products?limit=1` and reads only the HTTP status and `requestStatus.success`; the body is discarded.
+  - It returns outcome (`authenticated`, `unauthorized`, `rate_limited`, `upstream_error`, `unexpected_response`, `network_error`), HTTP status and latency. It never returns the key, the URL, the body or upstream error text.
+  - Security Phase 2 bound: it runs only when the environment is `staging` (`https://api.rezdy-staging.com/v1/`). Any other environment returns `refused_environment` without a request.
+  - Importer scopes and operations are Phase 3 work, after the Owner's Rezdy importer reference is audited.
+- **Allow-listed callers.** The only caller is `settings.security-validation`, for `rezdy:connection.verify`.
+- **Runtime validation route.** The broker itself has no REST route. `BrokerValidation`, behind the route above, runs one fixed sequence on the real install for the session user:
+  - storage evidence: each secret is an envelope that opens under the current key, with no plaintext in the option;
+  - rotation readiness from `CredentialRotation::inspect()`, which is read-only;
+  - issue → hash-only bound row → consume and perform (the single provider call);
+  - replay refused; expiry refused; an abandoned key swept; a binding mismatch refused and the key burned; no row left behind;
+  - audit events for the run, with no key, hash or secret.
+  It ignores the request body. Its report holds safe metadata only and is checked for keys, key hashes, secrets and the key id before it is returned.
+- **Real credentials.** A real Rezdy staging credential and `QSD_CREDENTIAL_KEY` are provisioned only on staging2, and only for Phase 2 validation. Production stays out of scope.
 
 See [Settings Station](../code-map/settings-station.md).

@@ -55,24 +55,19 @@ final class CredentialRotation
         }
 
         $plan = [];
-        foreach ($this->store->providers() as $provider) {
-            $secrets = $this->store->read($provider)['secrets'];
-            foreach ($secrets as $field => $envelope) {
-                $slot = "{$provider}:{$field}";
-                $context = CredentialCipher::context($provider, (string) $field);
-
-                if ($this->current->open($envelope, $context) !== null) {
-                    $report['already_current'][] = $slot;
-                    continue;
-                }
-                $plaintext = $this->previous->open($envelope, $context);
-                if ($plaintext === null) {
-                    $report['unreadable'][] = $slot;
-                    continue;
-                }
-                $plan[$provider][$field] = $this->current->seal($plaintext, $context);
-                $report['resealed'][] = $slot;
+        foreach ($this->slots() as [$provider, $field, $envelope, $context]) {
+            $slot = "{$provider}:{$field}";
+            if ($this->current->open($envelope, $context) !== null) {
+                $report['already_current'][] = $slot;
+                continue;
             }
+            $plaintext = $this->previous->open($envelope, $context);
+            if ($plaintext === null) {
+                $report['unreadable'][] = $slot;
+                continue;
+            }
+            $plan[$provider][$field] = $this->current->seal($plaintext, $context);
+            $report['resealed'][] = $slot;
         }
 
         if ($report['unreadable'] !== []) {
@@ -86,5 +81,42 @@ final class CredentialRotation
         }
         $report['ok'] = true;
         return $report;
+    }
+
+    /**
+     * Read-only readiness: which key each stored secret opens under. Writes
+     * nothing and works with either key absent. Slot names only.
+     *
+     * @return array{current_key: bool, previous_key: bool, current: list<string>, previous: list<string>, unreadable: list<string>}
+     */
+    public function inspect(): array
+    {
+        $report = [
+            'current_key'  => $this->current->isAvailable(),
+            'previous_key' => $this->previous->isAvailable(),
+            'current'      => [],
+            'previous'     => [],
+            'unreadable'   => [],
+        ];
+        foreach ($this->slots() as [$provider, $field, $envelope, $context]) {
+            $bucket = match (true) {
+                $this->current->open($envelope, $context) !== null  => 'current',
+                $this->previous->open($envelope, $context) !== null => 'previous',
+                default                                             => 'unreadable',
+            };
+            $report[$bucket][] = "{$provider}:{$field}";
+        }
+        return $report;
+    }
+
+    /** @return \Generator<array{string, string, mixed, string}> provider, field, envelope, cipher context */
+    private function slots(): \Generator
+    {
+        foreach ($this->store->providers() as $provider) {
+            foreach ($this->store->read($provider)['secrets'] as $field => $envelope) {
+                $field = (string) $field;
+                yield [$provider, $field, $envelope, CredentialCipher::context($provider, $field)];
+            }
+        }
     }
 }

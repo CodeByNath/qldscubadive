@@ -8,6 +8,7 @@ import type {
   ConnectionField,
   ConnectionProjection,
   ConnectionSavePayload,
+  SecurityValidationReport,
   ServiceMetaField,
   ServiceMetaFieldDraft,
   ServiceMetaSubField,
@@ -77,6 +78,31 @@ export async function saveConnection(provider: string, payload: ConnectionSavePa
 export async function disconnectConnection(provider: string): Promise<ConnectionProjection> {
   const response = await apiClient.delete<{ connection: WireConnection }>(`admin/settings/connections/${provider}`);
   return toConnection(response.connection);
+}
+
+interface WireValidation {
+  passed: boolean;
+  identity: { user_id: number; caller: string };
+  provider_check: { provider: string; environment: string | null; outcome: string | null; http_status: number | null; latency_ms: number | null } | null;
+  checks: SecurityValidationReport['checks'];
+}
+
+/** Runs the server-side Security validation. Sends no body: identity is derived on the server. */
+export async function runSecurityValidation(): Promise<SecurityValidationReport> {
+  const response = await apiClient.post<{ validation: WireValidation }>('admin/settings/security/broker-validation');
+  const wire = response.validation;
+  return {
+    passed:   wire.passed,
+    identity: { userId: wire.identity.user_id, caller: wire.identity.caller },
+    providerCheck: wire.provider_check && {
+      provider:    wire.provider_check.provider,
+      environment: wire.provider_check.environment,
+      outcome:     wire.provider_check.outcome,
+      httpStatus:  wire.provider_check.http_status,
+      latencyMs:   wire.provider_check.latency_ms,
+    },
+    checks: wire.checks.map((c) => ({ check: c.check, ok: c.ok, detail: c.detail })),
+  };
 }
 
 export async function fetchServiceMetaFields(): Promise<ServiceMetaField[]> {

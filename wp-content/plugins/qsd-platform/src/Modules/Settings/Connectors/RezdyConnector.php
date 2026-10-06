@@ -9,8 +9,10 @@ use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
  * RezdyConnector — the first Connector implementation, not platform architecture.
  *
  * Scope stops at the connection seam: what an administrator configures
- * (environment + API key) and whether that configuration is complete. It makes
- * no HTTP call, maps no product, and defines no import flow.
+ * (environment + API key), whether that configuration is complete, and one
+ * brokered scope — `connection.verify`, a read-only authentication check
+ * performed by RezdyConnectionCheck. It maps no product and defines no import
+ * flow.
  *
  * OWNER CHECKPOINT: Rezdy product/service mapping, importer transformation and
  * canonical Service import wait for the Owner's pre-built Rezdy importer. Do
@@ -20,7 +22,10 @@ final class RezdyConnector
 {
     public const PROVIDER = 'rezdy';
 
-    private const BASE_URLS = [
+    /** The only brokered Rezdy scope: does the stored API key authenticate? */
+    public const SCOPE_VERIFY = 'connection.verify';
+
+    public const BASE_URLS = [
         'production' => 'https://api.rezdy.com/v1/',
         'staging'    => 'https://api.rezdy-staging.com/v1/',
     ];
@@ -46,11 +51,9 @@ final class RezdyConnector
                     'required' => true,
                 ],
             ],
-            // No brokered scope yet: Rezdy operations (and so their scopes and
-            // the provider operation that performs them) arrive only with the
-            // Owner-reviewed importer. Until then no request key can be issued
-            // for Rezdy.
-            [],
+            // Importer scopes (and their operations) arrive only with the
+            // Owner-reviewed importer.
+            [self::SCOPE_VERIFY],
         );
     }
 

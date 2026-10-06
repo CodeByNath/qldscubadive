@@ -24,7 +24,8 @@ use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
  *   1. it asks for narrowly scoped authority — `issue(BrokerGrant)` — and gets
  *      a cryptographically random request key bound to provider + scope +
  *      caller component + WordPress user (+ optional subject), valid for a
- *      short TTL;
+ *      short TTL. The caller must be on the server-side allow-list for that
+ *      provider scope;
  *   2. only the SHA-256 hash of the key is persisted, with safe metadata;
  *   3. it presents the key with the same binding — `perform()` — and the
  *      broker consumes it atomically, exactly once;
@@ -49,6 +50,7 @@ final class CredentialBroker
      * @param array<string, ConnectionProviderDefinition> $providers  provider key => definition
      * @param array<string, BrokeredProviderOperation>    $operations provider key => Settings-owned operation
      * @param (\Closure(): int)|null                      $clock
+     * @param array<string, list<string>>                 $callers    caller component => allowed "provider:scope" pairs
      */
     public function __construct(
         private array $providers,
@@ -57,6 +59,7 @@ final class CredentialBroker
         private BrokerAuditLog $audit,
         private array $operations = [],
         ?\Closure $clock = null,
+        private array $callers = [],
     ) {
         $this->clock = $clock ?? static fn(): int => time();
     }
@@ -78,6 +81,11 @@ final class CredentialBroker
         }
         if (!in_array($grant->scope, $definition->scopes, true)) {
             throw new BrokerRejected(BrokerRejected::UNDECLARED_SCOPE, "{$definition->label} does not offer the requested scope.");
+        }
+        // Caller identity is a server-side allow-list, never a client claim:
+        // a component not listed for this provider scope gets no key.
+        if (!in_array("{$grant->provider}:{$grant->scope}", $this->callers[$grant->caller] ?? [], true)) {
+            throw new BrokerRejected(BrokerRejected::UNKNOWN_CALLER, 'The calling component is not allowed this provider scope.');
         }
         if (!$this->credentials->isConfigured($definition)) {
             throw new BrokerRejected(BrokerRejected::NOT_CONFIGURED, "{$definition->label} is not configured.");

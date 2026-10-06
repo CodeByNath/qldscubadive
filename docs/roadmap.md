@@ -69,6 +69,12 @@ Complete the accepted Security backend against a real non-production WordPress r
 
 Do not begin importer/product mapping here.
 
+**Status: built, awaiting Reviewer review, then staging2 runtime evidence.**
+- The broker refuses any caller not on the server-side allow-list.
+- Rezdy declares one read-only `connection.verify` scope (`RezdyConnectionCheck`), bound to the Rezdy staging API.
+- An administrator-only `POST qsd/v1/admin/settings/security/broker-validation` route runs one server-side validation on the real install, started from the Settings lane's **Security check**. It covers storage, rotation readiness, the request-key lifecycle and audit, and makes the single provider call.
+- See the [Credential broker contract](architecture/credential-broker-contract.md).
+
 **Runtime/deployment:** use the existing QSD staging2 WordPress at `staging2.qldscubadive.com.au` and its `/station/` Admin Station. Do not create a second local WordPress/database stack for this phase. When real runtime/browser evidence is required, an exact reviewed candidate may be promoted to `staging` and deployed by the existing GitHub Actions workflow to the guarded staging2 WordPress path. Do not alter the deployment workflow/path/scope. Production remains prohibited.
 
 ### Security Phase 2B — Services Station Settings placement

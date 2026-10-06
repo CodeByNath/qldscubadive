@@ -136,7 +136,8 @@ $operation = new RecordingOperation();
 $keys  = new WpdbRequestKeyStore();
 $audit = new BrokerAuditLog();
 $providers = ['testpay' => $testPay, 'idle' => $unconfigured, 'rezdy' => RezdyConnector::definition()];
-$broker = new CredentialBroker($providers, $credentials, $keys, $audit, ['testpay' => $operation], $clock);
+$callers = ['service-import' => ['testpay:catalogue.read', 'idle:catalogue.read'], 'booking-sync' => ['testpay:catalogue.write']];
+$broker = new CredentialBroker($providers, $credentials, $keys, $audit, ['testpay' => $operation], $clock, $callers);
 
 $grant = new BrokerGrant('testpay', 'catalogue.read', 'service-import', 7, 'QSDS2A7KZ');
 
@@ -162,7 +163,11 @@ check_broker($broker->issue($grant, 100_000)->expiresAt === $now + CredentialBro
 check_broker(rejected(fn() => $broker->issue(new BrokerGrant('testpay', 'payments.refund', 'service-import', 7))) === BrokerRejected::UNDECLARED_SCOPE, 'a scope the provider does not declare is refused');
 check_broker(rejected(fn() => $broker->issue(new BrokerGrant('nobody', 'catalogue.read', 'service-import', 7))) === BrokerRejected::UNKNOWN_PROVIDER, 'an unknown provider is refused');
 check_broker(rejected(fn() => $broker->issue(new BrokerGrant('idle', 'catalogue.read', 'service-import', 7))) === BrokerRejected::NOT_CONFIGURED, 'an unconfigured provider cannot be brokered');
-check_broker(rejected(fn() => $broker->issue(new BrokerGrant('rezdy', 'catalogue.read', 'service-import', 7))) === BrokerRejected::UNDECLARED_SCOPE, 'Rezdy declares no brokered scope until the Owner-reviewed importer exists');
+check_broker(rejected(fn() => $broker->issue(new BrokerGrant('rezdy', 'catalogue.read', 'service-import', 7))) === BrokerRejected::UNDECLARED_SCOPE, 'Rezdy declares no importer scope until the Owner-reviewed importer exists');
+check_broker(RezdyConnector::definition()->scopes === [RezdyConnector::SCOPE_VERIFY], 'Rezdy declares only the read-only connection.verify scope');
+check_broker(rejected(fn() => $broker->issue(new BrokerGrant('testpay', 'catalogue.read', 'rogue-component', 7))) === BrokerRejected::UNKNOWN_CALLER, 'a caller missing from the server-side allow-list is refused');
+check_broker(rejected(fn() => $broker->issue(new BrokerGrant('testpay', 'catalogue.read', 'booking-sync', 7))) === BrokerRejected::UNKNOWN_CALLER, 'an allow-listed caller is refused a provider scope it is not listed for');
+check_broker(rejected(fn() => (new CredentialBroker($providers, $credentials, $keys, $audit, ['testpay' => $operation], $clock))->issue($grant)) === BrokerRejected::UNKNOWN_CALLER, 'with no allow-list, no caller gets a key');
 check_broker(rejected(fn() => new BrokerGrant('testpay', 'catalogue.read', 'Bad Caller!', 7)) === BrokerRejected::INVALID_REQUEST, 'a malformed caller name is refused');
 check_broker(rejected(fn() => new BrokerGrant('testpay', '*', 'service-import', 7)) === BrokerRejected::INVALID_REQUEST, 'a wildcard scope is refused');
 
@@ -189,7 +194,7 @@ final class StaleReadStore implements RequestKeyStore
     public function claim(string $hash): bool { return $this->inner->claim($hash); }
     public function sweepExpired(int $now): array { return $this->inner->sweepExpired($now); }
 }
-$racer = new CredentialBroker($providers, $credentials, new StaleReadStore($keys, $snapshot), $audit, ['testpay' => $operation], $clock);
+$racer = new CredentialBroker($providers, $credentials, new StaleReadStore($keys, $snapshot), $audit, ['testpay' => $operation], $clock, $callers);
 check_broker($broker->perform($raceKey, $grant) !== [], 'the first of two racing presenters wins');
 check_broker(rejected(fn() => $racer->perform($raceKey, $grant)) === BrokerRejected::REPLAYED, 'the second racing presenter, holding a stale read, loses the atomic claim');
 $claimKey = $broker->issue($grant)->key;
@@ -233,7 +238,7 @@ try {
     check_broker($e->reason === BrokerRejected::OPERATION_FAILED && !str_contains($e->getMessage(), SECRET), 'a failing operation reports a generic failure without the upstream text');
 }
 $operation->mode = 'safe';
-$noOp = new CredentialBroker($providers, $credentials, $keys, $audit, [], $clock);
+$noOp = new CredentialBroker($providers, $credentials, $keys, $audit, [], $clock, $callers);
 $key = $noOp->issue($grant)->key;
 check_broker(rejected(fn() => $noOp->perform($key, $grant)) === BrokerRejected::NO_OPERATION, 'a provider with no Settings-owned operation cannot be performed');
 

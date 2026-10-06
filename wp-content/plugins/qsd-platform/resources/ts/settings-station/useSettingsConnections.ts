@@ -5,9 +5,9 @@
 // returns only `configured`, and this hook keeps no copy of what was sent.
 
 import { useCallback, useEffect, useState } from 'preact/hooks';
-import { disconnectConnection, fetchConnections, saveConnection } from './api';
+import { disconnectConnection, fetchConnections, runSecurityValidation, saveConnection } from './api';
 import { errorMessage } from './errorMessage';
-import type { ConnectionProjection, ConnectionSavePayload } from './types';
+import type { ConnectionProjection, ConnectionSavePayload, SecurityValidationReport } from './types';
 
 export interface SettingsConnectionsState {
   connections:  ConnectionProjection[];
@@ -23,6 +23,11 @@ export interface SettingsConnectionsState {
   actionError:  { provider: string; message: string } | null;
   save:         (provider: string, payload: ConnectionSavePayload) => Promise<boolean>;
   disconnect:   (provider: string) => Promise<boolean>;
+  // Security Phase 2 runtime check (administrators only; makes one provider call).
+  validation:      SecurityValidationReport | null;
+  validating:      boolean;
+  validationError: string | null;
+  runValidation:   () => Promise<void>;
 }
 
 export function useSettingsConnections(): SettingsConnectionsState {
@@ -33,6 +38,9 @@ export function useSettingsConnections(): SettingsConnectionsState {
   const [error, setError] = useState<string | null>(null);
   const [busyProvider, setBusyProvider] = useState<string | null>(null);
   const [actionError, setActionError] = useState<SettingsConnectionsState['actionError']>(null);
+  const [validation, setValidation] = useState<SecurityValidationReport | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConnections()
@@ -70,5 +78,21 @@ export function useSettingsConnections(): SettingsConnectionsState {
     [run],
   );
 
-  return { connections, encryptionAvailable, canManageSecrets, loading, error, busyProvider, actionError, save, disconnect };
+  const runValidation = useCallback(async () => {
+    setValidating(true);
+    setValidationError(null);
+    try {
+      setValidation(await runSecurityValidation());
+    } catch (err) {
+      setValidation(null);
+      setValidationError(errorMessage(err, 'The security check could not be run.'));
+    } finally {
+      setValidating(false);
+    }
+  }, []);
+
+  return {
+    connections, encryptionAvailable, canManageSecrets, loading, error, busyProvider, actionError, save, disconnect,
+    validation, validating, validationError, runValidation,
+  };
 }

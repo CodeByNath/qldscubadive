@@ -127,8 +127,18 @@ const secretReaders = backend.filter((file) => /->secret\(/.test(code(file)));
 check(secretReaders.length > 0 && secretReaders.every((file) => /Settings\/(Security\/CredentialBroker|Connections\/ConnectorCredentials)\.php$/.test(file)), `only the credential broker reads a decrypted secret (${secretReaders.join(', ')})`);
 const brokerFiles = backend.filter((file) => file.startsWith('src/Modules/Settings/Security/'));
 check(brokerFiles.every((file) => !code(file).includes('PlatformIdentifier')), 'request keys and request ids are never Platform IDs');
-check(/\[\],\s*\);/.test(code('src/Modules/Settings/Connectors/RezdyConnector.php')) && !/BrokeredProviderOperation/.test(code('src/Modules/Settings/Connectors/RezdyConnector.php')), 'Rezdy declares no brokered scope or operation before the Owner importer review');
-check(!/new \w+Operation\(|BrokeredProviderOperation/.test(code('src/Modules/Settings/SettingsModule.php')), 'Settings wires no brokered provider operation yet');
+const rezdy = code('src/Modules/Settings/Connectors/RezdyConnector.php');
+check(/\[self::SCOPE_VERIFY\],\s*\);/.test(rezdy) && /SCOPE_VERIFY = 'connection\.verify'/.test(rezdy) && !/BrokeredProviderOperation|wp_remote_/.test(rezdy), 'Rezdy declares only the read-only connection.verify scope; importer scopes wait for the Owner importer review');
+const rezdyCheck = code('src/Modules/Settings/Connectors/RezdyConnectionCheck.php');
+check(settingsBackend.filter((file) => /wp_remote_|curl_/.test(code(file))).join() === 'src/Modules/Settings/Connectors/RezdyConnectionCheck.php', 'the only Settings provider HTTP call is RezdyConnectionCheck');
+check(/wp_remote_get\(/.test(rezdyCheck) && !/wp_remote_(post|request|head)|'method'/.test(rezdyCheck) && /ALLOWED_ENVIRONMENT = 'staging'/.test(rezdyCheck) && /BASE_URLS\[self::ALLOWED_ENVIRONMENT\]/.test(rezdyCheck), 'the Rezdy check is one read-only GET, bound to the staging API (Security Phase 2)');
+check(/\[RezdyConnector::PROVIDER => new RezdyConnectionCheck\(\$credentials\)\]/.test(code('src/Modules/Settings/SettingsModule.php')) && (code('src/Modules/Settings/SettingsModule.php').match(/new \w+(Operation|Check)\(/g) ?? []).length === 1, 'Settings wires exactly one brokered provider operation: the Rezdy connection check');
+check(/BrokerValidation::CALLER => \[RezdyConnector::PROVIDER \. ':' \. RezdyConnector::SCOPE_VERIFY\]/.test(code('src/Modules/Settings/SettingsModule.php')), 'the broker caller allow-list is server code with one entry: the validation run for Rezdy connection.verify');
+
+const securityController = code('src/Modules/Settings/Http/SettingsSecurityController.php');
+check(/'permission_callback' => \[\$this, 'requireAuthority'\]/.test(securityController) && /PlatformAccess::CAP\) && CredentialAuthority::allows\(\)/.test(securityController), 'the security validation route needs the platform capability and administrator authority');
+check(/->run\(get_current_user_id\(\)\)/.test(securityController) && !/get_param|get_json_params|get_body/.test(securityController), 'the validation route derives the user from the session and reads nothing from the request');
+check(backend.filter((file) => /->reseal\(/.test(code(file))).every((file) => file === 'src/Modules/Settings/Security/CredentialRotationCommand.php'), 'only the WP-CLI command performs a re-seal; the validation run only inspects');
 
 const connectionsController = code('src/Modules/Settings/Http/SettingsConnectionsController.php');
 check(/'PUT',[\s\S]*?'permission_callback' => \[\$this, 'requireSaveAuthority'\]/.test(connectionsController)

@@ -12,6 +12,8 @@
 //   server-minted id; edit keeps type fixed and offers no removal of an
 //   existing option; move sends ids only; Retire is armed then POSTs retire;
 //   Restore POSTs restore; there is no delete request.
+//   Security check — offered to administrators only; one bodyless POST; the
+//   safe report renders pass/fail rows and the provider outcome.
 //
 // Usage: npm run regression:settings-home
 //    or: node scripts/settings-home-regression.mjs
@@ -88,6 +90,18 @@ globalThis.fetch = (url, init = {}) => {
     return jsonResponse({ success: true, connection: connection() });
   }
 
+  if (method === 'POST' && path === 'admin/settings/security/broker-validation') {
+    return jsonResponse({ success: false, validation: {
+      passed: false,
+      identity: { user_id: 5, caller: 'settings.security-validation', source: 'server' },
+      provider_check: { provider: 'rezdy', environment: 'staging', outcome: 'unauthorized', http_status: 401, latency_ms: 212 },
+      rotation: { previous_key_defined: false, current: ['rezdy:api_key'], previous: [], unreadable: [] },
+      checks: [
+        { check: 'a replayed key is refused', ok: true, detail: { reason: 'unknown_key' } },
+        { check: 'the audit records this run\'s outcomes', ok: false },
+      ],
+    } });
+  }
   if (method === 'GET' && path === 'admin/settings/service-meta/fields') return jsonResponse({ success: true, fields: server.fields });
   if (method === 'POST' && path === 'admin/settings/service-meta/fields') {
     const field = {
@@ -302,6 +316,21 @@ await choose(card().querySelector('select'), 'production');
 click(card(), 'Save connection');
 await sleep(40);
 check('saving configuration sends no secret and no clear', mutations().length === 1 && mutations()[0].body.values.environment === 'production' && Object.keys(mutations()[0].body.secrets ?? {}).length === 0 && (mutations()[0].body.clear ?? []).length === 0, describe(mutations()));
+check('the Security check is not offered to a platform manager', container.querySelector('[data-security-check]') === null);
+
+console.log('\n10) Security check — an administrator runs the server-side validation');
+render(null, container);
+server.manageSecrets = true;
+render(h(SettingsDeck, { items: [], loading: false, error: null, onIntent: () => {}, refetch: () => {} }), container);
+await sleep(60);
+const securityCheck = () => container.querySelector('[data-security-check]');
+check('the Security check is offered to an administrator', securityCheck() != null);
+calls = [];
+click(securityCheck(), 'Run security check');
+await sleep(40);
+check('running it sends one POST with no body (identity is server-derived)', mutations().length === 1 && mutations()[0].path === 'admin/settings/security/broker-validation' && mutations()[0].body === null, describe(mutations()));
+check('the report shows Failed and one row per check', securityCheck().textContent.includes('Failed') && securityCheck().querySelectorAll('[data-security-checks] li').length === 2);
+check('the provider outcome is shown as safe metadata', securityCheck().querySelector('[data-provider-outcome]')?.textContent.includes('unauthorized · HTTP 401'));
 
 console.log('');
 if (failures.length > 0) {

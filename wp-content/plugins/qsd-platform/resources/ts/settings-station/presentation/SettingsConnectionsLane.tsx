@@ -6,6 +6,8 @@
 // Disconnect is armed in place with useInlineConfirm (contract §11). Only an
 // administrator may change a secret or disconnect; for anyone else secret
 // inputs are read-only and Disconnect is not offered (the server refuses too).
+// Administrators also get the Security check: the server-side Phase 2 runtime
+// validation, shown as its safe pass/fail report.
 
 import { useState } from 'preact/hooks';
 import type { VNode } from 'preact';
@@ -126,6 +128,47 @@ function ConnectionCard({ connection, tools, confirm }: {
   );
 }
 
+function SecurityCheck({ tools }: { tools: SettingsConnectionsState }): VNode {
+  const report = tools.validation;
+  return (
+    <section class="cz-settings-connection" data-security-check>
+      <div class="cz-settings-connection__header">
+        <h4 class="cz-settings-connection__title">Security check</h4>
+        {report && (
+          <span class={report.passed ? 'cz-settings-state cz-settings-state--configured' : 'cz-settings-state cz-settings-state--incomplete'}>
+            {report.passed ? 'Passed' : 'Failed'}
+          </span>
+        )}
+      </div>
+      <p class="cz-settings-muted">
+        Checks encrypted storage, single-use request keys and the audit trail on this server, and makes one read-only Rezdy staging connection check. No secret is shown.
+      </p>
+      {tools.validationError && <p class="cz-settings-error" role="alert">{tools.validationError}</p>}
+      {report && (
+        <>
+          {report.providerCheck && (
+            <p class="cz-settings-muted" data-provider-outcome>
+              Rezdy ({report.providerCheck.environment ?? 'no environment'}): {report.providerCheck.outcome ?? 'no result'}
+              {report.providerCheck.httpStatus !== null && ` · HTTP ${report.providerCheck.httpStatus}`}
+              {report.providerCheck.latencyMs !== null && ` · ${report.providerCheck.latencyMs} ms`}
+            </p>
+          )}
+          <ul class="cz-settings-list" data-security-checks>
+            {report.checks.map((c) => (
+              <li key={c.check} class={c.ok ? 'cz-settings-muted' : 'cz-settings-error'}>{c.ok ? '✓' : '✗'} {c.check}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      <div class="cz-settings-actions">
+        <button type="button" class="cz-settings-button" onClick={tools.runValidation} disabled={tools.validating}>
+          {tools.validating ? 'Checking…' : 'Run security check'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function SettingsConnectionsLane(): VNode {
   const tools = useSettingsConnections();
   const confirm = useInlineConfirm<string>();
@@ -148,6 +191,7 @@ export function SettingsConnectionsLane(): VNode {
           <ConnectionCard key={connection.provider} connection={connection} tools={tools} confirm={confirm} />
         ))}
       </ul>
+      {tools.canManageSecrets && <SecurityCheck tools={tools} />}
     </div>
   );
 }

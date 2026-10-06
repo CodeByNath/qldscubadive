@@ -52,6 +52,21 @@ export interface ConnectionSavePayload {
   clear?: string[];
 }
 
+// Security Phase 2 runtime validation report — safe metadata only. The server
+// derives user and caller; the report never carries a key, hash or secret.
+export interface SecurityValidationCheck {
+  check: string;
+  ok: boolean;
+  detail?: unknown;
+}
+
+export interface SecurityValidationReport {
+  passed: boolean;
+  identity: { userId: number; caller: string };
+  providerCheck: { provider: string; environment: string | null; outcome: string | null; httpStatus: number | null; latencyMs: number | null } | null;
+  checks: SecurityValidationCheck[];
+}
+
 export type ServiceMetaFieldType =
   | 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'image' | 'gallery' | 'repeater';
 
