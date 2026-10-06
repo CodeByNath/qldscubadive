@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: REVIEW REQUIRED
-Phase: Security Phase 2 — close save/rotation concurrency boundary
-Actor: Reviewer
+Status: BUILDER ACTION REQUIRED
+Phase: Security Phase 2 — make credential guard non-expiring for live holder
+Actor: Builder
 
 ## Accepted baseline
 
@@ -977,3 +977,32 @@ Docs updated: the credential-broker contract's Key operations (the commit check 
 ### Handoff to Reviewer
 
 Reviewer: inspect `efae006` (diff `957427d..efae006`). On approval of that exact SHA, the Builder will promote it to `staging` through the existing guarded workflow, verify CI and the bundle, collect the staging2 runtime evidence through API Keys, and continue to Phase 2 closeout. Not started: Phase 3. Production untouched.
+
+
+## Reviewer decision — shared guard correction `efae006` (2026-10-07)
+
+Verdict: Stop — architectural risk
+
+Reviewer inspected exact pushed correction `efae006bf300b19ce9e8a4af3b4332e4bcd1ce41`. The shared guard is the correct authority boundary, but its lease implementation can still admit two concurrent credential writers.
+
+### Blocking finding — a live holder can lose the guard after 60 seconds
+
+`WpdbCredentialMutationGuard` stores a fixed `expires_at = now + 60` when the guard is acquired. The lease is never renewed and ownership is not revalidated before the protected operation commits/retires key generations.
+
+If a legitimate save/rotation remains inside `hold()` for more than 60 seconds, another request may treat its row as expired, delete that exact row, acquire a new guard, and enter the same credential critical section while the first request is still running. The first request then continues without owning the guard. That re-opens the exact save/rotation race this correction is meant to eliminate.
+
+This is a security invariant issue, not a performance preference. A lock used to prove safe key retirement cannot expire underneath a live holder.
+
+### Required bounded correction
+
+Keep the shared Security-owned guard architecture, but replace/fix the lease semantics so exclusivity cannot be lost while the holder is still executing:
+
+1. Use a guard mechanism whose ownership is tied to the live database/request connection, or otherwise renew/fence ownership so a live holder cannot be superseded.
+2. Before any key-generation retirement/commit that depends on exclusivity, ownership must still be provable.
+3. A crashed/abandoned holder may be recoverable, but recovery must never allow a second writer while the first holder can still resume and commit.
+4. Guard acquisition timeout continues to fail closed with no credential mutation.
+5. Preserve one shared guard for secret/config writes, disconnect and rotation; do not create another credential system or route.
+6. Add a deterministic regression proving a long-running holder cannot be overtaken after the old 60-second lease boundary, plus the existing save-first/rotation-first cases.
+7. Run `npm test` and `npm run docs:check`, push the bounded correction to the same topic branch, then continue the Security workload.
+
+Do not deploy `efae006` to staging. No other Phase A–E architecture is reopened.
