@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: REVIEW REQUIRED
-Phase: Security Phase 2 — Owner-corrected credential flow package
-Actor: Reviewer
+Status: BUILDER ACTION REQUIRED
+Phase: Security Phase 2 — rotation concurrency correction
+Actor: Builder
 
 ## Accepted baseline
 
@@ -832,3 +832,37 @@ Reviewer: inspect candidate `8a88833` (diff `81f749d..8a88833`). The Builder doe
 4. continue to Phase 2 closeout.
 
 Points the Reviewer should weigh are listed under "Deviations and residual risks" in the Builder report (shell command removed in B; rotation REST route per Owner direction; rotation concurrency window; installs without wp-config secret keys fail closed). Not started: Phase 3. Production untouched.
+
+
+## Reviewer decision — pushed Security package `8a88833` (2026-10-06)
+
+Verdict: Stop — architectural risk
+
+Reviewer inspected the pushed candidate `8a88833c46c18e1ebebc1d470721be7adba05b82` against the Owner-approved Security safeguards and actual source. The five-commit chain is present and bounded, but the rotation implementation has a real security-invariant failure and must not be deployed yet.
+
+### Blocking finding — rotation can retire a key still needed by a concurrent save
+
+`CredentialRotation::rotate()` plans all stored secret envelopes, then stages a new key generation, calls `ConnectionStore::replaceSecrets($plan, $expected)`, and unconditionally calls `CredentialKeyring::retireInactive()`.
+
+`ConnectionStore::replaceSecrets()` silently skips any slot whose stored envelope changed after planning. If an administrator saves/replaces a credential after rotation planning but before the new generation is staged, that save is encrypted under the old generation. Rotation then sees the changed slot, skips it, and still retires the old generation. The just-saved credential becomes unreadable.
+
+This directly violates the accepted safeguards:
+- rotation must be all-or-nothing;
+- the old generation may be retired only after every stored secret is safely on the new generation;
+- no credential may become unreadable because rotation raced a normal save.
+
+The Builder report itself identified this concurrency window as a residual risk; for credential rotation it is not an acceptable residual risk.
+
+### Bounded Builder correction
+
+Keep the existing QSD-owned keyring, broker, UI and API design. Correct only rotation/concurrent-save safety:
+
+1. Make rotation detect every planned-slot conflict instead of silently treating a skipped replacement as success.
+2. Do not retire any prior generation unless every credential present at the rotation commit point is confirmed openable under the new generation.
+3. If a concurrent credential mutation prevents that guarantee, either retry the whole rotation safely or abort while preserving all previously valid generations and credentials; do not leave a partial rotation reported as success.
+4. Preserve the existing no-secret output and administrator-only `qsd/v1` boundary.
+5. Add a deterministic regression for the exact race: mutate a credential after planning but before replacement, then prove rotation cannot make that credential unreadable and cannot falsely report full success.
+6. Re-run `npm test` and `npm run docs:check`.
+7. Commit and push only this bounded correction to the same topic branch, then continue the workload. Do not deploy `8a88833` to staging.
+
+No other Phase A–E architecture is reopened by this verdict.
