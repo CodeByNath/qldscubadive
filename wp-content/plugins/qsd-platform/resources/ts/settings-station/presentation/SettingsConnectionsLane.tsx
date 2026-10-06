@@ -183,7 +183,7 @@ export function SettingsConnectionsLane(): VNode {
       </p>
       {tools.encryptionAvailable === false && (
         <p class="cz-settings-error" role="alert">
-          This server has no credential encryption key yet, so secret values cannot be saved. Ask the site administrator to configure it.
+          Secure credential storage is not set up on this server yet, so API keys cannot be saved. This is a one-time platform setup step for the platform operator, not something to configure here.
         </p>
       )}
       <ul class="cz-settings-list">

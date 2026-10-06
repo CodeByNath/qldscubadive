@@ -69,6 +69,8 @@ Complete the accepted Security backend against a real non-production WordPress r
 
 Do not begin importer/product mapping here.
 
+**Two secret classes.** The platform master key `QSD_CREDENTIAL_KEY` is operator-provisioned infrastructure: outside the database and the Admin Station, and never a business-admin task. Provider API keys (Rezdy, Stripe, …) are entered, replaced and removed by an authorised administrator through the QSD UI only, and are never readable back. See the [Credential broker contract](architecture/credential-broker-contract.md#two-secret-classes).
+
 **Status: built, awaiting Reviewer review, then staging2 runtime evidence.**
 - The broker refuses any caller not on the server-side allow-list.
 - Rezdy declares one read-only `connection.verify` scope (`RezdyConnectionCheck`), bound to the Rezdy staging API.

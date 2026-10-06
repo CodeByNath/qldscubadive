@@ -11,8 +11,9 @@ import type { ConnectionProjection, ConnectionSavePayload, SecurityValidationRep
 
 export interface SettingsConnectionsState {
   connections:  ConnectionProjection[];
-  // False when the server has no credential encryption key: secrets cannot be
-  // saved there (the backend refuses rather than storing plaintext).
+  // False when the server has no platform master key (operator-provisioned,
+  // never managed here): secrets cannot be saved there (the backend refuses
+  // rather than storing plaintext).
   encryptionAvailable: boolean | null;
   // Only an administrator may set, replace, clear or disconnect secrets; a
   // platform manager edits non-secret configuration only.

@@ -27,11 +27,28 @@ A consumer (a future importer, a booking sync) never receives a stored long-live
 
 A request key and a request id are security artifacts, never Platform IDs.
 
+## Two secret classes
+
+QSD holds two different kinds of secret, with different owners and paths. They are never mixed.
+
+| | Platform master encryption key | Provider credentials |
+|---|---|---|
+| What | `QSD_CREDENTIAL_KEY` (and `QSD_CREDENTIAL_KEY_PREVIOUS` during rotation). Infrastructure key material used only by `CredentialCipher`. Not a Rezdy, Stripe or any provider key. | Rezdy, Stripe and future provider API keys. |
+| Who manages it | The platform operator, as part of hosting/deployment. It is invisible to the business admin. | An authorised administrator, through the QSD UI only (target: `Services Station → Settings → Security → API Keys`). |
+| Where it lives | Outside the database and outside the Admin Station, as a server configuration constant. | Encrypted envelopes in the `qsd_settings_connections` option, sealed under the master key. |
+| How it changes | Operator provisioning, and rotation via the shell re-seal (Key operations). There is no UI, REST route or deployment-workflow path for it. | Write-only `PUT`/`DELETE` through `qsd/v1`; never readable back through UI or API. |
+
+Rules:
+- A business admin is never asked to edit `wp-config.php`, the host or any server file, either to set up Security or to add a provider key.
+- Provider keys are never placed in config files or server files. Tools and importers consume brokered authority, never a key.
+- The deployment workflow does not write server configuration. Provisioning the master key through it would need a separate explicit Owner approval.
+- When the master key is missing, the UI reports only that secure credential storage is not set up on the server, which is an operator task. It offers no way to enter or manage that key.
+
 ## Encryption at rest
 
 Secrets are sealed with libsodium XChaCha20-Poly1305 (`CredentialCipher`).
 
-- **Key material** lives outside the database, in the `QSD_CREDENTIAL_KEY` wp-config constant (base64 of 32 random bytes). This is the same rule `MailService` uses for SMTP credentials.
+- **Key material** is the platform master key (see Two secret classes). It lives outside the database, as the `QSD_CREDENTIAL_KEY` server constant (base64 of 32 random bytes) provisioned by the operator. This is the same rule `MailService` uses for SMTP credentials.
 - **Nonces.** Every seal uses a fresh random nonce.
 - **Field binding.** Additional data binds each ciphertext to its provider and field.
 - **Key id.** A key-id fingerprint detects a value sealed under another key.
@@ -48,7 +65,9 @@ Secrets are sealed with libsodium XChaCha20-Poly1305 (`CredentialCipher`).
 
 ## Key operations
 
-1. **Provision.** `QSD_CREDENTIAL_KEY` lives in `wp-config.php`, outside the database: base64 of 32 random bytes (`php -r "echo base64_encode(random_bytes(32));"`). It is never stored, logged or sent over HTTP.
+These are **platform operator** tasks on the server. They are never business-admin steps, and never Admin Station features.
+
+1. **Provision.** The operator defines `QSD_CREDENTIAL_KEY` in the server configuration (`wp-config.php`), outside the database: base64 of 32 random bytes (`php -r "echo base64_encode(random_bytes(32));"`). It is never stored in the database, logged or sent over HTTP.
 2. **Envelopes.** Every stored secret is an AEAD envelope bound to its provider and field, carrying the key-id fingerprint of the key that sealed it.
 3. **Replacing the key without a re-seal fails closed.** An envelope sealed under another key does not open, so the secret reads as not configured and the broker cannot use it. Nothing is lost: the old key still opens it.
 4. **Rotation** is an explicit, privileged shell operation, never a REST route:
@@ -75,6 +94,9 @@ The re-seal refuses to start when either key is missing or invalid, or when both
   - replay refused; expiry refused; an abandoned key swept; a binding mismatch refused and the key burned; no row left behind;
   - audit events for the run, with no key, hash or secret.
   It ignores the request body. Its report holds safe metadata only and is checked for keys, key hashes, secrets and the key id before it is returned.
-- **Real credentials.** A real Rezdy staging credential and `QSD_CREDENTIAL_KEY` are provisioned only on staging2, and only for Phase 2 validation. Production stays out of scope.
+- **Real credentials.** For Phase 2 validation on staging2 only:
+  - the operator provisions the platform master key on the server;
+  - an administrator enters one real Rezdy staging API key through the QSD UI.
+  Production stays out of scope.
 
 See [Settings Station](../code-map/settings-station.md).

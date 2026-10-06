@@ -187,7 +187,7 @@ check('loading read the connections and the Service Meta fields once each',
 console.log('\n2) Connections — a secret is write-only');
 const card = () => container.querySelector('.cz-settings-connection[data-provider="rezdy"]');
 check('Rezdy reads Not configured', card()?.querySelector('.cz-settings-state')?.textContent.trim() === 'Not configured');
-check('no encryption warning shows when the server can seal secrets', !container.textContent.includes('no credential encryption key'));
+check('no encryption warning shows when the server can seal secrets', !container.textContent.includes('Secure credential storage is not set up'));
 const secretInput = () => card().querySelector('input[type="password"]');
 check('the API key input is a password input that starts empty', secretInput()?.value === '');
 await choose(card().querySelector('select'), 'staging');
@@ -297,8 +297,9 @@ render(null, container);
 server.encryptionAvailable = false;
 render(h(SettingsDeck, { items: [], loading: false, error: null, onIntent: () => {}, refetch: () => {} }), container);
 await sleep(60);
-const warning = [...container.querySelectorAll('[role="alert"]')].find((el) => el.textContent.includes('no credential encryption key'));
-check('the lane warns that secret values cannot be saved on this server', warning != null, container.textContent.slice(0, 300));
+const warning = [...container.querySelectorAll('[role="alert"]')].find((el) => el.textContent.includes('Secure credential storage is not set up'));
+check('the lane warns that API keys cannot be saved on this server', warning != null, container.textContent.slice(0, 300));
+check('the warning names it a platform operator step and asks for no server-file edit', warning?.textContent.includes('platform operator') && !/wp-config|QSD_CREDENTIAL_KEY/.test(container.textContent));
 
 console.log('\n9) Connections — a platform manager cannot change secrets');
 render(null, container);
