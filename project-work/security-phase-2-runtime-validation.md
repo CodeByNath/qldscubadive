@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: AWAITING REVIEWER REVIEW
+Status: BUILDER ACTION REQUIRED
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Reviewer
+Actor: Builder
 
 ## Accepted baseline
 
@@ -577,3 +577,47 @@ Checked against the roadmap list:
 ### Next, after approval
 
 Builder pushes exactly `7b6864b` to `staging`, verifies CI, `deploy-staging` and the live bundle, then sets this file to `BLOCKED — OWNER UI REVIEW REQUIRED` with the SHA and `https://staging2.qldscubadive.com.au/station/` (Services → Settings → Security → API Keys), and stops. Phase 2D is not started.
+
+
+## Reviewer decision — Phase 2B/2C pre-staging review
+
+Verdict: Proceed with safeguards
+
+Reviewed exact candidate `7b6864b3b7ca6c4584662cf6efc22b2896365f07` against staged Phase 2A `68a95c27d1a52af13f10bcd946abea4139383cc3`.
+
+### Accepted
+
+- Settings is now presented inside the Services Station rather than as a separate Station.
+- The reusable Settings pattern is `General → Tools → Security` and preserves owner/persistence boundaries through Station Manager.
+- `Services → Connections` is untouched as Service-domain relationships.
+- The standalone Settings navigation/deck is retired with replacement parity.
+- `Security → API Keys` uses the existing Settings/Security backend and `qsd/v1`; no second API/store/broker is introduced.
+- Provider credentials remain write-only: Add/Replace uses a password input, saved values are never rendered back, Remove/Disconnect are confirmed, and provider keys are never moved into server/config files.
+- The master-key/operator boundary remains hidden from normal admin operation.
+- Test connection remains the bounded Phase 2A server-side validation route.
+- Source files added/expanded in this candidate remain within normal authored-file limits; the existing oversized CSS file is not substantively expanded.
+- Local deterministic validation reported by Builder is consistent with the reviewed source/contract changes.
+
+### Required correction before staging — View Only must really be view only
+
+The approved Phase 2C roadmap says an ordinary `manage_qsd` user may see **safe state only**.
+
+In `SecurityApiKeysPanel.tsx`, provider non-secret fields (currently Rezdy Environment) remain editable even when `tools.canManageSecrets === false`. The regression explicitly expects a platform manager to change Environment.
+
+That contradicts the approved Security UI contract and the visible label `Your access: View only`.
+
+Builder must make the API Keys provider configuration read-only when the user cannot manage secrets:
+
+- disable/non-editable provider configuration controls when `canManageSecrets` is false;
+- do not send PUTs from the View Only state;
+- keep safe state visible;
+- keep Add/Replace/Remove/Disconnect/Test connection unavailable as already implemented;
+- update the Services Settings regression/contract to assert that View Only performs no mutation;
+- do not change backend capability rules in this correction — this is the Security/API Keys presentation boundary only.
+
+After the correction:
+1. run `npm test` and `npm run docs:check`;
+2. push the corrected exact topic SHA;
+3. return to Reviewer before staging deployment.
+
+Do not deploy `7b6864b` as-is. Phase 2D remains blocked.
