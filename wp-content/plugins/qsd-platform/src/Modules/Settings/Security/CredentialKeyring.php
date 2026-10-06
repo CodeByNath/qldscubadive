@@ -162,17 +162,30 @@ final class CredentialKeyring
     }
 
     /**
-     * Keeps only the active generation, re-sealed under the preferred wrapping
-     * key. Called after every secret has moved to it.
+     * Retires every generation that is neither active nor still named by a
+     * stored secret, and re-seals the kept ones under the preferred wrapping
+     * key. A generation a secret still uses is never dropped, so retirement
+     * can never make a stored credential unreadable.
+     *
+     * @param list<string> $referenced key ids named by stored secret envelopes, read just before this call
      */
-    public function retireInactive(): void
+    public function retireUnreferenced(array $referenced): void
     {
         $ring = $this->read();
-        $key = $this->unwrapAll($ring)[$ring['active']] ?? null;
-        if ($key === null) {
+        $keys = $this->unwrapAll($ring);
+        if (!isset($keys[$ring['active']])) {
             throw new CredentialCipherUnavailable();
         }
-        $this->write(['active' => $ring['active'], 'keys' => [$ring['active'] => $this->wrappers[0]->seal($key, self::slot($ring['active']))]]);
+        $kept = [];
+        foreach ($ring['keys'] as $kid => $sealed) {
+            $kid = (string) $kid;
+            if ($kid !== $ring['active'] && !in_array($kid, $referenced, true)) {
+                continue;
+            }
+            // A kept generation no wrapping key opens stays sealed as it is.
+            $kept[$kid] = isset($keys[$kid]) ? $this->wrappers[0]->seal($keys[$kid], self::slot($kid)) : $sealed;
+        }
+        $this->write(['active' => $ring['active'], 'keys' => $kept]);
     }
 
     // =======================================================================

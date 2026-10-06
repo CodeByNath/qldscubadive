@@ -131,6 +131,48 @@ $store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => [
 $store->replaceSecrets(['rezdy' => ['api_key' => ['stale' => true]]], $planned);
 check_rotation($store->read('rezdy')['secrets']['api_key'] === $fresh, 'a slot saved after it was planned is not overwritten by the rotation write');
 
+// ── 5b. A save racing the rotation never becomes unreadable ─────────────
+// The exact race: after planning, before the new generation is staged, an
+// administrator replaces a key — sealed under the old generation.
+$seed();
+$oldCipher = $keyring->cipher();
+$raced = new CredentialRotation($store, $keyring, static function (string $phase) use ($store, $oldCipher): void {
+    if ($phase === 'planned') {
+        $store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => [
+            'api_key' => $oldCipher->seal('rz-RACED-SAVE', CredentialCipher::context('rezdy', 'api_key')),
+        ]]);
+    }
+});
+$racedReport = $raced->rotate();
+$ring = $ringOf();
+check_rotation($racedReport['ok'] === true && $credentials->secret('rezdy', 'api_key') === 'rz-RACED-SAVE' && $credentials->secret('other', 'token') === OTHER, 'a key saved after planning survives the rotation with its new value');
+check_rotation($store->read('rezdy')['secrets']['api_key']['kid'] === $ring['active'] && array_keys($ring['keys']) === [$ring['active']], 'the raced key was moved to the new key before the old generation was retired');
+
+// A save that keeps landing under the old generation: rotation must not claim
+// success, must retire nothing, and every key must still open.
+$seed();
+$oldCipher = $keyring->cipher();
+$oldKid = $ringOf()['active'];
+$stubborn = new CredentialRotation($store, $keyring, static function (string $phase) use ($store, $oldCipher): void {
+    if ($phase === 'replaced') {
+        $store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => [
+            'api_key' => $oldCipher->seal('rz-KEEPS-CHANGING', CredentialCipher::context('rezdy', 'api_key')),
+        ]]);
+    }
+});
+$stubbornReport = $stubborn->rotate();
+check_rotation($stubbornReport['ok'] === false && is_string($stubbornReport['error']) && str_contains($stubbornReport['error'], 'Every key still works'), 'a rotation that cannot confirm every key on the new key reports failure, never success');
+check_rotation(isset($ringOf()['keys'][$oldKid]) && $credentials->secret('rezdy', 'api_key') === 'rz-KEEPS-CHANGING' && $credentials->secret('other', 'token') === OTHER, 'no generation a key still uses was retired, and every key still opens');
+check_rotation(!$leaks($stubbornReport) && !str_contains(serialize($stubbornReport), $oldKid), 'the failure report carries no secret, key or key id');
+check_rotation($rotation->rotate()['ok'] && count($ringOf()['keys']) === 1 && $credentials->secret('rezdy', 'api_key') === 'rz-KEEPS-CHANGING', 'once saves settle, the next rotation completes');
+
+// Retirement itself never drops a generation a stored secret names.
+$seed();
+$oldKid = $ringOf()['active'];
+$keyring->stage(random_bytes(32));
+$keyring->retireUnreferenced([$oldKid]);
+check_rotation(isset($ringOf()['keys'][$oldKid]) && $credentials->secret('rezdy', 'api_key') === API_KEY, 'retirement keeps any generation a stored secret still names');
+
 // ── 6. Refusal before any work ──────────────────────────────────────────
 $seed();
 $snapshot = serialize($__options);

@@ -18,19 +18,35 @@ use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
  *      is written and the slot is reported unreadable; an unreadable
  *      credential never reads as configured.
  *   4. Otherwise the new generation is stored as active with the old one
- *      kept, every planned secret is replaced in one write, and only then is
- *      the old generation retired. An interruption between steps leaves every
- *      secret openable.
+ *      kept, and every planned secret is replaced in one write.
+ *   5. Commit check: every stored secret is read again. Any slot not yet on
+ *      the new key (a save that raced the rotation) is re-sealed and written
+ *      again, up to MAX_PASSES times. Only when every stored secret opens
+ *      under the new key are older generations retired — and even then a
+ *      generation a secret still names is kept, so no credential can become
+ *      unreadable. If the check cannot be satisfied, rotation reports failure
+ *      and every key keeps working.
  *
  * The report carries provider:field slot names and counts only — never a key,
  * a wrapped key, a key id, or a plaintext.
  */
 final class CredentialRotation
 {
+    public const MAX_PASSES = 3;
+
+    /** @var \Closure(string): void */
+    private \Closure $checkpoint;
+
+    /**
+     * @param (\Closure(string): void)|null $checkpoint test seam called at 'planned' (before staging) and 'replaced' (after each write); production passes none
+     */
     public function __construct(
         private ConnectionStore $store,
         private CredentialKeyring $keyring,
-    ) {}
+        ?\Closure $checkpoint = null,
+    ) {
+        $this->checkpoint = $checkpoint ?? static function (string $phase): void {};
+    }
 
     /**
      * @return array{ok: bool, resealed: list<string>, unreadable: list<string>, error: ?string}
@@ -45,37 +61,90 @@ final class CredentialRotation
             return $report;
         }
 
-        $current = $this->keyring->cipher();
         $nextKey = random_bytes(CredentialCipher::KEY_BYTES);
         $next = new CredentialCipher($nextKey);
+        $nextKid = (string) $next->keyId();
 
+        [$plan, $expected, $resealed, $unreadable] = $this->plan($this->keyring->cipher(), $next, null);
+        if ($unreadable !== []) {
+            $report['unreadable'] = $unreadable;
+            $report['error'] = 'Some saved API keys cannot be opened. Replace or remove them, then rotate again. Nothing was changed.';
+            return $report;
+        }
+        ($this->checkpoint)('planned');
+
+        $this->keyring->stage($nextKey);
+        for ($pass = 0; $pass < self::MAX_PASSES; $pass++) {
+            if ($plan !== []) {
+                $this->store->replaceSecrets($plan, $expected);
+            }
+            ($this->checkpoint)('replaced');
+
+            // Commit check against what is stored now, including any save that
+            // raced the rotation. The keyring opens old and new generations.
+            [$plan, $expected, $stragglers, $unreadable] = $this->plan($this->keyring->cipher(), $next, $nextKid);
+            if ($unreadable !== []) {
+                $report['unreadable'] = $unreadable;
+                $report['error'] = 'Some saved API keys could not be opened during rotation. No older key was retired; replace or remove them, then rotate again.';
+                return $report;
+            }
+            if ($plan === []) {
+                $this->keyring->retireUnreferenced($this->referencedKids());
+                if ($this->referencedKids() === [] || array_unique($this->referencedKids()) === [$nextKid]) {
+                    $report['ok'] = true;
+                    $report['resealed'] = array_values(array_unique([...$resealed, ...$stragglers]));
+                    return $report;
+                }
+                // A save landed between the check and retirement: its generation
+                // was kept. Check again.
+                [$plan, $expected, $stragglers] = $this->plan($this->keyring->cipher(), $next, $nextKid);
+            }
+            $resealed = array_values(array_unique([...$resealed, ...$stragglers]));
+        }
+
+        $report['error'] = 'Saved API keys kept changing while the key was rotating. Every key still works; rotate again.';
+        return $report;
+    }
+
+    /**
+     * Plans re-sealing every stored secret not already under `$skipKid`.
+     *
+     * @return array{0: array<string, array<string, mixed>>, 1: array<string, array<string, mixed>>, 2: list<string>, 3: list<string>}
+     *         plan, expected envelopes, re-sealed slots, unreadable slots
+     */
+    private function plan(CredentialCipher $opener, CredentialCipher $next, ?string $skipKid): array
+    {
         $plan = [];
         $expected = [];
+        $resealed = [];
+        $unreadable = [];
         foreach ($this->slots() as [$provider, $field, $envelope, $context]) {
+            if ($skipKid !== null && is_array($envelope) && ($envelope['kid'] ?? null) === $skipKid && $next->open($envelope, $context) !== null) {
+                continue;
+            }
             $slot = "{$provider}:{$field}";
-            $plaintext = $current->open($envelope, $context);
+            $plaintext = $opener->open($envelope, $context);
             if ($plaintext === null) {
-                $report['unreadable'][] = $slot;
+                $unreadable[] = $slot;
                 continue;
             }
             $plan[$provider][$field] = $next->seal($plaintext, $context);
             $expected[$provider][$field] = $envelope;
-            $report['resealed'][] = $slot;
+            $resealed[] = $slot;
         }
+        return [$plan, $expected, $resealed, $unreadable];
+    }
 
-        if ($report['unreadable'] !== []) {
-            $report['resealed'] = [];
-            $report['error'] = 'Some saved API keys cannot be opened. Replace or remove them, then rotate again. Nothing was changed.';
-            return $report;
+    /** @return list<string> the key id named by every stored secret envelope */
+    private function referencedKids(): array
+    {
+        $kids = [];
+        foreach ($this->slots() as [, , $envelope]) {
+            if (is_array($envelope) && is_string($envelope['kid'] ?? null)) {
+                $kids[] = $envelope['kid'];
+            }
         }
-
-        $this->keyring->stage($nextKey);
-        if ($plan !== []) {
-            $this->store->replaceSecrets($plan, $expected);
-        }
-        $this->keyring->retireInactive();
-        $report['ok'] = true;
-        return $report;
+        return $kids;
     }
 
     /**
