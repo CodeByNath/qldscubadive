@@ -14,7 +14,8 @@
 //   only while adding, sent once, then gone; it never renders; Remove key and
 //   Disconnect are armed, cancellable, confirmed once; environment saves alone;
 //   without secure storage nothing can be added and no server step is named; a
-//   platform manager sees safe state only; Test connection sends one bodyless
+//   platform manager sees safe state only, with configuration read-only and no
+//   request sent; Test connection sends one bodyless
 //   POST and shows the outcome and checks.
 //   Service fields — Add POSTs a definition and the row shows the
 //   server-minted id; edit keeps type fixed and offers no removal of an
@@ -357,10 +358,13 @@ await mount();
 check('access reads View only', keys().querySelector('[data-key-permission="view"]')?.textContent.includes('View only'));
 check('the key reads Saved with no Add, Replace or Remove', secret().textContent.includes('Saved') && !['Add', 'Replace', 'Remove'].some((b) => buttons(secret()).includes(b)));
 check('Disconnect and Test connection are not offered', !buttons(keys()).includes('Disconnect Rezdy') && keys().querySelector('[data-connection-test]') === null);
+check('the environment is shown but read-only', card().querySelector('select')?.value === 'staging' && card().querySelector('select')?.disabled === true);
 calls = [];
 await choose(card().querySelector('select'), 'production');
 await sleep(30);
-check('changing the environment sends no secret and no clear', mutations().length === 1 && JSON.stringify(mutations()[0].body) === '{"values":{"environment":"production"}}', describe(mutations()));
+for (const b of [...keys().querySelectorAll('button')]) b.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+await sleep(30);
+check('View only performs no mutation, whatever is changed or clicked', mutations().length === 0, describe(mutations()));
 
 console.log('\n10) API Keys — an administrator tests the connection');
 server.manageSecrets = true;

@@ -9,8 +9,9 @@
 // while adding or replacing, sent once, and dropped from local state the
 // moment the save succeeds; a saved key reads only "Saved" and is never shown
 // again. Remove key and Disconnect are armed in place with useInlineConfirm
-// (contract §11). Without administrator authority the panel is view-only; the
-// server enforces that either way.
+// (contract §11). Without administrator authority the panel is view-only:
+// provider configuration is shown read-only and nothing is sent. (The server
+// enforces secret authority either way.)
 //
 // The platform master key that protects these keys is infrastructure: when it
 // is missing the panel says secure storage is not set up and offers nothing to
@@ -128,10 +129,12 @@ function ProviderCard({ connection, tools, confirm }: {
 }): VNode {
   const [notice, setNotice] = useState<Notice>(null);
   const busy = tools.busyProvider === connection.provider;
+  const viewOnly = !tools.canManageSecrets;
   const error = tools.actionError?.provider === connection.provider ? tools.actionError.message : null;
   const disconnectId = `${connection.provider}:disconnect`;
 
   const setConfig = async (key: string, value: string) => {
+    if (viewOnly) return;
     setNotice(null);
     if (await tools.save(connection.provider, { values: { [key]: value } })) {
       setNotice({ tone: 'ok', text: 'Saved.' });
@@ -161,13 +164,13 @@ function ProviderCard({ connection, tools, confirm }: {
             <div class="cz-tf-field" key={field.key}>
               <label class="cz-tf-label" for={id}>{field.label}</label>
               {field.type === 'select' ? (
-                <select id={id} class="cz-tf-control cz-tf-select" value={field.value} disabled={busy}
+                <select id={id} class="cz-tf-control cz-tf-select" value={field.value} disabled={busy || viewOnly}
                   onChange={(e) => setConfig(field.key, (e.target as HTMLSelectElement).value)}>
                   <option value="">Not set</option>
                   {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               ) : (
-                <input id={id} type="text" class="cz-tf-control cz-tf-input" value={field.value} disabled={busy}
+                <input id={id} type="text" class="cz-tf-control cz-tf-input" value={field.value} disabled={busy || viewOnly} readOnly={viewOnly}
                   onChange={(e) => setConfig(field.key, (e.target as HTMLInputElement).value)} />
               )}
             </div>

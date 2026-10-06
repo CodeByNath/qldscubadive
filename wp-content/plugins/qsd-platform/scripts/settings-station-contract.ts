@@ -112,6 +112,7 @@ check(!/from '@\/(admin-station|settings-station|service-station)/.test(stationS
 const apiKeys = source('resources/ts/settings-station/presentation/SecurityApiKeysPanel.tsx');
 check(apiKeys.includes('type="password"') && apiKeys.includes('autocomplete="new-password"') && /setValue\(''\)/.test(apiKeys), 'API keys are typed into a write-only password input that is cleared after save');
 check(!/wp-config|QSD_CREDENTIAL_KEY|SSH|WP-CLI/i.test(apiKeys.replace(/\/\/[^\n]*/g, '')), 'the API Keys UI names no server file, master key or shell step');
+check(/const viewOnly = !tools\.canManageSecrets/.test(apiKeys) && /if \(viewOnly\) return;/.test(apiKeys) && (apiKeys.match(/disabled=\{busy \|\| viewOnly\}/g) ?? []).length === 2, 'View only makes provider configuration read-only and sends nothing');
 check(/useInlineConfirm/.test(apiKeys) && /:remove`/.test(apiKeys) && /:disconnect`/.test(apiKeys), 'Remove key and Disconnect are armed in place before anything is sent');
 
 const phpModule = source('src/Modules/Settings/SettingsModule.php');
