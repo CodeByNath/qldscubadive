@@ -426,3 +426,31 @@ For Phase 2A runtime evidence, collect only safe UI/API outcomes. Do not expose 
 Full destructive/operator key rotation/re-seal execution is **not required in this staging step**. Phase 2A may record read-only rotation readiness from `CredentialRotation::inspect()`. The actual operator re-seal exercise remains Phase 2D, after the mandatory Owner UI gate, unless the Owner separately authorises earlier infrastructure rotation.
 
 After the staging2 validation evidence is recorded, return this file to `AWAITING REVIEWER REVIEW`. Do not start Phase 2B in the same handoff.
+
+
+## Builder staging2 deployment evidence — `68a95c2` (2026-10-06)
+
+Status stays `BUILDER ACTION REQUIRED`: Builder still owns finishing the 2A runtime evidence. The next step needs an authenticated administrator in the browser, and Builder has neither a browser nor a WordPress session.
+
+**Promotion**
+- Fast-forward check passed: `origin/staging` (`69f68ca`) is an ancestor of `68a95c27d1a52af13f10bcd946abea4139383cc3`.
+- Pushed with `git push origin 68a95c2…:refs/heads/staging` (`69f68ca..68a95c2`); `git ls-remote` verified `staging` = `68a95c27d1a52af13f10bcd946abea4139383cc3`.
+- The first attempt was blocked by Builder's local permission guard, not by the repository. The Owner then approved, and the identical push succeeded. Nothing else was changed in between.
+
+**CI and deploy:** Actions run `37419196617` ("Test and deploy"), head `68a95c2`: `test` completed success, `deploy-staging` completed success. Workflow, paths and scope are unchanged.
+
+**Live checks (unauthenticated, from Builder)**
+- `https://staging2.qldscubadive.com.au/station/` → 200, redirected to `www.staging2…/station/` and titled "Admin Station".
+- The deployed `wp-content/plugins/qsd-platform/dist/js/admin-station.js` contains the Security check and the `broker-validation` endpoint, so the new build is live.
+- `GET qsd/v1/admin/settings/connections` → 401 `rest_forbidden`; `POST qsd/v1/admin/settings/security/broker-validation` → 401 `rest_forbidden`. Both routes are registered (not 404), and both refuse anonymous callers.
+
+**Not yet known:** whether staging2 has the platform master key. `encryption.available` is visible only to an authenticated `manage_qsd` user.
+
+**Next, needs an authorised administrator in `/station/` → Settings (QSD UI only)**
+1. **If the lane shows** "Secure credential storage is not set up on this server yet…", report that and nothing else. Builder will then set `BLOCKED — INFRASTRUCTURE KEY PROVISIONING REQUIRED`: the staging platform operator must provision the platform master key outside the database and UI.
+2. **Otherwise:**
+   1. Under Rezdy, set Environment to *Staging (sandbox)*, enter the Rezdy staging API key in the write-only field and click **Save connection**.
+   2. Click **Run security check**.
+   3. Share the on-screen Passed/Failed badge, every ✓/✗ row and the "Rezdy (staging): …" outcome line, or a screenshot of the panel. None of it contains a secret.
+
+Rotation: only the read-only `inspect()` readiness in that report is collected now. The operator re-seal stays in Phase 2D, as the Reviewer directed.
