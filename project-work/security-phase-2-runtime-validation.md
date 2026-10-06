@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Builder
+Actor: Reviewer
 
 ## Accepted baseline
 
@@ -358,3 +358,36 @@ Before staging promotion:
 - preserve the Owner UI gate at Phase 2C.
 
 After this documentation/workflow correction, push a new exact candidate SHA and return for Reviewer. Do not deploy staging yet.
+
+
+## Builder correction handoff — two secret classes (2026-10-06)
+
+- **Candidate SHA:** `68a95c27d1a52af13f10bcd946abea4139383cc3` on `docs/settings-security-roadmap`. Remote verified. Parent: `075a3d4`.
+- **Correction diff:** 7 files, +38 / −12, documentation and wording only. No PHP behaviour changed, and the write-only provider-key UI/API is untouched.
+- **`main` / `staging`:** unchanged (`da93493` / `69f68ca`). Not deployed.
+
+### What changed
+
+| File | Change |
+|---|---|
+| `docs/architecture/credential-broker-contract.md` | New **Two secret classes** section, a table plus rules. The **platform master key** (`QSD_CREDENTIAL_KEY` / `_PREVIOUS`) is infrastructure used only by `CredentialCipher`: operator-provisioned outside the database and the Admin Station, no UI, REST or deployment-workflow path, and never a business-admin task. **Provider credentials** (Rezdy, Stripe, future providers) are entered, replaced and removed only by an authorised administrator through the QSD UI (target `Services Station → Settings → Security → API Keys`), go write-only through `qsd/v1`, and are never readable back. Rules: no admin is ever asked to edit `wp-config.php` or any server file; provider keys never go in config or server files; the deployment workflow does not write server config without separate Owner approval; when the key is missing, the UI only reports it as an operator setup step. *Encryption at rest* and *Key operations* are relabelled as operator tasks. *Real credentials* now separates the operator (master key) from the administrator (Rezdy key via the UI). |
+| `docs/roadmap.md` | 2A carries a "Two secret classes" paragraph that links to the contract. |
+| `docs/code-map/settings-station.md` | The cipher bullet names the master key as operator-provisioned and never managed in the UI, while provider keys go through the UI only. Still within 600 words. |
+| `src/Modules/Settings/CLAUDE.md` | Same distinction, plus the boundary "never ask a user to put a provider key or Security setup in `wp-config.php` or any server file". |
+| `SettingsConnectionsLane.tsx`, `useSettingsConnections.ts` | The no-key warning used to say "Ask the site administrator to configure it". It now says "Secure credential storage is not set up on this server yet, so API keys cannot be saved. This is a one-time platform setup step for the platform operator, not something to configure here." It names no file or constant. |
+| `scripts/settings-home-regression.mjs` | Asserts the new warning, and that the lane never shows `wp-config` or `QSD_CREDENTIAL_KEY` (42 checks). |
+
+### Superseded runtime plan
+
+This replaces the plan in the Builder handoff dated 2026-10-06 above. That plan's steps 2 and 5, which asked the Owner to edit `wp-config.php` and run shell rotation, are withdrawn as Owner/admin steps.
+
+1. After Reviewer/Owner approval of `68a95c2` for staging, Builder pushes that exact SHA to `staging`, and the existing workflow deploys it. The workflow and its paths are unchanged.
+2. **Platform master key check.** Once deployed, the Settings lane or `GET admin/settings/connections` → `encryption.available` shows, safely, whether staging2 has the master key. Builder has no host access and cannot see this before deploying. **If it is absent**, Builder sets this file to `BLOCKED — INFRASTRUCTURE KEY PROVISIONING REQUIRED` with this narrow operator requirement and nothing more:
+   - define `QSD_CREDENTIAL_KEY` (base64 of 32 random bytes) in the staging2 server configuration, outside the database and the repo;
+   - this is done by whoever operates the SiteGround hosting, and is not an Admin Station or business-admin task;
+   - no new deployment or config path is added.
+3. **Administrator, through the UI only:** in `/station/` → Settings, set Rezdy environment to *Staging (sandbox)*, enter the Rezdy staging API key (write-only) and save. Then click **Run security check** and share the on-screen pass/fail rows and the Rezdy outcome line. No secret is shown.
+4. **Rotation on real storage** is a platform operator shell task (contract → Key operations). It is not an Owner or admin step: move the key to `_PREVIOUS` and set a new key, check the fail-closed state, run `wp qsd credentials reseal`, check again, then remove `_PREVIOUS`. Builder has no host shell. The Reviewer should decide how the rotation evidence is gathered: by the hosting operator, or deferred to Phase 2D with the readiness evidence from `inspect()` that the security check already reports.
+5. Builder records the safe evidence and hands off for the Phase 2A exit review.
+
+The Phase 2C Owner UI gate is unchanged. Not done: staging promotion, Phase 2B/2C, Phase 3.
