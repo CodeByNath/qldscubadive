@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: REVIEW REQUIRED
 Phase: Security Phase 2 — Owner-corrected credential flow package
-Actor: Owner
+Actor: Reviewer
 
 ## Accepted baseline
 
@@ -806,3 +806,29 @@ After push:
 5. continue Phase 2 closeout without another routine Owner stop.
 
 Do not stop merely because a normal phase/review boundary was reached. Stop only for a genuine QSD architecture conflict, failed security invariant, destructive migration/customer-state risk, deployment-boundary widening, production impact, or another repository hard stop gate. Phase 3 remains blocked until Phase 2 closeout. Production remains prohibited.
+
+
+## Builder push record — corrected Security package (2026-10-06)
+
+Pushed the Owner-approved chain exactly as reported. No amend, squash, reorder or added commit.
+
+- Command: `git push origin 8a88833:refs/heads/docs/settings-security-roadmap` → `81f749d..8a88833`.
+- Remote verification (`git ls-remote`):
+
+  | Branch | SHA | Note |
+  |---|---|---|
+  | `docs/settings-security-roadmap` | `8a88833c46c18e1ebebc1d470721be7adba05b82` | pushed |
+  | `staging` | `81f749d7cf35b232369cf6af9db94fe6a312f2be` | unchanged; not deployed |
+  | `main` | `da934936edafcf892ebab33e870e6f5f511d147f` | unchanged |
+- Chain: `3f9c199` → `93c31b5` → `64c5689` → `8b28ff7` → `8a88833` (details in the Builder report above).
+
+### Handoff to Reviewer
+
+Reviewer: inspect candidate `8a88833` (diff `81f749d..8a88833`). The Builder does not deploy any candidate to `staging` without Reviewer approval of that exact SHA. If approved, the Builder will:
+
+1. promote `8a88833` to `staging` through the existing guarded workflow (no workflow, path or scope change);
+2. verify CI and the deployed bundle;
+3. collect staging2 runtime evidence through API Keys: secure storage "Ready" with no setup, first Rezdy staging key save, Test connection, Rotate encryption key, and the validation report;
+4. continue to Phase 2 closeout.
+
+Points the Reviewer should weigh are listed under "Deviations and residual risks" in the Builder report (shell command removed in B; rotation REST route per Owner direction; rotation concurrency window; installs without wp-config secret keys fail closed). Not started: Phase 3. Production untouched.
