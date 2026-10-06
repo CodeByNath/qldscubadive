@@ -800,8 +800,9 @@ Builder may now push that exact commit chain to the topic branch and verify the 
 
 After push:
 1. verify the remote branch head is exactly `8a88833` (full SHA in report);
-2. update this work file with the exact pushed SHA and remote verification;
-3. set status to `AWAITING REVIEWER REVIEW`;
-4. stop for independent Reviewer inspection of the pushed source/diff and evidence.
+2. record the exact pushed SHA and remote verification;
+3. continue the same Security workload through Reviewer inspection;
+4. if the pushed candidate has no genuine architecture/security blocker, continue to the already-authorised guarded staging deployment and staging2 runtime validation;
+5. continue Phase 2 closeout without another routine Owner stop.
 
-This approval is for the topic-branch push only. Staging deployment remains separately gated by Reviewer approval of the exact pushed candidate.
+Do not stop merely because a normal phase/review boundary was reached. Stop only for a genuine QSD architecture conflict, failed security invariant, destructive migration/customer-state risk, deployment-boundary widening, production impact, or another repository hard stop gate. Phase 3 remains blocked until Phase 2 closeout. Production remains prohibited.
