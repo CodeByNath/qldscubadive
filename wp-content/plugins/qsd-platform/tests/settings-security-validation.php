@@ -104,6 +104,7 @@ use QSD\Platform\Modules\Settings\Security\CredentialBroker;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
 use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 use QSD\Platform\Modules\Settings\Security\CredentialRotation;
+use QSD\Platform\Modules\Settings\Security\WpdbCredentialMutationGuard;
 use QSD\Platform\Modules\Settings\Security\ProviderSecrets;
 use QSD\Platform\Modules\Settings\Security\WpdbRequestKeyStore;
 use QSD\Platform\Modules\Settings\SettingsModule;
@@ -194,7 +195,7 @@ $build = static function () use ($store, $keyring, $credentials, $clock, $sleep,
     $broker = new CredentialBroker(ConnectionProviders::all(), $credentials, new WpdbRequestKeyStore(), new BrokerAuditLog(),
         ['rezdy' => new RezdyConnectionCheck($credentials, Closure::fromCallable($transport))], $clock, SettingsModule::brokerCallers());
     return new BrokerValidation($broker, new WpdbRequestKeyStore(), new BrokerAuditLog(), $store, $keyring,
-        new CredentialRotation($store, $keyring), 'rezdy', RezdyConnector::SCOPE_VERIFY, $sleep);
+        new CredentialRotation($store, $keyring, new WpdbCredentialMutationGuard(null, null, 0)), 'rezdy', RezdyConnector::SCOPE_VERIFY, $sleep);
 };
 
 check_validation(SettingsModule::brokerCallers() === [BrokerValidation::CALLER => ['rezdy:connection.verify']], 'the only allow-listed caller is the validation run, for Rezdy connection.verify only');
@@ -234,7 +235,7 @@ $keyring->stage(random_bytes(32)); // a rotation interrupted after its first ste
 $staged = $build()->run(5);
 check_validation($staged['passed'] === false && $staged['rotation']['previous'] === ['rezdy:api_key'] && $staged['rotation']['generations'] === 2, 'a secret still on an older generation is reported as awaiting rotation');
 check_validation($staged['provider_check']['outcome'] === RezdyConnectionCheck::AUTHENTICATED, 'an older generation still opens, so the credential keeps working meanwhile');
-$rotated = (new CredentialRotation($store, $keyring))->rotate();
+$rotated = (new CredentialRotation($store, $keyring, new WpdbCredentialMutationGuard(null, null, 0)))->rotate();
 $after = $build()->run(5);
 check_validation($rotated['ok'] && $after['passed'] && $after['rotation'] === ['generations' => 1, 'current' => ['rezdy:api_key'], 'previous' => [], 'unreadable' => []], 'after the rotation the run passes on the single active data key');
 
@@ -245,7 +246,7 @@ check_validation($lost['passed'] === false && $lost['rotation']['unreadable'] ==
 $store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => ['api_key' => $keyring->cipher()->seal(API_KEY, CredentialCipher::context('rezdy', 'api_key'))]]);
 
 // ── 3. Route ────────────────────────────────────────────────────────────
-$controller = new SettingsSecurityController(static fn(): BrokerValidation => $build(), static fn(): CredentialRotation => new CredentialRotation($store, $keyring), new BrokerAuditLog());
+$controller = new SettingsSecurityController(static fn(): BrokerValidation => $build(), static fn(): CredentialRotation => new CredentialRotation($store, $keyring, new WpdbCredentialMutationGuard(null, null, 0)), new BrokerAuditLog());
 $controller->registerRoutes();
 $route = $__routes['/admin/settings/security/broker-validation'] ?? null;
 check_validation($route !== null && $route['methods'] === 'POST', 'the validation route is registered as POST');

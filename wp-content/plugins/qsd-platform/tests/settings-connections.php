@@ -57,6 +57,8 @@ class WP_REST_Response {
 }
 
 require_once __DIR__ . '/autoload.php';
+require_once __DIR__ . '/support-credential-guard.php';
+$wpdb = new GuardWpdb();
 
 use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
 use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
@@ -64,6 +66,9 @@ use QSD\Platform\Modules\Settings\Connectors\RezdyConnector;
 use QSD\Platform\Modules\Settings\Http\SettingsConnectionsController;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
 use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
+use QSD\Platform\Modules\Settings\Security\CredentialMutationBusy;
+use QSD\Platform\Modules\Settings\Security\CredentialRotation;
+use QSD\Platform\Modules\Settings\Security\WpdbCredentialMutationGuard;
 
 function check_settings(bool $condition, string $message): void
 {
@@ -79,7 +84,8 @@ const SECRET = 'rz-live-SECRET-9f3a7c';
 $store = new ConnectionStore();
 $wrapRaw = random_bytes(32);
 $keyring = new CredentialKeyring([new CredentialCipher($wrapRaw)]);
-$controller = new SettingsConnectionsController($store, $keyring);
+$guard = new WpdbCredentialMutationGuard(null, null, 0);
+$controller = new SettingsConnectionsController($store, $keyring, $guard);
 $controller->registerRoutes();
 $credentials = new ConnectorCredentials($store, $keyring);
 $rezdy = new RezdyConnector($credentials);
@@ -170,7 +176,7 @@ $tampered['ct'] = base64_encode(substr(base64_decode($storedEnvelope['ct']), 0, 
 check_settings($cipher->open($tampered, CredentialCipher::context('rezdy', 'api_key')) === null, 'a tampered ciphertext does not open');
 $otherRing = new CredentialKeyring([new CredentialCipher(random_bytes(32))]);
 check_settings((new CredentialCipher(random_bytes(32)))->open($storedEnvelope, CredentialCipher::context('rezdy', 'api_key')) === null && (new ConnectorCredentials($store, $otherRing))->secret('rezdy', 'api_key') === null, 'a different key, or a different wrapping key, cannot read the secret');
-check_settings((new SettingsConnectionsController($store, $otherRing))->listConnections(new WP_REST_Request())->get_data()['connections'][0]['state'] === 'incomplete', 'a secret the keyring cannot open does not count as configured');
+check_settings((new SettingsConnectionsController($store, $otherRing, $guard))->listConnections(new WP_REST_Request())->get_data()['connections'][0]['state'] === 'incomplete', 'a secret the keyring cannot open does not count as configured');
 check_settings($cipher->open(SECRET, CredentialCipher::context('rezdy', 'api_key')) === null, 'a plaintext (non-envelope) value is never accepted as a secret');
 
 check_settings($credentials->secret('rezdy', 'api_key') === SECRET, 'ConnectorCredentials returns the trimmed secret server-side');
@@ -191,7 +197,7 @@ check_settings($controller->saveConnection(new WP_REST_Request(['provider' => 'r
 check_settings($controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['unknown' => 'x']]))->get_status() === 422, 'an unknown field is refused');
 
 // ── No wrapping key: fail closed, never plaintext ────────────────────────
-$noKeyController = new SettingsConnectionsController($store, new CredentialKeyring([]));
+$noKeyController = new SettingsConnectionsController($store, new CredentialKeyring([]), $guard);
 check_settings($noKeyController->listConnections(new WP_REST_Request())->get_data()['encryption'] === ['available' => false], 'without a wrapping key the list reports secure storage unavailable');
 $before = serialize($__settingsOptions);
 check_settings($noKeyController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => SECRET]]))->get_status() === 409, 'without a key a secret save is refused (409)');
@@ -215,7 +221,7 @@ $__settingsOptions = [];
 $controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'staging'], 'secrets' => ['api_key' => SECRET]]));
 $sealedBefore = $__settingsOptions[ConnectionStore::OPTION]['value']['rezdy']['secrets']['api_key'];
 $rotatedSite = new CredentialKeyring([new CredentialCipher(random_bytes(32))]);
-$rotatedController = new SettingsConnectionsController($store, $rotatedSite);
+$rotatedController = new SettingsConnectionsController($store, $rotatedSite, $guard);
 $afterChange = $rotatedController->listConnections(new WP_REST_Request())->get_data();
 check_settings($afterChange['encryption'] === ['available' => true] && $afterChange['connections'][0]['state'] === 'incomplete', 'after the WordPress secret keys change, storage stays available and the key reads as not set');
 check_settings(!str_contains(json_encode($afterChange), SECRET), 'the unavailable key is never exposed');
@@ -223,6 +229,54 @@ $reentered = $rotatedController->saveConnection(new WP_REST_Request(['provider' 
 check_settings($reentered->get_status() === 200 && $reentered->get_data()['connection']['state'] === 'configured', 'an administrator re-enters the key through API Keys and it reads configured');
 check_settings($rotatedSite->status() === ['generations' => 2, 'openable' => 1], 'the re-entry started a new data-key generation and kept the old sealed one');
 check_settings($keyring->status() === ['generations' => 2, 'openable' => 1] && $keyring->cipher()->open($sealedBefore, CredentialCipher::context('rezdy', 'api_key')) === SECRET, 'nothing was deleted: the original wrapping key still opens the old generation');
+
+// ── Save and rotation share one guard: both orderings ───────────────────
+$__settingsOptions = [];
+$wpdb->rows = [];
+$controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'staging'], 'secrets' => ['api_key' => SECRET]]));
+$rotation = new CredentialRotation($store, $keyring, $guard);
+
+// Save first: a rotation that starts while the save holds the guard does nothing.
+$duringSave = null;
+$guard->hold(static function () use ($rotation, &$duringSave): void { $duringSave = $rotation->rotate(); });
+check_settings($duringSave['ok'] === false && str_contains((string) $duringSave['error'], 'in progress') && $keyring->status()['generations'] === 1, 'a rotation that starts during a save changes nothing and reports failure');
+check_settings(!isset($wpdb->rows[WpdbCredentialMutationGuard::ROW]), 'the guard is released after the save');
+
+// Rotation first: a save that arrives mid-rotation is refused and writes nothing.
+$sealedBefore = $__settingsOptions[ConnectionStore::OPTION]['value']['rezdy']['secrets']['api_key'];
+$saveDuringRotation = null;
+$racing = new CredentialRotation($store, $keyring, $guard, static function (string $phase) use ($controller, &$saveDuringRotation): void {
+    if ($phase === 'planned') {
+        $saveDuringRotation = $controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => 'rz-RACING-SAVE']]));
+    }
+});
+$racingReport = $racing->rotate();
+check_settings($saveDuringRotation->get_status() === 409 && !str_contains(json_encode($saveDuringRotation->get_data()), 'rz-RACING'), 'a save during a rotation is refused (409) and echoes nothing');
+check_settings($racingReport['ok'] === true && $credentials->secret('rezdy', 'api_key') === SECRET && $keyring->status() === ['generations' => 1, 'openable' => 1], 'the rotation completes and the saved key still opens on the single new generation');
+check_settings($__settingsOptions[ConnectionStore::OPTION]['value']['rezdy']['secrets']['api_key'] !== $sealedBefore, 'the stored key was re-sealed by the rotation, not overwritten by the refused save');
+$after = $controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => 'rz-AFTER-ROTATION']]));
+check_settings($after->get_status() === 200 && $credentials->secret('rezdy', 'api_key') === 'rz-AFTER-ROTATION', 'once the rotation finishes, the save goes through and stays readable');
+$configDuringRotation = null;
+(new CredentialRotation($store, $keyring, $guard, static function (string $phase) use ($controller, &$configDuringRotation): void {
+    if ($phase === 'replaced') $configDuringRotation = $controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'production']]));
+}))->rotate();
+check_settings($configDuringRotation->get_status() === 409 && $credentials->config('rezdy', 'environment') === 'staging' && $credentials->secret('rezdy', 'api_key') === 'rz-AFTER-ROTATION', 'a configuration save cannot write back stale secret envelopes during a rotation');
+$disconnectDuringRotation = null;
+(new CredentialRotation($store, $keyring, $guard, static function (string $phase) use ($controller, &$disconnectDuringRotation): void {
+    if ($phase === 'replaced') $disconnectDuringRotation = $controller->disconnect(new WP_REST_Request(['provider' => 'rezdy']));
+}))->rotate();
+check_settings($disconnectDuringRotation->get_status() === 409 && $credentials->secret('rezdy', 'api_key') === 'rz-AFTER-ROTATION', 'a disconnect during a rotation is refused and removes nothing');
+
+// A lease left by a crashed request expires and is broken; a live one is not.
+$now = 1_900_000_000;
+$timed = new WpdbCredentialMutationGuard(static function () use (&$now): int { return $now; }, static function () use (&$now): void { $now++; }, 5);
+$wpdb->rows[WpdbCredentialMutationGuard::ROW] = json_encode(['token' => 'crashed', 'expires_at' => $now - 1]);
+check_settings($timed->hold(static fn(): string => 'ran') === 'ran' && !isset($wpdb->rows[WpdbCredentialMutationGuard::ROW]), 'an expired lease from a crashed request is broken and released');
+$wpdb->rows[WpdbCredentialMutationGuard::ROW] = json_encode(['token' => 'live', 'expires_at' => $now + 60]);
+$ran = false;
+try { $timed->hold(static function () use (&$ran): void { $ran = true; }); $busy = false; } catch (CredentialMutationBusy) { $busy = true; }
+check_settings($busy && !$ran && json_decode($wpdb->rows[WpdbCredentialMutationGuard::ROW], true)['token'] === 'live', 'a live lease times out the waiter, which runs nothing and leaves the holder in place');
+unset($wpdb->rows[WpdbCredentialMutationGuard::ROW]);
 
 // ── Server configuration sources (constants are process-wide, so last) ───
 define('SECURE_AUTH_KEY', 'put your unique phrase here');

@@ -29,12 +29,15 @@ function update_option(string $key, mixed $value, string|bool|null $autoload = n
 }
 
 require_once __DIR__ . '/autoload.php';
+require_once __DIR__ . '/support-credential-guard.php';
+$wpdb = new GuardWpdb();
 
 use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
 use QSD\Platform\Modules\Settings\Connections\ConnectorCredentials;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
 use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 use QSD\Platform\Modules\Settings\Security\CredentialRotation;
+use QSD\Platform\Modules\Settings\Security\WpdbCredentialMutationGuard;
 
 function check_rotation(bool $condition, string $message): void
 {
@@ -51,7 +54,8 @@ const OTHER   = 'other-SECRET-7b2e';
 $wrapRaw = random_bytes(32);
 $keyring = new CredentialKeyring([new CredentialCipher($wrapRaw)]);
 $store = new ConnectionStore();
-$rotation = new CredentialRotation($store, $keyring);
+$guard = new WpdbCredentialMutationGuard(null, null, 0);
+$rotation = new CredentialRotation($store, $keyring, $guard);
 $credentials = new ConnectorCredentials($store, $keyring);
 
 $seed = static function () use ($store, $keyring): void {
@@ -131,40 +135,31 @@ $store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => [
 $store->replaceSecrets(['rezdy' => ['api_key' => ['stale' => true]]], $planned);
 check_rotation($store->read('rezdy')['secrets']['api_key'] === $fresh, 'a slot saved after it was planned is not overwritten by the rotation write');
 
-// ── 5b. A save racing the rotation never becomes unreadable ─────────────
-// The exact race: after planning, before the new generation is staged, an
-// administrator replaces a key — sealed under the old generation.
+// ── 5b. The guard: busy means nothing changes; a bypassing write is never retired ──
 $seed();
-$oldCipher = $keyring->cipher();
-$raced = new CredentialRotation($store, $keyring, static function (string $phase) use ($store, $oldCipher): void {
-    if ($phase === 'planned') {
-        $store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => [
-            'api_key' => $oldCipher->seal('rz-RACED-SAVE', CredentialCipher::context('rezdy', 'api_key')),
-        ]]);
-    }
-});
-$racedReport = $raced->rotate();
-$ring = $ringOf();
-check_rotation($racedReport['ok'] === true && $credentials->secret('rezdy', 'api_key') === 'rz-RACED-SAVE' && $credentials->secret('other', 'token') === OTHER, 'a key saved after planning survives the rotation with its new value');
-check_rotation($store->read('rezdy')['secrets']['api_key']['kid'] === $ring['active'] && array_keys($ring['keys']) === [$ring['active']], 'the raced key was moved to the new key before the old generation was retired');
+$snapshot = serialize($__options);
+$busy = null;
+$guard->hold(static function () use ($rotation, &$busy): void { $busy = $rotation->rotate(); });
+check_rotation($busy['ok'] === false && str_contains((string) $busy['error'], 'in progress') && serialize($__options) === $snapshot, 'while another credential change holds the guard, rotation writes nothing and reports failure');
+check_rotation(!isset($wpdb->rows[WpdbCredentialMutationGuard::ROW]), 'the guard row is gone once every holder has finished');
 
-// A save that keeps landing under the old generation: rotation must not claim
-// success, must retire nothing, and every key must still open.
+// Defence in depth: a write that bypassed the guard and landed under the old
+// generation after replacement makes rotation fail without retiring anything.
 $seed();
 $oldCipher = $keyring->cipher();
 $oldKid = $ringOf()['active'];
-$stubborn = new CredentialRotation($store, $keyring, static function (string $phase) use ($store, $oldCipher): void {
+$bypass = new CredentialRotation($store, $keyring, $guard, static function (string $phase) use ($store, $oldCipher): void {
     if ($phase === 'replaced') {
         $store->write('rezdy', ['config' => ['environment' => 'staging'], 'secrets' => [
-            'api_key' => $oldCipher->seal('rz-KEEPS-CHANGING', CredentialCipher::context('rezdy', 'api_key')),
+            'api_key' => $oldCipher->seal('rz-BYPASS', CredentialCipher::context('rezdy', 'api_key')),
         ]]);
     }
 });
-$stubbornReport = $stubborn->rotate();
-check_rotation($stubbornReport['ok'] === false && is_string($stubbornReport['error']) && str_contains($stubbornReport['error'], 'Every key still works'), 'a rotation that cannot confirm every key on the new key reports failure, never success');
-check_rotation(isset($ringOf()['keys'][$oldKid]) && $credentials->secret('rezdy', 'api_key') === 'rz-KEEPS-CHANGING' && $credentials->secret('other', 'token') === OTHER, 'no generation a key still uses was retired, and every key still opens');
-check_rotation(!$leaks($stubbornReport) && !str_contains(serialize($stubbornReport), $oldKid), 'the failure report carries no secret, key or key id');
-check_rotation($rotation->rotate()['ok'] && count($ringOf()['keys']) === 1 && $credentials->secret('rezdy', 'api_key') === 'rz-KEEPS-CHANGING', 'once saves settle, the next rotation completes');
+$bypassReport = $bypass->rotate();
+check_rotation($bypassReport['ok'] === false && str_contains((string) $bypassReport['error'], 'No older key was retired'), 'rotation never reports success when a stored key is not on the new key');
+check_rotation(isset($ringOf()['keys'][$oldKid]) && $credentials->secret('rezdy', 'api_key') === 'rz-BYPASS' && $credentials->secret('other', 'token') === OTHER, 'no generation was retired and every key still opens');
+check_rotation(!$leaks($bypassReport) && !str_contains(serialize($bypassReport), $oldKid), 'the failure report carries no secret, key or key id');
+check_rotation($rotation->rotate()['ok'] && count($ringOf()['keys']) === 1 && $credentials->secret('rezdy', 'api_key') === 'rz-BYPASS', 'the next rotation completes');
 
 // Retirement itself never drops a generation a stored secret names.
 $seed();
@@ -176,7 +171,7 @@ check_rotation(isset($ringOf()['keys'][$oldKid]) && $credentials->secret('rezdy'
 // ── 6. Refusal before any work ──────────────────────────────────────────
 $seed();
 $snapshot = serialize($__options);
-$unavailable = (new CredentialRotation($store, new CredentialKeyring([])))->rotate();
+$unavailable = (new CredentialRotation($store, new CredentialKeyring([]), $guard))->rotate();
 check_rotation($unavailable['ok'] === false && str_contains((string) $unavailable['error'], 'Secure storage is unavailable'), 'with no wrapping key, rotation is refused in plain words');
 check_rotation(serialize($__options) === $snapshot, 'a refused rotation writes nothing');
 

@@ -167,5 +167,8 @@ check(backend.every((file) => !/WP_CLI::add_command\('qsd credentials'/.test(cod
 const keyring = code('src/Modules/Settings/Security/CredentialKeyring.php');
 check(/hash_hkdf\('sha256'/.test(keyring) && /WRAP_CONTEXT\s*= 'qsd-credential-wrap:v1'/.test(keyring) && /keyring:v1:/.test(keyring) && /'SECURE_AUTH_KEY', 'SECURE_AUTH_SALT'/.test(keyring), 'the keyring wraps its data key under an HKDF key from the WordPress secret keys, with QSD context separation');
 check(!/delete_option|unset\(\$ring\['keys'\]/.test(keyring), 'the keyring never deletes a generation outside a completed rotation');
+check(/->guard->hold\(fn\(\): \\WP_REST_Response => \$this->saveHeld\(/.test(connectionsController) && /->guard->hold\(fn\(\) => \$this->store->remove\(/.test(connectionsController) && !/function saveConnection[\s\S]*?\$this->store->(write|remove)\([\s\S]*?function saveHeld/.test(connectionsController), 'every connection write (save and disconnect) runs inside the credential mutation guard');
+check(/->guard->hold\(fn\(\): array => \$this->rotateHeld\(\)\)/.test(code('src/Modules/Settings/Security/CredentialRotation.php')), 'rotation runs entirely inside the same credential mutation guard');
+check(/\$wpdb->insert\(\$wpdb->options, \['option_name' => self::ROW/.test(code('src/Modules/Settings/Security/WpdbCredentialMutationGuard.php')), 'the guard is taken with an atomic unique-key insert, not the cached options API');
 
 console.log(`Settings Station contract passed: ${checks} checks.`);

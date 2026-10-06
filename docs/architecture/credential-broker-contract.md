@@ -76,11 +76,12 @@ QSD performs these itself. None is an admin step, and none needs server or shell
    1. A new data key is generated.
    2. Every stored secret is planned first: opened under the keyring and sealed again under the new key, bound to the same provider and field, with a fresh nonce.
    3. If any value opens under no generation, or is not an envelope, rotation writes nothing and reports the slot as unreadable. The admin replaces or removes that key, then rotates again.
-   4. Otherwise the new generation is stored as active (the old one kept) and every secret is replaced in one write. A slot saved since planning is not overwritten.
-   5. **Commit check.** Every stored secret is read again. A secret not yet on the new key (a save that raced the rotation) is re-sealed and written again, for at most three passes. Older generations are retired only when every stored secret opens under the new key, and a generation any stored secret still names is never retired. If that cannot be confirmed, rotation reports failure and every key keeps working. An interruption between steps leaves every secret openable.
+   4. Otherwise the new generation is stored as active (the old one kept) and every secret is replaced in one write.
+   5. **Commit check.** Every stored secret must open under the new key before any older generation is retired, and a generation a stored secret still names is never retired. Otherwise rotation reports failure and every key keeps working.
    6. The kept data key is re-sealed under the preferred wrapping key.
-4. **No secrets in output.** Rotation output names `provider:field` slots and counts only. It never contains a key, a wrapped key, a key id or a plaintext.
-5. **Legacy envelopes.** A secret sealed directly under `QSD_CREDENTIAL_KEY` by an earlier build still opens while that constant is defined, and the next rotation moves it into the keyring.
+4. **One guard for every credential write.** Each write to the connection option (secret save, configuration save, disconnect) and the whole rotation run inside one Security-owned guard (`WpdbCredentialMutationGuard`): a single options-table row taken by an atomic unique-key insert and released by a token-matched delete. A save can never seal under a generation while rotation retires it, and rotation never commits while a save is in flight. When the guard is busy (10-second wait) the request changes nothing and answers 409. A lease abandoned by a crashed request expires after 60 seconds.
+5. **No secrets in output.** Rotation output names `provider:field` slots and counts only. It never contains a key, a wrapped key, a key id or a plaintext.
+6. **Legacy envelopes.** A secret sealed directly under `QSD_CREDENTIAL_KEY` by an earlier build still opens while that constant is defined, and the next rotation moves it into the keyring.
 
 ## Current boundaries
 

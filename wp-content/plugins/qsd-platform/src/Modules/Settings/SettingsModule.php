@@ -18,6 +18,7 @@ use QSD\Platform\Modules\Settings\Security\CredentialBroker;
 use QSD\Platform\Modules\Settings\Security\BrokerValidation;
 use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 use QSD\Platform\Modules\Settings\Security\CredentialRotation;
+use QSD\Platform\Modules\Settings\Security\WpdbCredentialMutationGuard;
 use QSD\Platform\Modules\Settings\Security\WpdbRequestKeyStore;
 
 /**
@@ -81,7 +82,7 @@ class SettingsModule
             new BrokerAuditLog(),
             $store,
             $keyring,
-            new CredentialRotation($store, $keyring),
+            new CredentialRotation($store, $keyring, new WpdbCredentialMutationGuard()),
             RezdyConnector::PROVIDER,
             RezdyConnector::SCOPE_VERIFY,
         );
@@ -90,12 +91,12 @@ class SettingsModule
     /** QSD-owned key rotation, run from API Keys by an administrator. */
     public function credentialRotation(): CredentialRotation
     {
-        return new CredentialRotation(new ConnectionStore(), CredentialKeyring::fromEnvironment());
+        return new CredentialRotation(new ConnectionStore(), CredentialKeyring::fromEnvironment(), new WpdbCredentialMutationGuard());
     }
 
     public function register(): void
     {
-        (new SettingsConnectionsController(new ConnectionStore(), CredentialKeyring::fromEnvironment()))->register();
+        (new SettingsConnectionsController(new ConnectionStore(), CredentialKeyring::fromEnvironment(), new WpdbCredentialMutationGuard()))->register();
         (new SettingsSecurityController(
             fn(): BrokerValidation => $this->brokerValidation(),
             fn(): CredentialRotation => $this->credentialRotation(),

@@ -25,6 +25,8 @@ use QSD\Platform\Modules\Settings\Security\CredentialAuthority;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
 use QSD\Platform\Modules\Settings\Security\CredentialCipherUnavailable;
 use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
+use QSD\Platform\Modules\Settings\Security\CredentialMutationBusy;
+use QSD\Platform\Modules\Settings\Security\CredentialMutationGuard;
 
 /**
  * SettingsConnectionsController — the Connections/Security Tool's admin REST
@@ -38,7 +40,9 @@ use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
  * projection reports a secret field only as `configured: true|false` — true
  * only when the stored value decrypts under the keyring.
  * An empty or omitted secret leaves the stored value unchanged; `clear` names
- * secret fields to remove.
+ * secret fields to remove. Every write (save and disconnect) runs inside the
+ * CredentialMutationGuard that key rotation also holds; when it is busy the
+ * request changes nothing and answers 409.
  *
  * Permission: reading safe state and saving non-secret configuration need
  * `manage_qsd`. Setting, replacing or clearing a secret, and disconnecting
@@ -49,8 +53,11 @@ class SettingsConnectionsController
 {
     private ConnectorCredentials $credentials;
 
-    public function __construct(private ConnectionStore $store, private CredentialKeyring $keyring)
-    {
+    public function __construct(
+        private ConnectionStore $store,
+        private CredentialKeyring $keyring,
+        private CredentialMutationGuard $guard,
+    ) {
         $this->credentials = new ConnectorCredentials($store, $keyring);
     }
 
@@ -118,6 +125,22 @@ class SettingsConnectionsController
             return $this->error('values, secrets and clear must be objects/lists.', 422);
         }
 
+        // Read, seal and write under the guard: rotation cannot retire the
+        // generation this save seals under, nor re-seal around this write.
+        try {
+            return $this->guard->hold(fn(): \WP_REST_Response => $this->saveHeld($definition, $values, $secrets, $clear));
+        } catch (CredentialMutationBusy $e) {
+            return $this->error($e->getMessage(), 409);
+        }
+    }
+
+    /**
+     * @param array<mixed> $values
+     * @param array<mixed> $secrets
+     * @param array<mixed> $clear
+     */
+    private function saveHeld(ConnectionProviderDefinition $definition, array $values, array $secrets, array $clear): \WP_REST_Response
+    {
         $stored = $this->store->read($definition->key);
         $config = $stored['config'];
         $vault  = $stored['secrets'];
@@ -181,7 +204,11 @@ class SettingsConnectionsController
         if ($definition === null) {
             return $this->error('Unknown connection provider.', 404);
         }
-        $this->store->remove($definition->key);
+        try {
+            $this->guard->hold(fn() => $this->store->remove($definition->key));
+        } catch (CredentialMutationBusy $e) {
+            return $this->error($e->getMessage(), 409);
+        }
         return rest_ensure_response(['success' => true, 'connection' => $this->project($definition)]);
     }
 

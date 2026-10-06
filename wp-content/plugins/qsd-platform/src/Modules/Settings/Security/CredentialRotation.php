@@ -18,31 +18,30 @@ use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
  *      is written and the slot is reported unreadable; an unreadable
  *      credential never reads as configured.
  *   4. Otherwise the new generation is stored as active with the old one
- *      kept, and every planned secret is replaced in one write.
- *   5. Commit check: every stored secret is read again. Any slot not yet on
- *      the new key (a save that raced the rotation) is re-sealed and written
- *      again, up to MAX_PASSES times. Only when every stored secret opens
- *      under the new key are older generations retired — and even then a
- *      generation a secret still names is kept, so no credential can become
- *      unreadable. If the check cannot be satisfied, rotation reports failure
- *      and every key keeps working.
+ *      kept, every planned secret is replaced in one write, every stored
+ *      secret is confirmed on the new key, and only then are older
+ *      generations retired (never one a stored secret still names).
+ *
+ * The whole operation runs inside the CredentialMutationGuard that every
+ * credential write also holds, so no save can seal under a generation while
+ * it is being retired, and rotation never commits while a save is in flight.
+ * If the guard is busy, rotation changes nothing and reports failure.
  *
  * The report carries provider:field slot names and counts only — never a key,
  * a wrapped key, a key id, or a plaintext.
  */
 final class CredentialRotation
 {
-    public const MAX_PASSES = 3;
-
     /** @var \Closure(string): void */
     private \Closure $checkpoint;
 
     /**
-     * @param (\Closure(string): void)|null $checkpoint test seam called at 'planned' (before staging) and 'replaced' (after each write); production passes none
+     * @param (\Closure(string): void)|null $checkpoint test seam called at 'planned' and 'replaced' while the guard is held; production passes none
      */
     public function __construct(
         private ConnectionStore $store,
         private CredentialKeyring $keyring,
+        private CredentialMutationGuard $guard,
         ?\Closure $checkpoint = null,
     ) {
         $this->checkpoint = $checkpoint ?? static function (string $phase): void {};
@@ -54,56 +53,54 @@ final class CredentialRotation
      */
     public function rotate(): array
     {
-        $report = ['ok' => false, 'resealed' => [], 'unreadable' => [], 'error' => null];
-
         if (!$this->keyring->isAvailable()) {
-            $report['error'] = 'Secure storage is unavailable on this site, so the encryption key cannot be rotated.';
-            return $report;
+            return $this->failed('Secure storage is unavailable on this site, so the encryption key cannot be rotated.');
         }
+        try {
+            return $this->guard->hold(fn(): array => $this->rotateHeld());
+        } catch (CredentialMutationBusy $e) {
+            return $this->failed($e->getMessage());
+        }
+    }
 
+    /** @return array{ok: bool, resealed: list<string>, unreadable: list<string>, error: ?string} */
+    private function rotateHeld(): array
+    {
         $nextKey = random_bytes(CredentialCipher::KEY_BYTES);
         $next = new CredentialCipher($nextKey);
         $nextKid = (string) $next->keyId();
 
         [$plan, $expected, $resealed, $unreadable] = $this->plan($this->keyring->cipher(), $next, null);
         if ($unreadable !== []) {
-            $report['unreadable'] = $unreadable;
-            $report['error'] = 'Some saved API keys cannot be opened. Replace or remove them, then rotate again. Nothing was changed.';
-            return $report;
+            return $this->failed('Some saved API keys cannot be opened. Replace or remove them, then rotate again. Nothing was changed.', $unreadable);
         }
         ($this->checkpoint)('planned');
 
         $this->keyring->stage($nextKey);
-        for ($pass = 0; $pass < self::MAX_PASSES; $pass++) {
-            if ($plan !== []) {
-                $this->store->replaceSecrets($plan, $expected);
-            }
-            ($this->checkpoint)('replaced');
-
-            // Commit check against what is stored now, including any save that
-            // raced the rotation. The keyring opens old and new generations.
-            [$plan, $expected, $stragglers, $unreadable] = $this->plan($this->keyring->cipher(), $next, $nextKid);
-            if ($unreadable !== []) {
-                $report['unreadable'] = $unreadable;
-                $report['error'] = 'Some saved API keys could not be opened during rotation. No older key was retired; replace or remove them, then rotate again.';
-                return $report;
-            }
-            if ($plan === []) {
-                $this->keyring->retireUnreferenced($this->referencedKids());
-                if ($this->referencedKids() === [] || array_unique($this->referencedKids()) === [$nextKid]) {
-                    $report['ok'] = true;
-                    $report['resealed'] = array_values(array_unique([...$resealed, ...$stragglers]));
-                    return $report;
-                }
-                // A save landed between the check and retirement: its generation
-                // was kept. Check again.
-                [$plan, $expected, $stragglers] = $this->plan($this->keyring->cipher(), $next, $nextKid);
-            }
-            $resealed = array_values(array_unique([...$resealed, ...$stragglers]));
+        if ($plan !== []) {
+            $this->store->replaceSecrets($plan, $expected);
         }
+        ($this->checkpoint)('replaced');
 
-        $report['error'] = 'Saved API keys kept changing while the key was rotating. Every key still works; rotate again.';
-        return $report;
+        // Commit check: every stored secret must now open under the new key.
+        // Under the guard nothing else writes, so anything left means retiring
+        // would be unsafe: keep every generation and report failure.
+        [$left, , , $lost] = $this->plan($this->keyring->cipher(), $next, $nextKid);
+        if ($left !== [] || $lost !== []) {
+            return $this->failed('The rotation could not confirm every saved API key on the new key. No older key was retired, and every key still works.', $lost);
+        }
+        $this->keyring->retireUnreferenced($this->referencedKids());
+
+        return ['ok' => true, 'resealed' => $resealed, 'unreadable' => [], 'error' => null];
+    }
+
+    /**
+     * @param list<string> $unreadable
+     * @return array{ok: false, resealed: list<string>, unreadable: list<string>, error: string}
+     */
+    private function failed(string $error, array $unreadable = []): array
+    {
+        return ['ok' => false, 'resealed' => [], 'unreadable' => $unreadable, 'error' => $error];
     }
 
     /**
