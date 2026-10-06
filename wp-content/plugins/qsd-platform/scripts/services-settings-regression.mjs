@@ -52,7 +52,7 @@ window.QSDConfig = { apiRoot: 'https://cz-test.local/wp-json/', nonce: 'test-non
 
 // ── Server-side truth ────────────────────────────────────────────────────
 const SECRET = 'rz-SECRET-71c9';
-const server = { environment: '', apiKeyStored: false, fields: [], nextId: 0, encryptionAvailable: true, manageSecrets: true };
+const server = { environment: '', apiKeyStored: false, fields: [], nextId: 0, encryptionAvailable: true, manageSecrets: true, rotationRefused: false };
 let calls = [];
 
 const mintId = (prefix) => `${prefix}${String(++server.nextId).padStart(10, '2').replace(/[01]/g, '2')}`;
@@ -100,12 +100,17 @@ globalThis.fetch = (url, init = {}) => {
       passed: false,
       identity: { user_id: 5, caller: 'settings.security-validation', source: 'server' },
       provider_check: { provider: 'rezdy', environment: 'staging', outcome: 'unauthorized', http_status: 401, latency_ms: 212 },
-      rotation: { previous_key_defined: false, current: ['rezdy:api_key'], previous: [], unreadable: [] },
+      rotation: { generations: 1, current: ['rezdy:api_key'], previous: [], unreadable: [] },
       checks: [
         { check: 'a replayed key is refused', ok: true, detail: { reason: 'unknown_key' } },
         { check: 'the audit records this run\'s outcomes', ok: false },
       ],
     } });
+  }
+  if (method === 'POST' && path === 'admin/settings/security/rotation') {
+    return server.rotationRefused
+      ? jsonResponse({ success: false, rotation: { resealed: 0, unreadable: ['rezdy:api_key'] }, message: 'Some saved API keys cannot be opened. Replace or remove them, then rotate again. Nothing was changed.' }, 409)
+      : jsonResponse({ success: true, rotation: { resealed: 1, unreadable: [] } });
   }
 
   if (method === 'GET' && path === 'admin/settings/service-meta/fields') return jsonResponse({ success: true, fields: server.fields });
@@ -345,9 +350,11 @@ check('no request ever deleted a field', !calls.some((c) => c.method === 'DELETE
 console.log('\n8) API Keys — without secure storage, nothing can be added');
 server.encryptionAvailable = false;
 await mount();
-check('secure storage reads not set up, as a platform operator step', keys().querySelector('[data-secure-storage="unavailable"]')?.textContent.includes('platform operator'));
+const storage = keys().querySelector('[data-secure-storage="unavailable"]')?.textContent ?? '';
+check('secure storage reads unavailable in plain words, with no setup task for anyone', storage.includes('Unavailable on this site') && !/operator|set up|setup|server|hosting/i.test(storage), storage);
 check('no Add control is offered', secret() != null && secret().textContent.includes('Not added') && !buttons(secret()).includes('Add'));
-check('no server file, master key or shell step is named', !/wp-config|QSD_CREDENTIAL_KEY|SSH|WP-CLI/i.test(container.textContent));
+check('Rotate encryption key is offered but disabled', [...keys().querySelectorAll('[data-key-rotation] button')].some((b) => b.textContent.includes('Rotate encryption key') && b.disabled));
+check('no server file, master key, shell step or operator task is named', !/wp-config|QSD_CREDENTIAL_KEY|SSH|WP-CLI|platform operator/i.test(container.textContent));
 
 console.log('\n9) API Keys — a platform manager sees safe state only');
 server.encryptionAvailable = true;
@@ -357,7 +364,7 @@ server.environment = 'staging';
 await mount();
 check('access reads View only', keys().querySelector('[data-key-permission="view"]')?.textContent.includes('View only'));
 check('the key reads Saved with no Add, Replace or Remove', secret().textContent.includes('Saved') && !['Add', 'Replace', 'Remove'].some((b) => buttons(secret()).includes(b)));
-check('Disconnect and Test connection are not offered', !buttons(keys()).includes('Disconnect Rezdy') && keys().querySelector('[data-connection-test]') === null);
+check('Disconnect, Test connection and Rotate encryption key are not offered', !buttons(keys()).includes('Disconnect Rezdy') && keys().querySelector('[data-connection-test]') === null && keys().querySelector('[data-key-rotation]') === null);
 check('the environment is shown but read-only', card().querySelector('select')?.value === 'staging' && card().querySelector('select')?.disabled === true);
 calls = [];
 await choose(card().querySelector('select'), 'production');
@@ -377,6 +384,25 @@ await sleep(40);
 check('Test connection sends one POST with no body (identity is server-derived)', mutations().length === 1 && mutations()[0].path === 'admin/settings/security/broker-validation' && mutations()[0].body === null, describe(mutations()));
 check('the outcome is shown in plain words', test().querySelector('[data-test-outcome]')?.textContent.includes('Rezdy did not accept this API key'));
 check('the badge reads Needs attention and the checks summarise 1 of 2', test().textContent.includes('Needs attention') && test().querySelector('summary')?.textContent.includes('1 of 2 passed') && test().querySelectorAll('[data-security-checks] li').length === 2);
+
+console.log('\n11) API Keys — an administrator rotates the encryption key');
+const rotation = () => keys().querySelector('[data-key-rotation]');
+check('the rotation section explains it in plain words, naming no key or server step', rotation()?.textContent.includes('a key this site manages for you') && !/wp-config|QSD_CREDENTIAL_KEY|SSH|WP-CLI|operator/i.test(rotation().textContent));
+calls = [];
+click(rotation(), 'Rotate encryption key');
+await sleep(10);
+check('arming Rotate sent nothing', mutations().length === 0 && rotation().textContent.includes('Saved API keys keep working'), describe(mutations()));
+click(rotation(), 'Rotate');
+await sleep(40);
+check('Rotate sends one POST with no body', mutations().length === 1 && mutations()[0].path === 'admin/settings/security/rotation' && mutations()[0].body === null, describe(mutations()));
+check('the result reads as a count only', rotation().querySelector('[data-rotation-result]')?.textContent.includes('1 saved API key was re-encrypted'));
+server.rotationRefused = true;
+click(rotation(), 'Rotate encryption key');
+await sleep(10);
+click(rotation(), 'Rotate');
+await sleep(40);
+check('a refused rotation shows the server reason and no success', rotation().querySelector('[role="alert"]')?.textContent.includes('Replace or remove them') && rotation().querySelector('[data-rotation-result]') === null);
+server.rotationRefused = false;
 
 console.log('');
 if (failures.length > 0) {

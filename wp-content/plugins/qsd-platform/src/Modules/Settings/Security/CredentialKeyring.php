@@ -39,7 +39,7 @@ namespace QSD\Platform\Modules\Settings\Security;
 final class CredentialKeyring
 {
     public const OPTION            = 'qsd_settings_credential_keyring';
-    public const OPERATOR_CONSTANT = 'QSD_CREDENTIAL_KEY';
+    public const HARDENING_CONSTANT = 'QSD_CREDENTIAL_KEY';
     public const WRAP_CONTEXT      = 'qsd-credential-wrap:v1';
 
     private const SITE_CONSTANTS = ['SECURE_AUTH_KEY', 'SECURE_AUTH_SALT'];
@@ -67,10 +67,10 @@ final class CredentialKeyring
     {
         $wrappers = [];
         $legacy = [];
-        $operator = defined(self::OPERATOR_CONSTANT) ? base64_decode((string) constant(self::OPERATOR_CONSTANT), true) : false;
-        if (is_string($operator) && strlen($operator) === CredentialCipher::KEY_BYTES) {
-            $wrappers[] = new CredentialCipher(self::derive($operator));
-            $legacy[] = $operator;
+        $hardening = defined(self::HARDENING_CONSTANT) ? base64_decode((string) constant(self::HARDENING_CONSTANT), true) : false;
+        if (is_string($hardening) && strlen($hardening) === CredentialCipher::KEY_BYTES) {
+            $wrappers[] = new CredentialCipher(self::derive($hardening));
+            $legacy[] = $hardening;
         }
         $site = self::siteSecret();
         if ($site !== null) {

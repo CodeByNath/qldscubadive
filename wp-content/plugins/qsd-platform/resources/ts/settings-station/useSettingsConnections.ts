@@ -5,15 +5,14 @@
 // returns only `configured`, and this hook keeps no copy of what was sent.
 
 import { useCallback, useEffect, useState } from 'preact/hooks';
-import { disconnectConnection, fetchConnections, runSecurityValidation, saveConnection } from './api';
+import { disconnectConnection, fetchConnections, rotateEncryptionKey, runSecurityValidation, saveConnection } from './api';
 import { errorMessage } from './errorMessage';
-import type { ConnectionProjection, ConnectionSavePayload, SecurityValidationReport } from './types';
+import type { ConnectionProjection, ConnectionSavePayload, KeyRotationResult, SecurityValidationReport } from './types';
 
 export interface SettingsConnectionsState {
   connections:  ConnectionProjection[];
-  // False when the server has no platform master key (operator-provisioned,
-  // never managed here): secrets cannot be saved there (the backend refuses
-  // rather than storing plaintext).
+  // False when this site cannot store keys securely (the backend refuses
+  // rather than storing plaintext). There is nothing to set up from here.
   encryptionAvailable: boolean | null;
   // Only an administrator may set, replace, clear or disconnect secrets; a
   // platform manager edits non-secret configuration only.
@@ -29,6 +28,11 @@ export interface SettingsConnectionsState {
   validating:      boolean;
   validationError: string | null;
   runValidation:   () => Promise<void>;
+  // Rotate encryption key (administrators only; re-encrypts every saved key).
+  rotation:      KeyRotationResult | null;
+  rotating:      boolean;
+  rotationError: string | null;
+  rotateKey:     () => Promise<void>;
 }
 
 export function useSettingsConnections(): SettingsConnectionsState {
@@ -42,6 +46,9 @@ export function useSettingsConnections(): SettingsConnectionsState {
   const [validation, setValidation] = useState<SecurityValidationReport | null>(null);
   const [validating, setValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [rotation, setRotation] = useState<KeyRotationResult | null>(null);
+  const [rotating, setRotating] = useState(false);
+  const [rotationError, setRotationError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConnections()
@@ -92,8 +99,22 @@ export function useSettingsConnections(): SettingsConnectionsState {
     }
   }, []);
 
+  const rotateKey = useCallback(async () => {
+    setRotating(true);
+    setRotation(null);
+    setRotationError(null);
+    try {
+      setRotation(await rotateEncryptionKey());
+    } catch (err) {
+      setRotationError(errorMessage(err, 'The encryption key could not be rotated.'));
+    } finally {
+      setRotating(false);
+    }
+  }, []);
+
   return {
     connections, encryptionAvailable, canManageSecrets, loading, error, busyProvider, actionError, save, disconnect,
     validation, validating, validationError, runValidation,
+    rotation, rotating, rotationError, rotateKey,
   };
 }

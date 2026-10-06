@@ -8,6 +8,7 @@ import type {
   ConnectionField,
   ConnectionProjection,
   ConnectionSavePayload,
+  KeyRotationResult,
   SecurityValidationReport,
   ServiceMetaField,
   ServiceMetaFieldDraft,
@@ -103,6 +104,12 @@ export async function runSecurityValidation(): Promise<SecurityValidationReport>
     },
     checks: wire.checks.map((c) => ({ check: c.check, ok: c.ok, detail: c.detail })),
   };
+}
+
+/** Rotates QSD's encryption key. Sends no body: there is nothing for the browser to supply. */
+export async function rotateEncryptionKey(): Promise<KeyRotationResult> {
+  const response = await apiClient.post<{ rotation: { resealed: number } }>('admin/settings/security/rotation');
+  return { resealed: response.rotation.resealed };
 }
 
 export async function fetchServiceMetaFields(): Promise<ServiceMetaField[]> {

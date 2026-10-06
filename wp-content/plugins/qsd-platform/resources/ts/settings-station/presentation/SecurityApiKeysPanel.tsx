@@ -13,11 +13,11 @@
 // provider configuration is shown read-only and nothing is sent. (The server
 // enforces secret authority either way.)
 //
-// The platform master key that protects these keys is infrastructure: when it
-// is missing the panel says secure storage is not set up and offers nothing to
-// enter. Test connection runs the server-side Security check, which makes one
-// read-only Rezdy staging call; it shows the outcome and the checks, never a
-// secret.
+// QSD owns the encryption that protects these keys: the first save sets it up,
+// and an administrator can rotate it here. No key material is ever entered or
+// shown, and nothing asks for server setup. Test connection runs the
+// server-side Security check, which makes one read-only Rezdy staging call; it
+// shows the outcome and the checks, never a secret.
 
 import { useState } from 'preact/hooks';
 import type { VNode } from 'preact';
@@ -242,6 +242,45 @@ function ConnectionTest({ tools }: { tools: SettingsConnectionsState }): VNode {
   );
 }
 
+function KeyRotation({ tools, confirm }: {
+  tools: SettingsConnectionsState;
+  confirm: ReturnType<typeof useInlineConfirm<string>>;
+}): VNode {
+  const rotateId = 'encryption:rotate';
+  const rotate = () => confirm.run(rotateId, tools.rotateKey);
+  const count = tools.rotation?.resealed ?? 0;
+
+  return (
+    <section class="cz-settings-connection" data-key-rotation>
+      <div class="cz-settings-connection__header">
+        <h4 class="cz-settings-connection__title">Encryption key</h4>
+      </div>
+      <p class="cz-settings-muted">
+        Saved API keys are encrypted with a key this site manages for you. Rotating replaces it and re-encrypts every saved API key. They keep working, and nothing is shown.
+      </p>
+      {tools.rotationError && <p class="cz-settings-error" role="alert">{tools.rotationError}</p>}
+      {tools.rotation && (
+        <p class="cz-settings-notice" role="status" data-rotation-result>
+          Encryption key rotated. {count === 1 ? '1 saved API key was' : `${count} saved API keys were`} re-encrypted.
+        </p>
+      )}
+      <div class="cz-settings-actions">
+        {confirm.pendingId === rotateId ? (
+          <span class="cz-settings-confirm">
+            <span class="cz-settings-confirm__prompt">Rotate the encryption key now? Saved API keys keep working.</span>
+            <button type="button" class="cz-settings-button" onClick={confirm.cancel} disabled={tools.rotating}>Cancel</button>
+            <button type="button" class="cz-settings-button cz-settings-button--primary" onClick={rotate} disabled={tools.rotating}>Rotate</button>
+          </span>
+        ) : (
+          <button type="button" class="cz-settings-button" onClick={() => confirm.request(rotateId)} disabled={tools.rotating || tools.encryptionAvailable === false}>
+            {tools.rotating ? 'Rotating…' : 'Rotate encryption key'}
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function SecurityApiKeysPanel(): VNode {
   const tools = useSettingsConnections();
   const confirm = useInlineConfirm<string>();
@@ -255,7 +294,7 @@ export function SecurityApiKeysPanel(): VNode {
         <li data-secure-storage={tools.encryptionAvailable === false ? 'unavailable' : 'available'}>
           <strong>Secure storage:</strong>{' '}
           {tools.encryptionAvailable === false
-            ? 'Not set up on this server yet, so API keys cannot be saved. This is a one-time platform setup step for the platform operator, not something to configure here.'
+            ? 'Unavailable on this site right now, so API keys cannot be saved. Saved keys are kept and nothing is shown.'
             : 'Ready. API keys are encrypted before they are stored.'}
         </li>
         <li data-key-permission={tools.canManageSecrets ? 'manage' : 'view'}>
@@ -271,6 +310,7 @@ export function SecurityApiKeysPanel(): VNode {
         ))}
       </ul>
       {tools.canManageSecrets && <ConnectionTest tools={tools} />}
+      {tools.canManageSecrets && <KeyRotation tools={tools} confirm={confirm} />}
     </div>
   );
 }

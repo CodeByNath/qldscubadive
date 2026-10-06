@@ -67,6 +67,11 @@ export interface SecurityValidationReport {
   checks: SecurityValidationCheck[];
 }
 
+// Rotate encryption key — a count only. No key or key id ever reaches the browser.
+export interface KeyRotationResult {
+  resealed: number;
+}
+
 export type ServiceMetaFieldType =
   | 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'image' | 'gallery' | 'repeater';
 
