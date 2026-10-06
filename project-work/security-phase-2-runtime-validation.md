@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Security Phase 2 — API / storage / rotation validation
-Actor: Builder
+Actor: Reviewer
 
 ## Accepted baseline
 
@@ -621,3 +621,26 @@ After the correction:
 3. return to Reviewer before staging deployment.
 
 Do not deploy `7b6864b` as-is. Phase 2D remains blocked.
+
+
+## Builder correction handoff — View Only is truly view-only (2026-10-06)
+
+- **Candidate SHA:** `81f749d7cf35b232369cf6af9db94fe6a312f2be` on `docs/settings-security-roadmap`. Remote verified. Parent: `7b6864b`.
+- **Correction diff:** 3 files, +14 / −6. Presentation and tests only; backend capability rules are unchanged.
+- **`staging`:** still `68a95c2`. Not deployed, per the Reviewer's instruction.
+
+**Change in `SecurityApiKeysPanel.tsx`**
+- `const viewOnly = !tools.canManageSecrets`.
+- Provider configuration controls (the Rezdy Environment select, and any text config field) are rendered with `disabled={busy || viewOnly}`; text inputs are also `readOnly`. Safe state stays visible.
+- `setConfig` returns at once when `viewOnly`, so the View Only state can send no PUT even if a disabled control fires an event.
+- Add/Replace/Remove/Disconnect/Test connection were already unavailable in View Only, and remain so.
+
+**Tests**
+- `regression:services-settings` (now 48 checks), section 9 (platform manager):
+  - asserts the environment shows its value but is disabled;
+  - then changes the select and clicks every button in the API Keys panel, and asserts **zero** mutations.
+  - The old check, which expected a platform manager to change Environment, is removed.
+- `contract:settings-station` (57 checks): new source check for the `viewOnly` guard and that both config controls are disabled with `viewOnly`.
+- `npm test` → **exit 0**: JS 24/24, all PHP tests, build, docs check (46 Markdown files, 19 Code Maps). `npm run docs:check` → passed.
+
+**Next, after approval:** Builder pushes exactly `81f749d` to `staging`, verifies CI, `deploy-staging` and the live bundle, then sets this file to `BLOCKED — OWNER UI REVIEW REQUIRED` with the SHA and staging2 URL, and stops. Phase 2D is not started.
