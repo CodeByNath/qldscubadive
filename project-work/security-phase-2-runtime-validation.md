@@ -1104,3 +1104,37 @@ Status stays `BUILDER ACTION REQUIRED`. Builder still owns the staging2 validati
 - **Not reachable through the QSD UI:** the fail-closed contention case (a second writer refused while the guard is held). Exercising it on staging2 would need either concurrent administrator requests or a guard self-check in the validation report. The latter is a source change for a new candidate, so it was not added in this cycle. Reviewer to decide whether the deterministic regressions plus a successful real-database rotation are sufficient, or whether a bounded guard self-check is authorised.
 
 Not started: Phase 3. Production untouched. `main` unchanged (`da93493`).
+
+
+## Builder staging2 deployment — `cee882c` (2026-10-07)
+
+Supersedes the promotion block above: the Owner approved the push in the Builder session, and the identical command succeeded. Status stays `BUILDER ACTION REQUIRED`. Builder owns finishing the runtime evidence, and the next step needs an authenticated administrator.
+
+**Promotion**
+- Fast-forward re-checked: `origin/staging` `81f749d` is an ancestor of `cee882c`.
+- `git push origin cee882c9a48c3a2370f930aa4a6b21848f40fb8c:refs/heads/staging` → `81f749d..cee882c`.
+- `git ls-remote`: `staging` = `cee882c9a48c3a2370f930aa4a6b21848f40fb8c`.
+- `.github/` unchanged; no workflow, path, SSH or sync-scope change. Production untouched. `main` unchanged (`da93493`).
+
+**CI and deploy:** Actions run `37554991371` ("Test and deploy", push, `staging`, head `cee882c`). `test` completed success, which includes `npm test` and therefore `docs:check`. `deploy-staging` completed success.
+
+**Live checks (anonymous, from Builder)**
+- `https://www.staging2.qldscubadive.com.au/station/` → 200, "Admin Station".
+- The deployed `qsd-platform/dist/js/admin-station.js` contains the Phase E API Keys UI: `settings.api-keys`, the `security/rotation` endpoint, "Rotate encryption key", and "Test connection". The rotation UI is absent from the previous staging build `81f749d`, so the new build is live.
+- Anonymous `GET qsd/v1/admin/settings/connections`, `POST …/security/rotation` and `POST …/security/broker-validation` each → 401 `rest_forbidden`: registered and protected. Requests to the bare `staging2.` host 301 to `www.` and return 400 after the redirect, so evidence uses the `www.` host.
+- PHP guard code is not observable anonymously. Its runtime behaviour is covered by the administrator steps below.
+
+**Deterministic evidence for the promoted SHA:** CI run above. Local `npm test` (24/24, contract 68 checks) and `docs:check` on `cee882c` are recorded in the `cee882c` handoff.
+
+**Next — needs an administrator in `/station/` (QSD UI only, no secret leaves the UI)**
+
+URL: `https://www.staging2.qldscubadive.com.au/station/` → **Services** → **Settings** → **Security** → **API Keys**.
+
+1. Note the "Secure storage" state. Expected: **Ready**, with no setup step.
+2. Under Rezdy: Environment *Staging (sandbox)*, **Add** the Rezdy staging API key, **Save**.
+3. **Test connection**. Note the result line.
+4. **Rotate encryption key**, confirm. Note the result. Then **Rotate encryption key** a second time and note the result. Two successes show real `GET_LOCK` acquire, `IS_USED_LOCK` ownership proof and `RELEASE_LOCK` on staging2's database. A failure reading "Another change to API keys is in progress" or "lost its lock" means the named-lock semantics are not working there; per the Reviewer safeguard, that stops this cycle with no new lock system.
+5. **Test connection** again, to show the key still opens after rotation.
+6. Run the Security validation report, and share its Passed/Failed badge and rows, or a screenshot. None of this contains a secret.
+
+**Open for Reviewer:** the contention fail-closed case (a second writer refused while the guard is held) cannot be produced through the QSD UI. See the preflight note above.
