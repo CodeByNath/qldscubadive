@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: AWAITING REVIEWER REVIEW
-Phase: Security Phase 2 — make credential guard non-expiring for live holder
-Actor: Reviewer
+Status: BUILDER ACTION REQUIRED
+Phase: Security Phase 2 — staging2 runtime validation of connection-owned credential guard
+Actor: Builder
 
 ## Accepted baseline
 
@@ -1050,3 +1050,36 @@ Docs updated: credential-broker contract Key operations step 4, Settings Code Ma
 ### Handoff to Reviewer
 
 Reviewer: inspect `cee882c` (diff `efae006..cee882c`). On approval of that exact SHA, the Builder will promote it to `staging` through the existing guarded workflow, verify CI and the bundle, collect the staging2 runtime evidence (including the real named-lock behaviour), and continue to Phase 2 closeout. Not started: Phase 3. Production untouched.
+
+
+## Reviewer decision — connection-owned guard `cee882c` (2026-10-07)
+
+Verdict: Proceed with safeguards
+
+Reviewer independently inspected exact pushed candidate `cee882c9a48c3a2370f930aa4a6b21848f40fb8c` and the relevant guard/rotation source.
+
+The prior blocker is closed at source level:
+
+- the 60-second lease/options-row mechanism is removed;
+- credential mutation exclusion is now a database named lock owned by the live database connection;
+- a live holder has no time-based expiry;
+- save, disconnect and rotation share the same Security-owned guard;
+- ownership is proven before staging a key generation, replacing stored secrets, writing connection state, removing a connection, and retiring generations;
+- loss of ownership fails closed and rotation keeps older generations rather than reporting success;
+- deterministic regressions cover save-first, rotation-first, long-running holder, connection-drop recovery and loss-before-retirement cases.
+
+The exact candidate is approved for the already-authorised **staging2-only** validation path. This is not Phase 2 acceptance and is not production approval.
+
+### Builder next action — bounded staging validation
+
+1. Promote exact SHA `cee882c9a48c3a2370f930aa4a6b21848f40fb8c` to the existing `staging` boundary only. Do not alter the deployment workflow, SSH path, sync scope or production state.
+2. Verify CI and deployment correspond to that exact candidate.
+3. On staging2, prove the real database supports the required `GET_LOCK` / `IS_USED_LOCK` / `RELEASE_LOCK` semantics and that the QSD guard behaves fail-closed on acquisition/ownership failure.
+4. Collect the already-required real WordPress/database evidence: encrypted-at-rest option storage, server-derived caller/user binding, request-key issue/consume/replay/expiry/binding behaviour, no-secret REST/audit output, rotation/re-seal, and one bounded read-only Rezdy staging connection check through the broker.
+5. Do not expose any credential, request key, request-key hash, wrapping/data key or provider-auth URL containing the key.
+6. Run/retain deterministic `npm test` and `npm run docs:check` evidence for the exact promoted candidate.
+7. Update this same file with exact staging SHA, workflow/run evidence and safe runtime results, then hand back to Reviewer.
+
+Safeguard: if staging2 does not support the required named-lock semantics, or if the runtime shows that WordPress/database reconnection can bypass ownership checks, stop and report the evidence. Do not invent another lock system in the same cycle.
+
+Phase 3 remains blocked. Production remains prohibited.
