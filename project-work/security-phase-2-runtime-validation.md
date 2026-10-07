@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: AWAITING REVIEWER REVIEW
 Phase: Security Phase 2 — make credential guard non-expiring for live holder
-Actor: Builder
+Actor: Reviewer
 
 ## Accepted baseline
 
@@ -1006,3 +1006,47 @@ Keep the shared Security-owned guard architecture, but replace/fix the lease sem
 7. Run `npm test` and `npm run docs:check`, push the bounded correction to the same topic branch, then continue the Security workload.
 
 Do not deploy `efae006` to staging. No other Phase A–E architecture is reopened.
+
+
+## Builder correction — connection-owned guard, no lease (2026-10-07)
+
+Bounded correction for the Reviewer's finding on `efae006`. The shared Security-owned guard architecture is kept; only its ownership mechanism changed. Keyring, broker, UI, API and output are unchanged.
+
+- **Commit:** `cee882c9a48c3a2370f930aa4a6b21848f40fb8c` (single commit on `efae006`), pushed to `docs/settings-security-roadmap`.
+- **Remote (`git ls-remote`):** `docs/settings-security-roadmap` `cee882c`; `staging` `81f749d` (unchanged, nothing deployed); `main` `da93493` (unchanged).
+
+### Against the Reviewer's items
+
+1. **Ownership tied to the live connection.** `WpdbCredentialMutationGuard` is now a database named lock (`GET_LOCK(name, 10)`). The options row, token, `expires_at` and 60 s lease are gone. The lock belongs to the holder's database connection and cannot expire while it runs. The name is scoped to the site (`DB_NAME` + options table), because named locks are server-wide.
+2. **Ownership proven before each commit.** New `CredentialMutationGuard::assertHeld()` checks that `IS_USED_LOCK(name)` equals this request's `CONNECTION_ID()`, and that it is the same connection that acquired the lock. It is called immediately before:
+   - rotation: `stage`, `replaceSecrets`, `retireUnreferenced`;
+   - save: the first-generation seal and `store->write`;
+   - disconnect: `store->remove`.
+
+   Failure throws `CredentialMutationLost`: save and disconnect answer 409, and rotation reports failure with every generation kept.
+3. **Recovery never admits a second writer while the first can resume.** The database frees a crashed holder's lock when its connection ends. While the guard is held, `$wpdb->reconnect_retries` is set to 0 and restored on release. A holder whose connection drops therefore cannot transparently reconnect and write on a new connection without the lock: wpdb ends the request instead. `assertHeld()` also catches any ownership loss on a live connection.
+4. **Fails closed.** Busy after the 10 s wait: nothing runs, 409. `GET_LOCK` NULL (error) is treated as busy. Non-re-entrant: if this connection already owns the lock, the guard refuses, since MySQL would let it re-enter.
+5. **One shared guard.** Secret/config saves, disconnect and rotation still share it. No new credential system, route or Platform ID. New file: `Security/CredentialMutationLost.php`.
+6. **Deterministic regressions** use a named-lock double (`tests/support-credential-guard.php`): a server-wide lock owned per connection, re-entrant per connection, freed on connection drop, no expiry.
+   - **Long-running holder:** a rotation holds the guard while a second connection repeatedly attempts save, disconnect and rotation. All are refused with 409. The holder still owns the guard at its commit and completes. Reconnection is 0 while held and restored after.
+   - **Crash recovery:** a lock held by another open connection still blocks. Once that connection ends, the next request takes the guard.
+   - **Lost ownership:** after the holder's connection drops and another request takes the guard, `assertHeld()` fails. A rotation that loses its connection after replacement stops before retiring, reports "lost its lock … No older key was retired", keeps both generations, every key opens, and the report has no secret or key id. The next rotation completes.
+   - The existing save-first, rotation-first, config-during-rotation and disconnect-during-rotation cases are unchanged and pass.
+7. **Validation (local, `cee882c`):**
+   - `npm test` exit 0 (PHP tests, typecheck, build, 24/24 contract/regression scripts);
+   - `contract:settings-station` 68 checks. New checks: named lock with no lease/expiry; reconnection off and ownership proven by connection; rotation asserts before stage/replace/retire; save asserts before write. The old "atomic insert" check was replaced.
+   - `npm run docs:check` passed (46 Markdown files, 19 Code Maps).
+
+Docs updated: credential-broker contract Key operations step 4, Settings Code Map, Settings backend `CLAUDE.md`.
+
+### Limitations for Reviewer
+
+- The lock semantics are proven against a double, not real MySQL/MariaDB. Real `GET_LOCK`/`IS_USED_LOCK`/`RELEASE_LOCK` behaviour and the reconnect-off path still need the staging2 real-runtime evidence required by Phase 2 safeguard 2.
+- "Past 60 seconds" is shown structurally: the guard has no clock, and the contract forbids `expires_at`/`LEASE`/`time()` in it. The test does not sleep.
+- With reconnection off, a request that loses its database connection mid-hold ends (wpdb `dead_db`) instead of continuing. This is intended fail-closed behaviour, and its effect is limited to that request.
+- On PHP < 8.2 with the non-default `mysqli.reconnect=On`, `mysqli_ping` could reconnect beneath wpdb. `assertHeld()` still detects the new connection id before the next write. That ini option was removed in PHP 8.2.
+- The guard's old options row `qsd_settings_credential_guard` was never deployed (`efae006` not on staging), so no cleanup is needed.
+
+### Handoff to Reviewer
+
+Reviewer: inspect `cee882c` (diff `efae006..cee882c`). On approval of that exact SHA, the Builder will promote it to `staging` through the existing guarded workflow, verify CI and the bundle, collect the staging2 runtime evidence (including the real named-lock behaviour), and continue to Phase 2 closeout. Not started: Phase 3. Production untouched.
