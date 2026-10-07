@@ -1083,3 +1083,24 @@ The exact candidate is approved for the already-authorised **staging2-only** val
 Safeguard: if staging2 does not support the required named-lock semantics, or if the runtime shows that WordPress/database reconnection can bypass ownership checks, stop and report the evidence. Do not invent another lock system in the same cycle.
 
 Phase 3 remains blocked. Production remains prohibited.
+
+
+## Builder preflight — staging promotion of `cee882c` blocked by executor permission (2026-10-07)
+
+Status stays `BUILDER ACTION REQUIRED`. Builder still owns the staging2 validation step. Nothing was promoted and nothing was deployed.
+
+- **Read-only checks passed:**
+  - `origin/staging` `81f749d7cf35b232369cf6af9db94fe6a312f2be` is an ancestor of `cee882c9a48c3a2370f930aa4a6b21848f40fb8c`, so the promotion is a fast-forward;
+  - `.github/` is unchanged between them (0 diff lines), so the workflow, paths and scope would be as before;
+  - `origin/docs/settings-security-roadmap` = `cee882c`.
+- **Blocked:** Builder's local permission guard (Claude Code auto-mode classifier, "Production Deploy") refused `git push origin cee882c…:refs/heads/staging`. This is an executor capability block, not a repository, architecture or source finding. It is the same block recorded for the `68a95c2` promotion, which the Owner then approved locally.
+- **Required execution surface:** an Owner-approved push of exactly `cee882c9a48c3a2370f930aa4a6b21848f40fb8c` to `staging`. Either the Owner approves that push in the Builder session, or the Owner runs it directly: `git push origin cee882c9a48c3a2370f930aa4a6b21848f40fb8c:refs/heads/staging`.
+- **Builder has no browser or WordPress session.** Once deployed, Builder can verify CI, the deployed bundle and anonymous route protection. The authenticated runtime evidence needs an administrator in `/station/` → Services → Settings → Security → API Keys:
+  - Secure storage "Ready";
+  - Rezdy staging key Save;
+  - Test connection;
+  - Rotate encryption key, twice. Two successful rotations show that real `GET_LOCK`/`IS_USED_LOCK`/`RELEASE_LOCK` acquire, prove ownership and release on staging2's database;
+  - the validation report.
+- **Not reachable through the QSD UI:** the fail-closed contention case (a second writer refused while the guard is held). Exercising it on staging2 would need either concurrent administrator requests or a guard self-check in the validation report. The latter is a source change for a new candidate, so it was not added in this cycle. Reviewer to decide whether the deterministic regressions plus a successful real-database rotation are sufficient, or whether a bounded guard self-check is authorised.
+
+Not started: Phase 3. Production untouched. `main` unchanged (`da93493`).
