@@ -8,7 +8,9 @@ namespace QSD\Platform\Modules\Settings\Security;
  * Every write to the connection option (secret save, configuration save,
  * disconnect) and every key rotation runs inside `hold()`, so a save can never
  * seal under a generation while rotation retires it, and rotation can never
- * reach its commit while a save is in flight. Not re-entrant.
+ * reach its commit while a save is in flight. Not re-entrant. Ownership never
+ * expires under a live holder, and every credential write first calls
+ * `assertHeld()`.
  */
 interface CredentialMutationGuard
 {
@@ -21,4 +23,12 @@ interface CredentialMutationGuard
      * @throws CredentialMutationBusy when the guard cannot be acquired in time; nothing has run
      */
     public function hold(\Closure $critical): mixed;
+
+    /**
+     * Proves, immediately before a credential write, that this holder still
+     * owns the guard.
+     *
+     * @throws CredentialMutationLost when ownership cannot be proven; the caller writes nothing more
+     */
+    public function assertHeld(): void;
 }

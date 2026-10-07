@@ -27,6 +27,7 @@ use QSD\Platform\Modules\Settings\Security\CredentialCipherUnavailable;
 use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 use QSD\Platform\Modules\Settings\Security\CredentialMutationBusy;
 use QSD\Platform\Modules\Settings\Security\CredentialMutationGuard;
+use QSD\Platform\Modules\Settings\Security\CredentialMutationLost;
 
 /**
  * SettingsConnectionsController — the Connections/Security Tool's admin REST
@@ -41,8 +42,9 @@ use QSD\Platform\Modules\Settings\Security\CredentialMutationGuard;
  * only when the stored value decrypts under the keyring.
  * An empty or omitted secret leaves the stored value unchanged; `clear` names
  * secret fields to remove. Every write (save and disconnect) runs inside the
- * CredentialMutationGuard that key rotation also holds; when it is busy the
- * request changes nothing and answers 409.
+ * CredentialMutationGuard that key rotation also holds, and proves it still
+ * owns the guard before each write; when the guard is busy or ownership is
+ * lost the request changes nothing more and answers 409.
  *
  * Permission: reading safe state and saving non-secret configuration need
  * `manage_qsd`. Setting, replacing or clearing a secret, and disconnecting
@@ -129,7 +131,7 @@ class SettingsConnectionsController
         // generation this save seals under, nor re-seal around this write.
         try {
             return $this->guard->hold(fn(): \WP_REST_Response => $this->saveHeld($definition, $values, $secrets, $clear));
-        } catch (CredentialMutationBusy $e) {
+        } catch (CredentialMutationBusy | CredentialMutationLost $e) {
             return $this->error($e->getMessage(), 409);
         }
     }
@@ -181,6 +183,7 @@ class SettingsConnectionsController
         // Sealed only once the request is otherwise valid, so a refused save
         // never creates the keyring's first generation.
         if ($incoming !== []) {
+            $this->guard->assertHeld(); // a first save stages the keyring's first generation
             try {
                 $cipher = $this->keyring->sealingCipher();
             } catch (CredentialCipherUnavailable $e) {
@@ -194,6 +197,7 @@ class SettingsConnectionsController
             unset($vault[$key]);
         }
 
+        $this->guard->assertHeld();
         $this->store->write($definition->key, ['config' => $config, 'secrets' => $vault]);
         return rest_ensure_response(['success' => true, 'connection' => $this->project($definition)]);
     }
@@ -205,8 +209,11 @@ class SettingsConnectionsController
             return $this->error('Unknown connection provider.', 404);
         }
         try {
-            $this->guard->hold(fn() => $this->store->remove($definition->key));
-        } catch (CredentialMutationBusy $e) {
+            $this->guard->hold(function () use ($definition): void {
+                $this->guard->assertHeld();
+                $this->store->remove($definition->key);
+            });
+        } catch (CredentialMutationBusy | CredentialMutationLost $e) {
             return $this->error($e->getMessage(), 409);
         }
         return rest_ensure_response(['success' => true, 'connection' => $this->project($definition)]);

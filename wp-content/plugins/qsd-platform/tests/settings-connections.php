@@ -67,6 +67,7 @@ use QSD\Platform\Modules\Settings\Http\SettingsConnectionsController;
 use QSD\Platform\Modules\Settings\Security\CredentialCipher;
 use QSD\Platform\Modules\Settings\Security\CredentialKeyring;
 use QSD\Platform\Modules\Settings\Security\CredentialMutationBusy;
+use QSD\Platform\Modules\Settings\Security\CredentialMutationLost;
 use QSD\Platform\Modules\Settings\Security\CredentialRotation;
 use QSD\Platform\Modules\Settings\Security\WpdbCredentialMutationGuard;
 
@@ -84,7 +85,7 @@ const SECRET = 'rz-live-SECRET-9f3a7c';
 $store = new ConnectionStore();
 $wrapRaw = random_bytes(32);
 $keyring = new CredentialKeyring([new CredentialCipher($wrapRaw)]);
-$guard = new WpdbCredentialMutationGuard(null, null, 0);
+$guard = new WpdbCredentialMutationGuard(0);
 $controller = new SettingsConnectionsController($store, $keyring, $guard);
 $controller->registerRoutes();
 $credentials = new ConnectorCredentials($store, $keyring);
@@ -232,7 +233,7 @@ check_settings($keyring->status() === ['generations' => 2, 'openable' => 1] && $
 
 // ── Save and rotation share one guard: both orderings ───────────────────
 $__settingsOptions = [];
-$wpdb->rows = [];
+$wpdb->lockServer->locks = [];
 $controller->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'staging'], 'secrets' => ['api_key' => SECRET]]));
 $rotation = new CredentialRotation($store, $keyring, $guard);
 
@@ -240,7 +241,7 @@ $rotation = new CredentialRotation($store, $keyring, $guard);
 $duringSave = null;
 $guard->hold(static function () use ($rotation, &$duringSave): void { $duringSave = $rotation->rotate(); });
 check_settings($duringSave['ok'] === false && str_contains((string) $duringSave['error'], 'in progress') && $keyring->status()['generations'] === 1, 'a rotation that starts during a save changes nothing and reports failure');
-check_settings(!isset($wpdb->rows[WpdbCredentialMutationGuard::ROW]), 'the guard is released after the save');
+check_settings($wpdb->lockServer->locks === [] && $wpdb->reconnect_retries === 5, 'the guard is released after the save and reconnection is restored');
 
 // Rotation first: a save that arrives mid-rotation is refused and writes nothing.
 $sealedBefore = $__settingsOptions[ConnectionStore::OPTION]['value']['rezdy']['secrets']['api_key'];
@@ -267,16 +268,53 @@ $disconnectDuringRotation = null;
 }))->rotate();
 check_settings($disconnectDuringRotation->get_status() === 409 && $credentials->secret('rezdy', 'api_key') === 'rz-AFTER-ROTATION', 'a disconnect during a rotation is refused and removes nothing');
 
-// A lease left by a crashed request expires and is broken; a live one is not.
-$now = 1_900_000_000;
-$timed = new WpdbCredentialMutationGuard(static function () use (&$now): int { return $now; }, static function () use (&$now): void { $now++; }, 5);
-$wpdb->rows[WpdbCredentialMutationGuard::ROW] = json_encode(['token' => 'crashed', 'expires_at' => $now - 1]);
-check_settings($timed->hold(static fn(): string => 'ran') === 'ran' && !isset($wpdb->rows[WpdbCredentialMutationGuard::ROW]), 'an expired lease from a crashed request is broken and released');
-$wpdb->rows[WpdbCredentialMutationGuard::ROW] = json_encode(['token' => 'live', 'expires_at' => $now + 60]);
-$ran = false;
-try { $timed->hold(static function () use (&$ran): void { $ran = true; }); $busy = false; } catch (CredentialMutationBusy) { $busy = true; }
-check_settings($busy && !$ran && json_decode($wpdb->rows[WpdbCredentialMutationGuard::ROW], true)['token'] === 'live', 'a live lease times out the waiter, which runs nothing and leaves the holder in place');
-unset($wpdb->rows[WpdbCredentialMutationGuard::ROW]);
+// A live holder is never overtaken, however long it runs. The lock belongs to
+// its database connection and has no expiry: another request (another
+// connection) is turned away well past the old 60-second lease, and the holder
+// still owns the guard when it commits.
+$other = (new GuardWpdb($wpdb->lockServer));
+$asOther = static function (Closure $request) use (&$wpdb, $other): mixed {
+    $holder = $wpdb;
+    $wpdb = $other;
+    try { return $request(); } finally { $wpdb = $holder; }
+};
+$otherController = new SettingsConnectionsController($store, $keyring, new WpdbCredentialMutationGuard(0));
+$otherRotation = new CredentialRotation($store, $keyring, new WpdbCredentialMutationGuard(0));
+$retriesWhileHeld = null;
+$overtake = [];
+$sealedBefore = $__settingsOptions[ConnectionStore::OPTION]['value']['rezdy']['secrets']['api_key'];
+$long = (new CredentialRotation($store, $keyring, $guard, static function (string $phase) use ($asOther, $otherController, $otherRotation, &$overtake, &$retriesWhileHeld, &$wpdb): void {
+    if ($phase !== 'planned') return;
+    $retriesWhileHeld = $wpdb->reconnect_retries;
+    // Every attempt here stands for a request arriving long after 60 seconds.
+    foreach (range(1, 3) as $attempt) {
+        $overtake[] = $asOther(static fn() => $otherController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'secrets' => ['api_key' => 'rz-OVERTAKE']])))->get_status();
+        $overtake[] = $asOther(static fn() => $otherController->disconnect(new WP_REST_Request(['provider' => 'rezdy'])))->get_status();
+        $overtake[] = $asOther(static fn() => $otherRotation->rotate())['ok'] ? 'rotated' : 409;
+    }
+}))->rotate();
+check_settings(array_unique($overtake) === [409], 'another request is refused for as long as the holder runs; the guard never expires under a live holder');
+check_settings($long['ok'] === true && $credentials->secret('rezdy', 'api_key') === 'rz-AFTER-ROTATION' && $keyring->status() === ['generations' => 1, 'openable' => 1], 'the long-running holder still owns the guard at its commit and completes');
+check_settings($retriesWhileHeld === 0 && $wpdb->reconnect_retries === 5 && $wpdb->lockServer->locks === [], 'database reconnection is off while the guard is held, and restored on release');
+
+// A crashed holder's lock is freed by the database with its connection, so
+// the next request can proceed: no lease and no clock.
+$crashed = (new GuardWpdb($wpdb->lockServer));
+$crashed->lockServer->locks[WpdbCredentialMutationGuard::lockName()] = [$crashed->connectionId, 1];
+check_settings($asOther(static fn() => $otherController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'staging']])))->get_status() === 409, 'while the crashed request\'s connection is still open, its lock still holds');
+$crashed->dropConnection();
+check_settings($asOther(static fn() => $otherController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'staging']])))->get_status() === 200, 'once that connection ends, the next request takes the guard');
+
+// A holder that loses its connection never writes on a new one: ownership is
+// proven before each write, so it stops instead of writing.
+$racedBy = null;
+$lost = $guard->hold(static function () use (&$wpdb, $asOther, $otherController, &$racedBy, $guard): string {
+    $wpdb->dropConnection(); // the request's connection ended; another request now takes the guard
+    $racedBy = $asOther(static fn() => $otherController->saveConnection(new WP_REST_Request(['provider' => 'rezdy', 'values' => ['environment' => 'staging']])))->get_status();
+    try { $guard->assertHeld(); return 'held'; } catch (CredentialMutationLost) { return 'lost'; }
+});
+check_settings($lost === 'lost' && $racedBy === 200, 'after its connection ends, the holder can no longer prove ownership, while the next request proceeds');
+$wpdb->lockServer->locks = [];
 
 // ── Server configuration sources (constants are process-wide, so last) ───
 define('SECURE_AUTH_KEY', 'put your unique phrase here');

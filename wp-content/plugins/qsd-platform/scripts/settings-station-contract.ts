@@ -167,8 +167,13 @@ check(backend.every((file) => !/WP_CLI::add_command\('qsd credentials'/.test(cod
 const keyring = code('src/Modules/Settings/Security/CredentialKeyring.php');
 check(/hash_hkdf\('sha256'/.test(keyring) && /WRAP_CONTEXT\s*= 'qsd-credential-wrap:v1'/.test(keyring) && /keyring:v1:/.test(keyring) && /'SECURE_AUTH_KEY', 'SECURE_AUTH_SALT'/.test(keyring), 'the keyring wraps its data key under an HKDF key from the WordPress secret keys, with QSD context separation');
 check(!/delete_option|unset\(\$ring\['keys'\]/.test(keyring), 'the keyring never deletes a generation outside a completed rotation');
-check(/->guard->hold\(fn\(\): \\WP_REST_Response => \$this->saveHeld\(/.test(connectionsController) && /->guard->hold\(fn\(\) => \$this->store->remove\(/.test(connectionsController) && !/function saveConnection[\s\S]*?\$this->store->(write|remove)\([\s\S]*?function saveHeld/.test(connectionsController), 'every connection write (save and disconnect) runs inside the credential mutation guard');
+check(/->guard->hold\(fn\(\): \\WP_REST_Response => \$this->saveHeld\(/.test(connectionsController) && /->guard->hold\(function \(\) use \(\$definition\): void \{\s*\$this->guard->assertHeld\(\);\s*\$this->store->remove\(/.test(connectionsController) && !/function saveConnection[\s\S]*?\$this->store->(write|remove)\([\s\S]*?function saveHeld/.test(connectionsController), 'every connection write (save and disconnect) runs inside the credential mutation guard');
 check(/->guard->hold\(fn\(\): array => \$this->rotateHeld\(\)\)/.test(code('src/Modules/Settings/Security/CredentialRotation.php')), 'rotation runs entirely inside the same credential mutation guard');
-check(/\$wpdb->insert\(\$wpdb->options, \['option_name' => self::ROW/.test(code('src/Modules/Settings/Security/WpdbCredentialMutationGuard.php')), 'the guard is taken with an atomic unique-key insert, not the cached options API');
+const guardSource = code('src/Modules/Settings/Security/WpdbCredentialMutationGuard.php');
+check(/SELECT GET_LOCK\(%s, %d\)/.test(guardSource) && /SELECT RELEASE_LOCK\(%s\)/.test(guardSource) && !/expires_at|\bLEASE\b|\btime\(\)/.test(guardSource), 'the guard is a connection-owned database named lock with no lease or expiry');
+check(/\$wpdb->reconnect_retries = 0;/.test(guardSource) && /IS_USED_LOCK\(%s\)/.test(guardSource), 'while held, reconnection is off and ownership is proven against this connection');
+const rotationSource = code('src/Modules/Settings/Security/CredentialRotation.php');
+check(/assertHeld\(\);\s*\$this->keyring->stage\(/.test(rotationSource) && /assertHeld\(\);\s*\$this->store->replaceSecrets\(/.test(rotationSource) && /assertHeld\(\);\s*\$this->keyring->retireUnreferenced\(/.test(rotationSource), 'rotation proves ownership before staging, replacing and retiring');
+check(/assertHeld\(\);\s*\$this->store->write\(/.test(connectionsController), 'a connection save proves ownership before it writes');
 
 console.log(`Settings Station contract passed: ${checks} checks.`);

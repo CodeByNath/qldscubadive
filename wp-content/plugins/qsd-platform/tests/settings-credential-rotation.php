@@ -54,7 +54,7 @@ const OTHER   = 'other-SECRET-7b2e';
 $wrapRaw = random_bytes(32);
 $keyring = new CredentialKeyring([new CredentialCipher($wrapRaw)]);
 $store = new ConnectionStore();
-$guard = new WpdbCredentialMutationGuard(null, null, 0);
+$guard = new WpdbCredentialMutationGuard(0);
 $rotation = new CredentialRotation($store, $keyring, $guard);
 $credentials = new ConnectorCredentials($store, $keyring);
 
@@ -141,7 +141,21 @@ $snapshot = serialize($__options);
 $busy = null;
 $guard->hold(static function () use ($rotation, &$busy): void { $busy = $rotation->rotate(); });
 check_rotation($busy['ok'] === false && str_contains((string) $busy['error'], 'in progress') && serialize($__options) === $snapshot, 'while another credential change holds the guard, rotation writes nothing and reports failure');
-check_rotation(!isset($wpdb->rows[WpdbCredentialMutationGuard::ROW]), 'the guard row is gone once every holder has finished');
+check_rotation($wpdb->lockServer->locks === [], 'the guard lock is free once every holder has finished');
+
+// Ownership lost mid-rotation (the connection ended after the replacement
+// write): rotation proves ownership before retiring, so it stops there, keeps
+// every generation, and never reports success.
+$seed();
+$oldKid = $ringOf()['active'];
+$lostReport = (new CredentialRotation($store, $keyring, $guard, static function (string $phase) use (&$wpdb): void {
+    if ($phase === 'replaced') $wpdb->dropConnection();
+}))->rotate();
+check_rotation($lostReport['ok'] === false && str_contains((string) $lostReport['error'], 'lost its lock') && str_contains((string) $lostReport['error'], 'No older key was retired'), 'a rotation that loses the guard before retiring reports failure');
+check_rotation(isset($ringOf()['keys'][$oldKid]) && count($ringOf()['keys']) === 2 && $credentials->secret('rezdy', 'api_key') === API_KEY && $credentials->secret('other', 'token') === OTHER, 'nothing was retired and every key still opens');
+check_rotation(!$leaks($lostReport) && !str_contains(serialize($lostReport), $oldKid) && $wpdb->reconnect_retries === 5, 'the failure carries no secret or key id, and reconnection is restored');
+$wpdb->lockServer->locks = [];
+check_rotation($rotation->rotate()['ok'] && count($ringOf()['keys']) === 1, 'the next rotation completes');
 
 // Defence in depth: a write that bypassed the guard and landed under the old
 // generation after replacement makes rotation fail without retiring anything.

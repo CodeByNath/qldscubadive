@@ -3,76 +3,81 @@
 namespace QSD\Platform\Modules\Settings\Security;
 
 /**
- * WpdbCredentialMutationGuard — the credential guard as one row in the
- * WordPress options table, taken and released through `$wpdb` directly.
+ * WpdbCredentialMutationGuard — the credential guard as a database named lock
+ * (`GET_LOCK`) on the WordPress database connection.
  *
- * Why not the options API: `add_option()` checks through the object cache and
- * then upserts, so two requests can both believe they hold it. A plain
- * `$wpdb->insert()` hits the options table's unique key: exactly one request
- * inserts the row. Release deletes the row only when it still carries this
- * holder's token. A row left by a crashed request expires after LEASE seconds
- * and is broken with a delete that must match its exact value, so two waiters
- * cannot both break it. The row holds a random token and an expiry only.
+ * Why a named lock: the lock belongs to the holder's database connection. It
+ * never expires while the holder runs, however long that takes, and the
+ * server frees it the moment that connection ends (a crashed or killed
+ * request), so recovery needs no lease or clock.
+ *
+ * A holder that loses its connection must not resume on a new one without the
+ * lock. While held, `$wpdb` reconnection is switched off (a lost connection
+ * ends the request instead), and `assertHeld()` proves before each credential
+ * write that this same connection still owns the lock.
+ *
+ * Not re-entrant: MySQL lets one connection take a lock it already holds, so
+ * the guard refuses when this connection is already the owner.
  */
 final class WpdbCredentialMutationGuard implements CredentialMutationGuard
 {
-    public const ROW   = 'qsd_settings_credential_guard';
-    public const LEASE = 60;
-    public const WAIT  = 10;
+    public const WAIT = 10;
 
-    /** @var \Closure(): int */
-    private \Closure $clock;
+    /** The connection id that holds the lock, while `hold()` runs. */
+    private ?string $connection = null;
 
-    /** @var \Closure(): void */
-    private \Closure $pause;
-
-    /**
-     * @param (\Closure(): int)|null  $clock
-     * @param (\Closure(): void)|null $pause called between attempts
-     */
-    public function __construct(?\Closure $clock = null, ?\Closure $pause = null, private int $wait = self::WAIT)
+    public function __construct(private int $wait = self::WAIT)
     {
-        $this->clock = $clock ?? static fn(): int => time();
-        $this->pause = $pause ?? static function (): void { usleep(100_000); };
     }
 
     public function hold(\Closure $critical): mixed
     {
-        $token = $this->acquire();
+        global $wpdb;
+        $name = self::lockName();
+        $connection = (string) $wpdb->get_var('SELECT CONNECTION_ID()');
+        if ($this->connection !== null || $this->owner($name) === $connection) {
+            throw new CredentialMutationBusy();
+        }
+        if ((string) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, %d)', $name, $this->wait)) !== '1') {
+            throw new CredentialMutationBusy();
+        }
+
+        $retries = $wpdb->reconnect_retries;
+        $wpdb->reconnect_retries = 0;
+        $this->connection = $connection;
         try {
             return $critical();
         } finally {
-            $this->release($token);
+            $this->connection = null;
+            $wpdb->reconnect_retries = $retries;
+            $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $name));
         }
     }
 
-    private function acquire(): string
+    public function assertHeld(): void
     {
         global $wpdb;
-        $token = bin2hex(random_bytes(16));
-        $deadline = ($this->clock)() + $this->wait;
-        while (true) {
-            $value = (string) json_encode(['token' => $token, 'expires_at' => ($this->clock)() + self::LEASE]);
-            if ($wpdb->insert($wpdb->options, ['option_name' => self::ROW, 'option_value' => $value, 'autoload' => 'no']) === 1) {
-                return $value;
-            }
-            $held = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", self::ROW));
-            $record = is_string($held) ? json_decode($held, true) : null;
-            if (is_string($held) && (!is_array($record) || (int) ($record['expires_at'] ?? 0) < ($this->clock)())) {
-                // An abandoned lease: break it only if it is still that exact row.
-                $wpdb->delete($wpdb->options, ['option_name' => self::ROW, 'option_value' => $held]);
-                continue;
-            }
-            if (($this->clock)() >= $deadline) {
-                throw new CredentialMutationBusy();
-            }
-            ($this->pause)();
+        if (
+            $this->connection === null
+            || (string) $wpdb->get_var('SELECT CONNECTION_ID()') !== $this->connection
+            || $this->owner(self::lockName()) !== $this->connection
+        ) {
+            throw new CredentialMutationLost();
         }
     }
 
-    private function release(string $value): void
+    /** Named locks are server-wide: the name is scoped to this site's database and table prefix. */
+    public static function lockName(): string
     {
         global $wpdb;
-        $wpdb->delete($wpdb->options, ['option_name' => self::ROW, 'option_value' => $value]);
+        $site = (defined('DB_NAME') ? DB_NAME : '') . '|' . $wpdb->options;
+        return 'qsd_credential_guard_' . substr(hash('sha256', $site), 0, 16);
+    }
+
+    private function owner(string $name): ?string
+    {
+        global $wpdb;
+        $owner = $wpdb->get_var($wpdb->prepare('SELECT IS_USED_LOCK(%s)', $name));
+        return $owner === null ? null : (string) $owner;
     }
 }

@@ -25,7 +25,9 @@ use QSD\Platform\Modules\Settings\Connections\ConnectionStore;
  * The whole operation runs inside the CredentialMutationGuard that every
  * credential write also holds, so no save can seal under a generation while
  * it is being retired, and rotation never commits while a save is in flight.
- * If the guard is busy, rotation changes nothing and reports failure.
+ * Ownership is proven before staging, replacing and retiring. If the guard is
+ * busy, rotation changes nothing; if ownership is lost, it stops before the
+ * next write with every generation kept. Either way it reports failure.
  *
  * The report carries provider:field slot names and counts only — never a key,
  * a wrapped key, a key id, or a plaintext.
@@ -60,6 +62,8 @@ final class CredentialRotation
             return $this->guard->hold(fn(): array => $this->rotateHeld());
         } catch (CredentialMutationBusy $e) {
             return $this->failed($e->getMessage());
+        } catch (CredentialMutationLost) {
+            return $this->failed('The rotation lost its lock before it finished. No older key was retired, and every key still works.');
         }
     }
 
@@ -76,8 +80,10 @@ final class CredentialRotation
         }
         ($this->checkpoint)('planned');
 
+        $this->guard->assertHeld();
         $this->keyring->stage($nextKey);
         if ($plan !== []) {
+            $this->guard->assertHeld();
             $this->store->replaceSecrets($plan, $expected);
         }
         ($this->checkpoint)('replaced');
@@ -89,6 +95,7 @@ final class CredentialRotation
         if ($left !== [] || $lost !== []) {
             return $this->failed('The rotation could not confirm every saved API key on the new key. No older key was retired, and every key still works.', $lost);
         }
+        $this->guard->assertHeld();
         $this->keyring->retireUnreferenced($this->referencedKids());
 
         return ['ok' => true, 'resealed' => $resealed, 'unreadable' => [], 'error' => null];
