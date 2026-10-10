@@ -1,5 +1,16 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
+> **CURRENT OWNER DECISION — 2026-10-10 (OVERRIDES OLDER ACTION ITEMS BELOW)**
+>
+> **Do not request a Rezdy key, WordPress administrator session, screenshots, connection tests, key rotations or validation reports now.** Those tasks are **DEFERRED until the Account Station global Connections/Security UI is integrated and reviewed**. Historical instructions below describe prior handoffs, NOT the next Builder action.
+>
+> **Current status:** Security Phase 2 live validation DEFERRED; the implementation is *not* certified or accepted for live-secret operations. Existing staging deployment `cee882c` is not evidence of real-secret runtime validation. Preserve all security controls and do not widen provider access.
+>
+> **NEXT BUILDER ACTION:** Resolve the existing Security topic branch without new security feature work: read repository authority and independently compare `main` (`da93493`), `staging` (`cee882c`) and `docs/settings-security-roadmap` (`cee882c`). Verify promotion ancestry, relevant CI, diff, and that no production/deploy paths change. Prepare a safe source-only integration/branch-release handoff for Reviewer. **Do not push to main, delete the occupied topic branch or declare Security Phase 2 complete without Reviewer approval.** If any integration would compromise platform/security, STOP. Once Reviewer approves and branch capacity is released, start `project-work/account-station-transfer-batch.md` as one continuous VS Code workload with five local phase commits and a stop before push.
+>
+> **No Rezdy or admin-session input is necessary for this next action.** This header controls sequencing; earlier `Status: BUILDER ACTION REQUIRED` entries and manual UI steps are historical.
+
+
 Status: DEFERRED — LIVE PROVIDER VALIDATION PENDING; TOPIC BRANCH HANDOFF REQUIRED
 Phase: Security Phase 2 — staging2 runtime validation of connection-owned credential guard
 Actor: Reviewer for verified code integration and branch release; Builder only on separately assigned bounded action
