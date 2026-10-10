@@ -6,7 +6,8 @@ Current state, open work, and the decisions behind them. Update this file as wor
 
 - Extracted from CompuZign and renamed to QSD: Service and Category Stations, Platform Identifier Station (`QSDS`/`QSDC`), lifecycle engine, drawer kit and notifications, Station Manager, Admin Station at `/station/`, QSD Shell theme.
 - Verified on a real WordPress (local) and on staging2: login gate, create → Overview Save → children → Publish → Disable/Enable → Archive/Trash, restore and permanent delete through the API.
-- Phase 6 lifecycle completion and the Settings foundation are accepted on `main`.
+- Phase 6 lifecycle completion and the Settings foundation are accepted on `main`. Security Phase 2's connection-owned credential guard (`cee882c`) is integrated to `main`; its live WordPress/Rezdy runtime validation remains explicitly deferred (see below), never claimed as passed.
+- Account Station (singleton Account → Settings → Tools → Profile/Brand, Phases A–D) is built and committed locally on topic branch `account-station-transfer`, **not yet pushed** — see "Account Station transfer" below.
 - `npm test` and CI pass. Pushing `staging` deploys to staging2 only.
 
 ## Decisions (do not undo without the owner)
@@ -27,6 +28,19 @@ Current state, open work, and the decisions behind them. Update this file as wor
 4. **Atomic Publish — done (Phase 6.4, accepted) as stop-on-settle-failure.** `publishService` and `publishCategory` stop when settle fails: no activation request, no success, record unchanged (`regression:publish-activation-guard`). No new server `publish` route was added; the two-request gap stays in the lifecycle Code Map's *Known gaps*.
 5. **Trash confirmation — done (Phase 6.5, accepted).** A saved Service's drawer Move to Trash opens a confirmation in `ServiceDrawerDialogs` (lifecycle contract §11); Cancel sends nothing, Confirm trashes once, failure keeps the dialog open. The local `new` discard is unchanged.
 6. **Regression closeout — done (Phase 6.6, accepted).** `regression:drawer-trash-confirm` covers Service and Category drawer Trash confirmation; `drawer-module-entry` pins the dialog wiring; Bin, reachable-Category, Publish-guard, and PHP transition tests remain in `npm test`.
+
+## Account Station transfer (Phases A–D built, local, not pushed)
+
+Owner-authorised port/adapt from `CodeByNath/compuzign-platform` (reference only, read-only; nothing from it was copied verbatim — see [Account Station](code-map/account-station.md) for the exact mechanism). One continuous local workload on topic branch `account-station-transfer`, one commit per phase, no push until Reviewer/Owner authorises the whole chain.
+
+- **Phase A — foundation (`account: phase A foundation`).** Four permanent Platform ID prefixes (`QSDA`/`QSDAS`/`QSDAST`/`QSDASTP`) added to `PlatformIdentifierPolicy`. `AccountRepository` (one options-row aggregate, `$wpdb` compare-and-swap commit loop) and `AccountIdentity` (idempotent, resumable bootstrap of the four singleton nodes through the existing `PlatformIdentifierStation::ensure()`) are new; no parallel identity mechanism.
+- **Phase B — Brand lifecycle (`account: phase B profile brand`).** `AccountBrand` (draft/settle/Publish/Disable/Enable as a narrow two-state slice, not the full `StationLifecycle` engine) and `AccountMedia` (content-hash-addressed logo/favicon storage, not the WordPress Media Library).
+- **Phase C — frontend/Admin integration (`account: phase C admin integration`).** `resources/ts/account-station/` registers with Station Manager exactly as Service does; the Home card is one `ReadBlock` (singleton, not a catalogue); the drawer implements `DrawerContent` directly (one module, no generic multi-module composition needed); the footer is `EntityActionFooter` directly (Disable/Enable, Publish — never `CanonicalEntityFooter`, whose overflow always offers Archive/Trash).
+- **Phase D — global Settings placement (`account: phase D global settings placement`).** The existing Tools (Rezdy importer) and Security (API Keys) Settings panels are now *also* reachable from Account (`stationIds` gained `'account'`) — additive; Services keeps its own reachability unchanged. Service fields (`General`) stays Services-only, an Owner-excluded metafield. The Settings/Security backend, credential broker, keyring, rotation and `qsd/v1` routes are completely untouched.
+
+**Deliberate, Owner-approved singleton carve-out, every phase:** no Archive/Trash/Restore/Delete route, footer control, or drawer action exists anywhere in `Modules/Account`/`account-station/`, and none should be added without a separate, explicit Owner decision — `npm run contract:account-registration` enforces this at the source level.
+
+**Not done:** Phase E (closeout/handover) and the push itself. Retiring Services' own Tools/Security reachability is explicitly deferred — the batch gates that on regression proof the Owner can see, not an automated check alone. The live WordPress/Rezdy credential-guard validation deferred under Security Phase 2 (above) is expected to run through this new Account Settings UI once it exists on staging2; it has not run yet and must never be described as passed until it has.
 
 ## Next — Settings → Security completion, UI, then Tools
 
