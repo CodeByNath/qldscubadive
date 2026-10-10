@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: QUEUED — AWAIT SAFE SECURITY SOURCE INTEGRATION AND BRANCH RELEASE
+Status: BUILDER ACTION REQUIRED — Security source integrated to main (`cee882c`) and topic branch retired 2026-10-10; cleared to start
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
