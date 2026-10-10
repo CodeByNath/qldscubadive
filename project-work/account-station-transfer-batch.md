@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: AWAITING REVIEWER/OWNER AUTHORIZATION TO PUSH — all five phases built and committed locally 2026-10-11; nothing pushed
+Status: BUILDER ACTION REQUIRED — PUSH ACCOUNT TOPIC BRANCH FOR INDEPENDENT REVIEW ONLY
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -73,3 +73,12 @@ One continuous local workload on topic branch `account-station-transfer` (branch
 3. Retiring Services' own Tools/Security reachability is explicitly not done in this batch — gated on regression proof the Owner can see, per the batch's own wording.
 
 **Builder next action:** none — stopping here per the Owner's explicit batch authorization ("Stop before pushing... DO NOT push, merge, deploy or self-approve"). Reviewer/Owner: the five commits above are ready to inspect on the local `account-station-transfer` branch. On approval, Builder can push the topic branch to origin as a new topic branch (repository governance currently has capacity: only `main`/`staging`/`Project-work-instructions` exist remotely) and update this file to `AWAITING REVIEWER REVIEW` with the pushed SHA, exactly as the standard Builder source-push handoff requires.
+
+
+## Reviewer decision — local batch handoff (2026-10-11)
+
+**Verdict: Proceed with safeguards** for **topic-branch publication for review only**, NOT acceptance of the five phases, not permission to merge/deploy. The Owner-requested stop-before-push review has occurred. GitHub independently confirms remote `main` = `staging` = `cee882c9a48c3a2370f930aa4a6b21848f40fb8c`, prior Security topic branch gone, and only three permanent remote heads. Five Account phase commits and tests are **Builder-reported local evidence only**; Reviewer cannot independently inspect local-only SHA/diff.
+
+**Bounded Builder next action:** Recheck origin and local clean status; ensure `account-station-transfer` is based on approved main at `cee882c` and contains only the five declared commits in order (`e23833c`, `9403c9b`, `72b734f`, `5dad8d1`, `b13b7e2`). Push **only** `account-station-transfer` to `origin`; verify remote exact HEAD `b13b7e2`; set status `AWAITING REVIEWER REVIEW` with exact full SHAs and test evidence on this same coordination file, then STOP. Do not push main/staging, merge, deploy, start Rezdy credential validation or widen source.
+
+**Required independent review before approval:** Inspect all five diffs and code maps against QSD station/drawer/lifecycle authority; singleton lifecycle carve-out; identity families and read/Save boundaries; AccountMedia security and WP permissions; Settings/Security ownership/API invariants; Services-specific tools/metafields separation; verify UI actual relocation vs additive reachability and old Services path retention. Builder should add focused mounted Preact drawer/card regressions or state precise test gaps when instructed after source review. **Stop** if any mismatch threatens platform architecture; no silent workaround. Live Rezdy/WordPress checks remain deferred; no production authorization.
