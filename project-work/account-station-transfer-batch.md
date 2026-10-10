@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: BUILDER ACTION REQUIRED — PUSH ACCOUNT TOPIC BRANCH FOR INDEPENDENT REVIEW ONLY
+Status: AWAITING REVIEWER REVIEW — account-station-transfer pushed to origin for independent review only
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -82,3 +82,25 @@ One continuous local workload on topic branch `account-station-transfer` (branch
 **Bounded Builder next action:** Recheck origin and local clean status; ensure `account-station-transfer` is based on approved main at `cee882c` and contains only the five declared commits in order (`e23833c`, `9403c9b`, `72b734f`, `5dad8d1`, `b13b7e2`). Push **only** `account-station-transfer` to `origin`; verify remote exact HEAD `b13b7e2`; set status `AWAITING REVIEWER REVIEW` with exact full SHAs and test evidence on this same coordination file, then STOP. Do not push main/staging, merge, deploy, start Rezdy credential validation or widen source.
 
 **Required independent review before approval:** Inspect all five diffs and code maps against QSD station/drawer/lifecycle authority; singleton lifecycle carve-out; identity families and read/Save boundaries; AccountMedia security and WP permissions; Settings/Security ownership/API invariants; Services-specific tools/metafields separation; verify UI actual relocation vs additive reachability and old Services path retention. Builder should add focused mounted Preact drawer/card regressions or state precise test gaps when instructed after source review. **Stop** if any mismatch threatens platform architecture; no silent workaround. Live Rezdy/WordPress checks remain deferred; no production authorization.
+
+## Builder source-push handoff (2026-10-11)
+
+Bounded Reviewer instruction executed exactly: rechecked remote/local state, confirmed `account-station-transfer` is based on approved `main`@`cee882c` (merge-base = `cee882c9a48c3a2370f930aa4a6b21848f40fb8c`, equal to `origin/main`) and contains exactly the five declared commits in order with a clean working tree; pushed **only** `account-station-transfer` to `origin` (no `main`/`staging` touched, no merge).
+
+**Verified remote state:** `origin/account-station-transfer` HEAD = `b13b7e2c6671f95105ee11f08e2a4328011f6549` (new branch, confirmed via `git rev-parse origin/account-station-transfer` after push).
+
+**Exact full-SHA commit chain, oldest first:**
+
+| Full SHA | Commit |
+|---|---|
+| `e23833cbc910296706f1b3600be6e6e5602d498d` | `account: phase A foundation` |
+| `9403c9b2b0f515c4cd19e7b1d62f4474cc641e37` | `account: phase B profile brand` |
+| `72b734fe133099034d4ebe1abcb603436999901e` | `account: phase C admin integration` |
+| `5dad8d191b924bcb7b924df48fd66b05c82f1a02` | `account: phase D global settings placement` |
+| `b13b7e2c6671f95105ee11f08e2a4328011f6549` | `account: phase E documentation validation` (branch HEAD) |
+
+**Test evidence:** unchanged from the Builder handoff above — `npm test` green at `b13b7e2` (typecheck, every PHP test incl. `tests/account-station.php`/`tests/account-brand.php`, build, JS 25/25 incl. `contract:account-registration` at 57 checks, `docs:check` 49 files/20 Code Maps). Not re-run after push since push changes remote location only, not tree content (verified identical by SHA).
+
+**Not done, per the Reviewer's exact bound:** no push of `main`/`staging`, no merge, no deploy, no Rezdy credential validation started, no scope widened beyond the single topic-branch push and this status update.
+
+**Builder next action:** none — stopping here. Reviewer: `account-station-transfer` is now pushed and independently inspectable on `CodeByNath/qldscubadive` at `b13b7e2`. Awaiting your review verdict.
