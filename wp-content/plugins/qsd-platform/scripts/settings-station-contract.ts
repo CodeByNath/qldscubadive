@@ -16,6 +16,7 @@
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { registerAccountStation } from '../resources/ts/account-station/register';
 import { registerServiceStation } from '../resources/ts/service-station/register';
 import { registerSettingsStation } from '../resources/ts/settings-station/register';
 import { registerAdminStation, registerPresentationPolicy } from '../resources/ts/admin-station/register';
@@ -53,6 +54,7 @@ function sourceFiles(directory: string, acc: string[] = []): string[] {
 
 // ── 1. Executed registration, in the entry's exact order ─────────────────────
 
+registerAccountStation();
 registerServiceStation();
 registerSettingsStation();
 registerAdminStation();

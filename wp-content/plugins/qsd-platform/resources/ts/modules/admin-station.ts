@@ -17,11 +17,13 @@ import '../admin-station/styles/admin-station-responsive.css';
 
 import { registry } from '@/runtime/registry';
 import { AdminStation } from '@/admin-station/AdminStation';
+import { registerAccountStation } from '@/account-station/register';
 import { registerAdminStation, registerPresentationPolicy } from '@/admin-station/register';
 import { registerServiceStation } from '@/service-station/register';
 import { registerSettingsStation } from '@/settings-station/register';
 import { finalizeStationRegistry } from '@/station-manager/registry/boot';
 
+registerAccountStation();
 registerServiceStation();
 registerSettingsStation();
 registerAdminStation();

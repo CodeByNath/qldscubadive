@@ -33,6 +33,18 @@ export function registerAdminStation(): void {
 export function registerPresentationPolicy(): void {
   registerSurfaceBindings([
     {
+      stationId: 'account',
+      surfaceId: 'account-profile',
+      placement: 'presentation',
+      order: 0,
+      dataSourceKey: 'account',
+      templateKitKey: 'account-card',
+      drawerTemplateKey: 'account',
+      actionIntents: [
+        { id: 'view', target: 'drawer', mode: 'view' },
+      ],
+    },
+    {
       stationId: 'services',
       surfaceId: 'service-lower-deck',
       placement: 'presentation',
