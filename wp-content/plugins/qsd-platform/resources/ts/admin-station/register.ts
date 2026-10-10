@@ -45,6 +45,22 @@ export function registerPresentationPolicy(): void {
       ],
     },
     {
+      // Account Phase D: a second, plain presentation section beneath the
+      // Brand card — no lane/tab wrapper, since Account has only these two
+      // things today. Reuses the 'account' data source verbatim (the kit
+      // itself needs no items/loading/error — StationSettings reads the
+      // station-settings registry directly); carries no action intents of
+      // its own because every panel inside is self-contained (Security's
+      // API Keys panel is not drawer-based).
+      stationId: 'account',
+      surfaceId: 'account-settings',
+      placement: 'presentation',
+      order: 1,
+      dataSourceKey: 'account',
+      templateKitKey: 'account-settings',
+      actionIntents: [],
+    },
+    {
       stationId: 'services',
       surfaceId: 'service-lower-deck',
       placement: 'presentation',

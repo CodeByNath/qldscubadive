@@ -25,6 +25,7 @@ import { headerNavItems, menuNavItems } from '../resources/ts/station-manager/re
 import { resolveDestination } from '../resources/ts/station-manager/registry/destinations';
 import { resolveSurfaceBindings, defaultHomeStation } from '../resources/ts/station-manager/registry/surfaceBindings';
 import { resolveDrawerTemplate } from '../resources/ts/station-manager/registry/drawerTemplates';
+import { resolveStationSettings } from '../resources/ts/station-manager/registry/stationSettings';
 
 const root = resolve(import.meta.dirname, '..');
 let checks = 0;
@@ -64,14 +65,34 @@ const destination = resolveDestination('account');
 check(destination?.stationId === 'account', "Account's nav activation resolves to the account station");
 
 const accountBindings = resolveSurfaceBindings('account', 'presentation');
-check(accountBindings.length === 1, 'Account has exactly one presentation-placement surface binding');
-const [accountBinding] = accountBindings;
-check(accountBinding.dataSourceKey === 'account' && accountBinding.templateKitKey === 'account-card', "the binding names Account's own data source and card kit");
-check(accountBinding.drawerTemplateKey === 'account', 'the binding opens the Account drawer template');
+check(accountBindings.length === 2, 'Account has exactly two presentation-placement surface bindings: the Brand card and the Settings section');
+const [profileBinding, settingsBinding] = accountBindings;
+check(profileBinding.surfaceId === 'account-profile' && settingsBinding.surfaceId === 'account-settings', 'the Brand card is ordered before the Settings section');
+check(profileBinding.dataSourceKey === 'account' && profileBinding.templateKitKey === 'account-card', "the profile binding names Account's own data source and card kit");
+check(profileBinding.drawerTemplateKey === 'account', 'the profile binding opens the Account drawer template');
 check(
-  accountBinding.actionIntents.length === 1 && accountBinding.actionIntents[0].id === 'view' && accountBinding.actionIntents[0].target === 'drawer',
-  'Account exposes exactly one action intent — view — no archive, trash, restore, or delete intent exists',
+  profileBinding.actionIntents.length === 1 && profileBinding.actionIntents[0].id === 'view' && profileBinding.actionIntents[0].target === 'drawer',
+  'the profile binding exposes exactly one action intent — view — no archive, trash, restore, or delete intent exists',
 );
+check(settingsBinding.dataSourceKey === 'account' && settingsBinding.templateKitKey === 'account-settings', 'the Settings section reuses the same Account data source with its own kit');
+check(settingsBinding.drawerTemplateKey === undefined, 'the Settings section opens no drawer of its own — every panel inside is self-contained');
+check(settingsBinding.actionIntents.length === 0, 'the Settings section carries no action intents of its own');
+
+// Phase D: Tools and Security are reachable from Account's own Settings
+// section now (additive relocation), while Service fields stays
+// Services-only — an Owner-excluded metafield, not an oversight.
+const accountSettings = resolveStationSettings('account');
+check(accountSettings.map((s) => s.section).join() === 'tools,security', "Account's Settings section presents Tools then Security — no General, since Account contributes none");
+check(accountSettings.find((s) => s.section === 'tools')?.contributions.some((c) => c.id === 'settings.rezdy-importer'), 'the Rezdy importer panel is reachable from Account');
+check(accountSettings.find((s) => s.section === 'security')?.contributions.some((c) => c.id === 'settings.api-keys'), 'the API Keys panel is reachable from Account');
+check(!accountSettings.some((s) => s.contributions.some((c) => c.id === 'settings.service-meta')), 'Service fields is never reachable from Account — the backend/route stays Services-owned and unexposed here');
+
+// Cross-station: Services keeps every one of its own panels, unchanged, alongside the new Account reachability.
+const servicesSettings = resolveStationSettings('services');
+check(servicesSettings.map((s) => s.section).join() === 'general,tools,security', "Service's own Settings section still presents General, Tools, Security in that order");
+check(servicesSettings.find((s) => s.section === 'general')?.contributions.some((c) => c.id === 'settings.service-meta'), 'Service fields remains reachable from Services');
+check(servicesSettings.find((s) => s.section === 'tools')?.contributions.some((c) => c.id === 'settings.rezdy-importer'), 'the Rezdy importer panel remains reachable from Services');
+check(servicesSettings.find((s) => s.section === 'security')?.contributions.some((c) => c.id === 'settings.api-keys'), 'the API Keys panel remains reachable from Services — nothing was moved, only additionally exposed');
 
 const drawer = resolveDrawerTemplate('account');
 check(!!drawer && drawer.title === 'Account', 'the Account drawer template is registered');

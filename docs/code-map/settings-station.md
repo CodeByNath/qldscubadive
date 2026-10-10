@@ -22,7 +22,7 @@ Services Station
       └─ audit
 ```
 
-Other Stations may surface `General`, `Tools` and/or `Security`. Shared data is owned once by the platform authority; placement never duplicates persistence or transfers authority.
+Other Stations may surface `General`, `Tools` and/or `Security`. Shared data is owned once by the platform authority; placement never duplicates persistence or transfers authority. Account Phase D: `Tools`/`Security` are also reachable from [Account Station](account-station.md)'s own Settings section — additive, same panels and data. `General`/Service fields stays Services-only (an Owner-excluded metafield); its backend/routes/access are unchanged either way.
 
 ## Ownership boundaries
 
@@ -57,7 +57,7 @@ Phases 2A–2E are defined in the [roadmap](../roadmap.md). The Owner accepted t
 ## Frontend
 
 - **Pattern.** `station-manager/registry/stationSettings.ts` holds contributions; [`StationSettings.tsx`](../../wp-content/plugins/qsd-platform/resources/ts/admin-station/presentation/StationSettings.tsx) renders a Station's sections. Service's `ServiceSettingsLane.tsx` hosts it for `services`, and Service registers `ServiceCreateLaunchers` under General.
-- **Settings peer** (`resources/ts/settings-station/`). `register.ts` contributes three panels to `services`: General → `ServiceMetaSchemaLane` (Service fields), Tools → `RezdyImporterTool` (not available yet), Security → [`SecurityApiKeysPanel.tsx`](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/presentation/SecurityApiKeysPanel.tsx).
+- **Settings peer** (`resources/ts/settings-station/`). `register.ts` contributes three panels: General → `ServiceMetaSchemaLane` (Service fields, `services` only), Tools → `RezdyImporterTool` (not available yet, `services` and `account`), Security → [`SecurityApiKeysPanel.tsx`](../../wp-content/plugins/qsd-platform/resources/ts/settings-station/presentation/SecurityApiKeysPanel.tsx) (`services` and `account`).
 - **API Keys.** It shows secure-storage and access state, Rotate encryption key for administrators, plus one card per provider with environment and key state. A key is typed into a password input that exists only while adding or replacing, and is cleared on save. Remove and Disconnect confirm in place. Test connection runs the validation route. A `manage_qsd` user sees safe state only.
 - `useSettingsConnections.ts` holds state and actions; `api.ts` is the single endpoint module.
 

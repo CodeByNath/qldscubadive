@@ -5,6 +5,7 @@ import { registerDrawerTemplates } from '@/station-manager/registry/drawerTempla
 import { registerNavItems } from '@/station-manager/registry/navigation';
 import { registerTemplateKits } from '@/station-manager/registry/templateKits';
 import { AccountCard } from './presentation/AccountCard';
+import { AccountSettingsSection } from './presentation/AccountSettingsSection';
 import { AccountDrawerHost } from './surface/AccountDrawerHost';
 import { useAccountProfileCard } from './surface/useAccountCard';
 
@@ -40,6 +41,7 @@ export function registerAccountStation(): void {
 
   registerTemplateKits({
     'account-card': AccountCard,
+    'account-settings': AccountSettingsSection,
   });
 
   registerDrawerTemplates([
