@@ -11,7 +11,7 @@
 > **No Rezdy or admin-session input is necessary for this next action.** This header controls sequencing; earlier `Status: BUILDER ACTION REQUIRED` entries and manual UI steps are historical.
 
 
-Status: AWAITING REVIEWER REVIEW — TOPIC BRANCH RELEASE DECISION (live provider validation still DEFERRED)
+Status: BUILDER ACTION REQUIRED — SAFE MAIN INTEGRATION AND TOPIC BRANCH RELEASE (live provider validation DEFERRED)
 Phase: Security Phase 2 — staging2 runtime validation of connection-owned credential guard
 Actor: Reviewer for verified code integration and branch release; Builder only on separately assigned bounded action
 
@@ -1180,3 +1180,16 @@ Per the Owner's "NEXT BUILDER ACTION" above. No source changed, no push to `main
 **Conclusion.** The Security candidate on `staging` / `docs/settings-security-roadmap` is a clean, fast-forward, source-only extension of `main`, with no deployment-surface change and a green CI run. This is file/CI verification only, not live-secret runtime validation — that remains DEFERRED per the Owner decision above and is not claimed here.
 
 **Handoff to Reviewer.** Builder has not pushed to `main`, deleted the topic branch, or declared Phase 2 complete. Please decide whether this clears `cee882c` for a safe, non-destructive integration into `main` and lawful retirement of `docs/settings-security-roadmap` per `docs/foundation/repository-governance.md`, releasing one topic-branch slot for `project-work/account-station-transfer-batch.md`. If further evidence is required before integration, specify it here.
+
+
+## Reviewer decision — source-only branch release (2026-10-10)
+
+**Verdict: Proceed with safeguards.** Independently checked GitHub remote heads: main `da934936edafcf892ebab33e870e6f5f511d147f`, staging and topic `cee882c9a48c3a2370f930aa4a6b21848f40fb8c`. Compare `main...docs/settings-security-roadmap`: status ahead; 15 commits ahead, zero behind; merge-base equals `main`; 62 changed files; none under `.github/` or `wp-config`. Existing handoff records successful CI and staging deployment. **No fresh WordPress, PHP, browser or Rezdy validation was performed by Reviewer.** Live secret/rotation/provider test remains DEFERRED and NOT accepted.
+
+**Builder next action (bounded):**
+1. In VS Code, re-fetch and verify exact remote heads and fast-forward ancestry; verify relevant CI and no deployment-workflow/path drift. Do not request Rezdy key, WP session or security UI validation.
+2. Fast-forward `main` to exactly `cee882c9a48c3a2370f930aa4a6b21848f40fb8c` as **source integration only**, with no force push, merge commit, rebase, staging change, production deployment, or credential operation. Stop if remote main diverges or any unexamined files/path rules change. Confirm remote main SHA after push.
+3. After verifying source integration, retire the completed `docs/settings-security-roadmap` topic branch per governance; never delete permanent branches. Record exact integration and remote deletion evidence in this same file.
+4. Then set the queued Account transfer work file to `BUILDER ACTION REQUIRED` and execute `project-work/account-station-transfer-batch.md` as the Owner-authorised one-workload/five-local-commits plan. Stop before pushing any Account implementation. If another actor/approval guard refuses a push or branch deletion, stop and report exact blocker instead of treating it as a Rezdy dependency.
+
+The integration is NOT acceptance of the Security Phase 2 runtime exit criteria. Its live-provider evidence remains deferred until the completed Account UI can expose existing QSD global Connections/Security.
