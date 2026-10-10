@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: BUILDER ACTION REQUIRED — Security source integrated to main (`cee882c`) and topic branch retired 2026-10-10; cleared to start
+Status: AWAITING REVIEWER/OWNER AUTHORIZATION TO PUSH — all five phases built and committed locally 2026-10-11; nothing pushed
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -41,3 +41,35 @@ Read QSD AGENTS.md, docs/ai-index.md, docs/roadmap.md, Code Maps (settings-stati
 
 ## Hard stop / rollback
 At ANY phase if implementation would compromise identity permanence, ownership, credential security, lifecycle, persisted data, existing Service/Category behavior, or require destructive migration or deployment expansion: stop before that phase's commit and before any push, retain previously valid local commits, record evidence + exact blocking decision, ask Owner/Reviewer. Never silently workaround. Never continue into next phase with failing tests. Never copy full plugin or source-specific Platform IDs. Only QSD repository is writable.
+
+## Builder handoff — all five phases built, local, awaiting authorization (2026-10-11)
+
+One continuous local workload on topic branch `account-station-transfer` (branched from `main` at `cee882c`), one commit per phase exactly as authorised. Nothing pushed; `main`, `staging`, `Project-work-instructions` are all untouched by this workload.
+
+**Exact local commit chain**, oldest first:
+
+| SHA | Commit |
+|---|---|
+| `e23833c` | `account: phase A foundation` |
+| `9403c9b` | `account: phase B profile brand` |
+| `72b734f` | `account: phase C admin integration` |
+| `5dad8d1` | `account: phase D global settings placement` |
+| `b13b7e2` | `account: phase E documentation validation` (current local HEAD) |
+
+**Per-phase summary** (full detail in each commit message and in `docs/code-map/account-station.md`):
+- **A** — four new Platform ID prefixes (`QSDA`/`QSDAS`/`QSDAST`/`QSDASTP`); `AccountRepository` ($wpdb compare-and-swap aggregate) and `AccountIdentity` (idempotent, resumable 4-node bootstrap through the existing `PlatformIdentifierStation::ensure()` — no parallel mechanism).
+- **B** — `AccountBrand` (draft/settle/Publish/Disable/Enable, a narrow two-state slice, not the full `StationLifecycle` engine) and `AccountMedia` (content-hash-addressed logo/favicon, not the WordPress Media Library).
+- **C** — `resources/ts/account-station/` registered with Station Manager exactly as Service is; Home card is one `ReadBlock` (singleton, not a catalogue); drawer implements `DrawerContent` directly (one module, no generic multi-module composition); footer is `EntityActionFooter` directly, never `CanonicalEntityFooter` (whose overflow always offers Archive/Trash).
+- **D** — Tools (Rezdy importer) and Security (API Keys) Settings panels are now also reachable from Account (`stationIds` gained `'account'`), additive; Services' own reachability is unchanged. Service fields (`General`) stays Services-only. Settings/Security backend, broker, keyring, rotation, `qsd/v1` routes untouched.
+- **E** — `docs/roadmap.md` updated with the authoritative "Account Station transfer" status section; this handoff.
+
+**Validation at the final candidate (`b13b7e2`):** `npm test` passes in full — typecheck; every PHP test including `tests/account-station.php` and `tests/account-brand.php`; build; JS 25/25 including `contract:account-registration` (57 checks — registration/resolution, Service/Services completely unaffected, no archive/trash/restore/delete concept anywhere under `account-station/`); `docs:check` (49 Markdown files, 20 Code Maps).
+
+**Deliberate singleton carve-out, every phase:** no Archive/Trash/Restore/Delete route, footer control, drawer action, or action intent exists anywhere in `Modules/Account`/`account-station/`. Enforced by `contract:account-registration`'s source-level scan, not just an unregistered intent.
+
+**Remaining uncertainty, stated rather than hidden:**
+1. No fully mounted Preact-render regression exists for the Account drawer/card (the pattern `service-create-regression.mjs` uses). Coverage is real but indirect: backend through real REST-handler calls (`tests/account-brand.php`), frontend through registration/resolution (`contract:account-registration`). Neither renders `AccountDrawerHost`/`AccountCard` through an actual DOM. A human browser check on staging2 is the genuine remaining verification.
+2. Live WordPress/Rezdy credential-guard runtime validation (deferred under Security Phase 2) has still not run, through this UI or any other. Not attempted; never described as passed.
+3. Retiring Services' own Tools/Security reachability is explicitly not done in this batch — gated on regression proof the Owner can see, per the batch's own wording.
+
+**Builder next action:** none — stopping here per the Owner's explicit batch authorization ("Stop before pushing... DO NOT push, merge, deploy or self-approve"). Reviewer/Owner: the five commits above are ready to inspect on the local `account-station-transfer` branch. On approval, Builder can push the topic branch to origin as a new topic branch (repository governance currently has capacity: only `main`/`staging`/`Project-work-instructions` exist remotely) and update this file to `AWAITING REVIEWER REVIEW` with the pushed SHA, exactly as the standard Builder source-push handoff requires.
