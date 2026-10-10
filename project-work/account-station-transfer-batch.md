@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: AWAITING REVIEWER REVIEW — account-station-transfer pushed to origin for independent review only
+Status: BUILDER ACTION REQUIRED — ARCHITECTURE CORRECTIONS BEFORE ACCEPTANCE — account-station-transfer pushed to origin for independent review only
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -104,3 +104,15 @@ Bounded Reviewer instruction executed exactly: rechecked remote/local state, con
 **Not done, per the Reviewer's exact bound:** no push of `main`/`staging`, no merge, no deploy, no Rezdy credential validation started, no scope widened beyond the single topic-branch push and this status update.
 
 **Builder next action:** none — stopping here. Reviewer: `account-station-transfer` is now pushed and independently inspectable on `CodeByNath/qldscubadive` at `b13b7e2`. Awaiting your review verdict.
+
+
+## Independent Reviewer audit — pushed `b13b7e2` (2026-10-11)
+
+**Verdict: Stop — architectural risk.** GitHub independently confirms topic HEAD `b13b7e2c6671f95105ee11f08e2a4328011f6549`, five commits ahead of `main=cee882c` and no main/staging changes. Read actual AccountController, AccountBrand, AccountIdentity, AccountDrawerHost, AccountMedia, Account Code Map and Settings registration, compared to main's locked StationDrawerLifecycleContract-v1 and architecture skill. Builder test passes are reported, not independently executed. Do not merge/deploy.
+
+**Blocking differences:**
+1. `AccountBrand::publish/disable/enable/settle` and AccountController's custom status mutator constitute a parallel lifecycle implementation; Account Code Map claims an Owner-approved deviation, but this workload never explicitly approved bypassing QSD's locked StationLifecycle engine or dropping Archive/Trash/Restore/Delete. The Owner expressly required Station parts to follow established Station lifecycle. Singleton permanence can be proposed, not presumed as an exemption.
+2. `settings-station/register.ts` makes both global Tools and Security available under `stationIds:['services','account']`. This is additive reachability, not the requested transfer of global-only settings to Account. Owner specifically excluded Service Meta, Create Service, Create Category and AI/AOI from Account. Existing QSD Settings/Security backend/credential storage must remain untouched.
+3. `AccountDrawerHost` directly composes `EntityActionFooter` and a separate editor arrangement rather than demonstrating conformity to the established canonical footer/identity-handoff/notification system. Need a precise comparison to the Service implementation; do not instantiate a second component/lifecycle contract.
+
+**Bounded Builder correction on SAME topic branch:** Audit Service/Category against Account for lifecycle, drawer, statuses, footer, notification and identity handoff; reuse platform owners and established components wherever applicable. Provide an explicit exception proposal only for truly immutable singleton operations, with evidence and Owner decision BEFORE implementing an alternative lifecycle. Relocate global Tools/Security presentation so Services no longer offers their global panels, while Service Meta stays Services-only and security APIs/storage remain unchanged. Add mounted Preact regression for Account card/drawer and navigation/Settings route placement, plus source+PHP lifecycle transition regressions. Update Code Maps/roadmap to reflect actual implementation without invented Owner approvals. Run `npm test` and `npm run docs:check`. Do not merge/deploy/push unrelated work; stop if decision needed. Keep Account identity prefixes and fixed native binding only if they pass architecture comparison.
