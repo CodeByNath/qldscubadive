@@ -1,8 +1,8 @@
 # Security Phase 2 — real runtime and controlled provider validation
 
-Status: BUILDER ACTION REQUIRED
+Status: DEFERRED — LIVE PROVIDER VALIDATION PENDING; TOPIC BRANCH HANDOFF REQUIRED
 Phase: Security Phase 2 — staging2 runtime validation of connection-owned credential guard
-Actor: Builder
+Actor: Reviewer for verified code integration and branch release; Builder only on separately assigned bounded action
 
 ## Accepted baseline
 
@@ -1138,3 +1138,14 @@ URL: `https://www.staging2.qldscubadive.com.au/station/` → **Services** → **
 6. Run the Security validation report, and share its Passed/Failed badge and rows, or a screenshot. None of this contains a secret.
 
 **Open for Reviewer:** the contention fail-closed case (a second writer refused while the guard is held) cannot be produced through the QSD UI. See the preflight note above.
+
+
+## Owner-directed sequencing decision — 2026-10-10
+
+Reviewer verdict: **Proceed with safeguards** for deferring the credential-dependent runtime gate, **not** acceptance of Security Phase 2.
+
+Owner explicitly wants to test a live Rezdy connection AFTER the global Settings/Connections surface is relocated into the new Account Station. Do not require or request a Rezdy API key as a prerequisite to the Account build. Existing automated/code/CI evidence and staging2 deployment remain recorded above, but the real credential-store, named-lock, rotation/re-seal, request-key and actual provider-call checks remain **UNVERIFIED / DEFERRED**, never PASS or accepted.
+
+Do NOT reopen Security source or change credential storage as part of this decision. Preserve current security backend and API. The existing Security candidate `cee882c9a48c3a2370f930aa4a6b21848f40fb8c` is on `staging` and `docs/settings-security-roadmap`; `main` is still `da934936edafcf892ebab33e870e6f5f511d147f` as observed 2026-10-10. The sole topic branch remains occupied. Before enabling the queued Account workload, Reviewer must independently inspect promotion eligibility and determine a safe non-destructive integration into `main` for the already-reviewed source, without representing deferred runtime tests as acceptance. Only after separate explicit approval and verified integration may the completed Security topic branch be retired in accordance with docs/foundation/repository-governance.md. No force-push, staging workflow change, or production deploy.
+
+Next authorized Account workload: `project-work/account-station-transfer-batch.md` (five local phase commits; no source push until Owner/Reviewer gate). Builder must not open another topic branch until the existing one is closed. Once Account is implemented/reviewed, run the deferred authenticated staging2 Rezdy/key rotation validation through the new Account Settings UI; unresolved runtime failure then blocks Security Phase 2 acceptance and further Service Element work.
