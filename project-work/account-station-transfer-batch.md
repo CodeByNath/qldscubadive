@@ -1,12 +1,12 @@
 # Account Station transfer — approved batch (queued)
-Status: QUEUED — AWAIT SECURITY PHASE 2 CLOSEOUT
+Status: QUEUED — AWAIT SAFE SECURITY SOURCE INTEGRATION AND BRANCH RELEASE
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
 Owner authorization: One continuous local workload, one independently testable local commit per phase; one final Reviewer handoff. No merge, staging, production, or destructive migration authorized.
 
 ## Release gate
-The currently active Security Phase 2 work in `security-phase-2-runtime-validation.md` retains priority and the sole topic branch `docs/settings-security-roadmap`. Do not start this batch until Phase 2 is accepted/deferred by Reviewer, existing topic promoted/retired under governance, and a single new topic branch is available. No new work branch while the existing one remains. Obtain current QSD main/CI truth, not stale source assumptions.
+Owner deferred Security Phase 2's live Rezdy/credential runtime validation until after Account UI relocation; it is NOT accepted. The single topic branch `docs/settings-security-roadmap` is still occupied. Do not start until Reviewer verifies safe integration of the already-reviewed Security source into main, the existing topic is lawfully retired, and one new topic branch is available. No live Rezdy key is required to start Account implementation. No new work branch while the existing one remains. Obtain current QSD main/CI truth, not stale source assumptions.
 
 ## Authority first
 Read QSD AGENTS.md, docs/ai-index.md, docs/roadmap.md, Code Maps (settings-station, admin-station, station-manager, platform-identifier-station, relevant drawer/lifecycle), skills/qsd-platform-architecture/SKILL.md, StationDrawerLifecycleContract-v1.md, credential-broker-contract and current source/tests. Audit the source reference precisely; use only Account subtree as reference and do not modify CompuZign.
@@ -31,7 +31,7 @@ Read QSD AGENTS.md, docs/ai-index.md, docs/roadmap.md, Code Maps (settings-stati
 - Retain QSD's existing Settings/Security backend, encrypted credential broker, keyring/rotation, permissions, API endpoints and stored credentials; DO NOT replace with CompuZign security code or change storage/secret handling.
 - Relocate *presentation/access* of global Connections & Security beneath Account Settings/Tools, then retire standalone Settings navigation only after regression proof.
 - Service Meta definitions remain in QSD's owning domain/backend unchanged; preserve existing routes/data and access, but remove from global Account view as Owner excluded metafields. Service Home Create Service/Create Category stay unchanged; no AI/AOI capability is introduced.
-- Security Phase 2 safeguards must remain proven. Test old endpoint compatibility, credentials, permission gates and route accessibility. Commit `account: phase D global settings placement`.
+- Security Phase 2 security invariants must remain protected by existing source and deterministic tests; live WordPress/Rezdy validation remains explicitly deferred and must never be described as passed. Test old endpoint compatibility, credentials, permission gates and route accessibility. Commit `account: phase D global settings placement`.
 
 ## Phase E — validation, handover and closeout
 - Update docs/roadmap.md (authoritative handover/current state), relevant Code Maps, AI index, local instructions and architecture wording with exact implemented behavior. No extra handover. Keep files cohesive and normal <=600 lines.
