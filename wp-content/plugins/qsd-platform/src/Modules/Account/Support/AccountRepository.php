@@ -85,6 +85,14 @@ final class AccountRepository
         throw new AccountStorageBusy();
     }
 
+    /** Full current state, read-only. @return array<string, mixed> */
+    public function state(): array
+    {
+        [$state] = $this->read();
+
+        return $state;
+    }
+
     public function readNodePlatformId(string $entityType): string
     {
         [$state] = $this->read();
