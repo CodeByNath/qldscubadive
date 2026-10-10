@@ -2,6 +2,7 @@
 
 namespace QSD\Platform\Core;
 
+use QSD\Platform\Modules\Account\AccountModule;
 use QSD\Platform\Modules\Admin\AdminModule;
 use QSD\Platform\Modules\AdminStation\AdminStationAuth;
 use QSD\Platform\Modules\AdminStation\AdminStationModule;
@@ -12,7 +13,7 @@ use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 /**
  * Platform boot. WordPress is the runtime and storage host only: this wires
  * access, entity registration, the permanent Platform ID station, the domain
- * Stations (Service, Category), the Settings Station, and the Admin Station host.
+ * Stations (Service, Category, Account), the Settings Station, and the Admin Station host.
  *
  * Adding a Station: construct its module here and inject the shared
  * PlatformIdentifierStation when the Station issues permanent identifiers.
@@ -37,6 +38,7 @@ final class Plugin
         $platformIdentifiers = new PlatformIdentifierStation();
 
         (new ServiceModule($platformIdentifiers))->register();
+        (new AccountModule($platformIdentifiers))->register();
         (new AdminModule($platformIdentifiers))->register();
         (new SettingsModule())->register();
         (new AdminStationModule())->register();

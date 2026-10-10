@@ -77,8 +77,12 @@ function identifierRandom(string $characters): callable
 }
 
 $expected = [
-    'service'  => 'QSDS',
-    'category' => 'QSDC',
+    'service'          => 'QSDS',
+    'category'         => 'QSDC',
+    'account'          => 'QSDA',
+    'account_settings' => 'QSDAS',
+    'account_tools'    => 'QSDAST',
+    'account_profile'  => 'QSDASTP',
 ];
 
 checkIdentifier(PlatformIdentifierPolicy::prefixes() === $expected, 'every entity prefix is locked');
@@ -92,6 +96,22 @@ foreach ($expected as $entityType => $prefix) {
 }
 checkIdentifier(PlatformIdentifierPolicy::entityTypeFor('QSDC2A7KZ') === 'category' && PlatformIdentifierPolicy::entityTypeFor('QSDS2A7KZ') === 'service', 'each prefix resolves to exactly its own entity type');
 checkIdentifier(PlatformIdentifierPolicy::entityTypeFor('QSDX2A7KZ') === null, 'an unknown prefix resolves to no entity type');
+
+// The four Account prefixes nest as string prefixes of one another (QSDA ⊂
+// QSDAS ⊂ QSDAST ⊂ QSDASTP); each total length (9/10/11/12) is unique, so the
+// anchored full-string regex in validate() cannot let one match another's id.
+checkIdentifier(
+    PlatformIdentifierPolicy::entityTypeFor('QSDA2A7KZ') === 'account'
+        && PlatformIdentifierPolicy::entityTypeFor('QSDAS2A7KZ') === 'account_settings'
+        && PlatformIdentifierPolicy::entityTypeFor('QSDAST2A7KZ') === 'account_tools'
+        && PlatformIdentifierPolicy::entityTypeFor('QSDASTP2A7KZ') === 'account_profile',
+    'nested Account prefixes resolve to exactly their own entity type, never a sibling'
+);
+checkIdentifier(
+    !PlatformIdentifierPolicy::validate('account', 'QSDAS2A7KZ')
+        && !PlatformIdentifierPolicy::validate('account_settings', 'QSDA2A7KZ'),
+    'a nested Account prefix never validates against a sibling entity type'
+);
 
 $station = new PlatformIdentifierStation(identifierRandom('7K9Q2'));
 $generated = $station->generate(PlatformIdentifierPolicy::SERVICE);

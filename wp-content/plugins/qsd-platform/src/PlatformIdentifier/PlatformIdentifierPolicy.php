@@ -17,6 +17,12 @@ final class PlatformIdentifierPolicy
     public const SERVICE  = 'service';
     public const CATEGORY = 'category';
 
+    /** Account's singleton hierarchy: one record ever exists per level, per site. */
+    public const ACCOUNT          = 'account';
+    public const ACCOUNT_SETTINGS = 'account_settings';
+    public const ACCOUNT_TOOLS    = 'account_tools';
+    public const ACCOUNT_PROFILE  = 'account_profile';
+
     public const ALPHABET    = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
     public const SUFFIX_LENGTH = 5;
 
@@ -24,6 +30,10 @@ final class PlatformIdentifierPolicy
     private const PREFIXES = [
         self::SERVICE  => 'QSDS',
         self::CATEGORY => 'QSDC',
+        self::ACCOUNT          => 'QSDA',
+        self::ACCOUNT_SETTINGS => 'QSDAS',
+        self::ACCOUNT_TOOLS    => 'QSDAST',
+        self::ACCOUNT_PROFILE  => 'QSDASTP',
     ];
 
     /** @return array<string, string> */
