@@ -7,7 +7,7 @@ Current state, open work, and the decisions behind them. Update this file as wor
 - Extracted from CompuZign and renamed to QSD: Service and Category Stations, Platform Identifier Station (`QSDS`/`QSDC`), lifecycle engine, drawer kit and notifications, Station Manager, Admin Station at `/station/`, QSD Shell theme.
 - Verified on a real WordPress (local) and on staging2: login gate, create → Overview Save → children → Publish → Disable/Enable → Archive/Trash, restore and permanent delete through the API.
 - Phase 6 lifecycle completion and the Settings foundation are accepted on `main`. Security Phase 2's connection-owned credential guard (`cee882c`) is integrated to `main`; its live WordPress/Rezdy runtime validation remains explicitly deferred (see below), never claimed as passed.
-- Account Station (singleton Account → Settings → Tools → Profile/Brand, Phases A–D) is built and committed locally on topic branch `account-station-transfer`, **not yet pushed** — see "Account Station transfer" below.
+- Account Station (singleton Account → Settings → Tools → Profile/Brand, Phases A–E) is pushed to topic branch `account-station-transfer` for independent Reviewer inspection, **not merged or deployed** — see "Account Station transfer" below.
 - `npm test` and CI pass. Pushing `staging` deploys to staging2 only.
 
 ## Decisions (do not undo without the owner)
@@ -29,44 +29,32 @@ Current state, open work, and the decisions behind them. Update this file as wor
 5. **Trash confirmation — done (Phase 6.5, accepted).** A saved Service's drawer Move to Trash opens a confirmation in `ServiceDrawerDialogs` (lifecycle contract §11); Cancel sends nothing, Confirm trashes once, failure keeps the dialog open. The local `new` discard is unchanged.
 6. **Regression closeout — done (Phase 6.6, accepted).** `regression:drawer-trash-confirm` covers Service and Category drawer Trash confirmation; `drawer-module-entry` pins the dialog wiring; Bin, reachable-Category, Publish-guard, and PHP transition tests remain in `npm test`.
 
-## Account Station transfer (Phases A–D built, local, not pushed)
+## Account Station transfer (Phases A–E built, pushed for independent review)
 
-Owner-authorised port/adapt from `CodeByNath/compuzign-platform` (reference only, read-only; nothing from it was copied verbatim — see [Account Station](code-map/account-station.md) for the exact mechanism). One continuous local workload on topic branch `account-station-transfer`, one commit per phase, no push until Reviewer/Owner authorises the whole chain.
+Owner-authorised port/adapt from `CodeByNath/compuzign-platform` (reference only, read-only; nothing from it was copied verbatim — see [Account Station](code-map/account-station.md) for the exact mechanism). Pushed to `account-station-transfer` for independent Reviewer inspection; not merged, not deployed. Reviewer's first audit required corrections, applied on the same branch: see below.
 
-- **Phase A — foundation (`account: phase A foundation`).** Four permanent Platform ID prefixes (`QSDA`/`QSDAS`/`QSDAST`/`QSDASTP`) added to `PlatformIdentifierPolicy`. `AccountRepository` (one options-row aggregate, `$wpdb` compare-and-swap commit loop) and `AccountIdentity` (idempotent, resumable bootstrap of the four singleton nodes through the existing `PlatformIdentifierStation::ensure()`) are new; no parallel identity mechanism.
-- **Phase B — Brand lifecycle (`account: phase B profile brand`).** `AccountBrand` (draft/settle/Publish/Disable/Enable as a narrow two-state slice, not the full `StationLifecycle` engine) and `AccountMedia` (content-hash-addressed logo/favicon storage, not the WordPress Media Library).
-- **Phase C — frontend/Admin integration (`account: phase C admin integration`).** `resources/ts/account-station/` registers with Station Manager exactly as Service does; the Home card is one `ReadBlock` (singleton, not a catalogue); the drawer implements `DrawerContent` directly (one module, no generic multi-module composition needed); the footer is `EntityActionFooter` directly (Disable/Enable, Publish — never `CanonicalEntityFooter`, whose overflow always offers Archive/Trash).
-- **Phase D — global Settings placement (`account: phase D global settings placement`).** The existing Tools (Rezdy importer) and Security (API Keys) Settings panels are now *also* reachable from Account (`stationIds` gained `'account'`) — additive; Services keeps its own reachability unchanged. Service fields (`General`) stays Services-only, an Owner-excluded metafield. The Settings/Security backend, credential broker, keyring, rotation and `qsd/v1` routes are completely untouched.
+- **Phase A — foundation.** Four permanent Platform ID prefixes (`QSDA`/`QSDAS`/`QSDAST`/`QSDASTP`) added to `PlatformIdentifierPolicy`. `AccountRepository` (one options-row aggregate, `$wpdb` compare-and-swap commit loop) and `AccountIdentity` (idempotent, resumable bootstrap of the four singleton nodes through the existing `PlatformIdentifierStation::ensure()`) are new; no parallel identity mechanism.
+- **Phase B — Brand lifecycle.** `AccountBrand` computes Publish/Disable by calling the shared `StationLifecycle` engine directly (`statusRouteTransition`, `isLive` — the same calls Service's `/status` route makes), restricted to the `active`/`disabled` subset of its vocabulary. `AccountMedia` is content-hash-addressed logo/favicon storage, not the WordPress Media Library.
+- **Phase C — frontend/Admin integration.** `resources/ts/account-station/` registers with Station Manager exactly as Service does; the Home card is one `ReadBlock` (singleton, not a catalogue); the drawer implements `DrawerContent` directly; the footer is `EntityActionFooter` directly (Disable/Enable, Publish) — not `CanonicalEntityFooter`, whose non-bin branch always places Archive/Trash in its overflow with no suppression option.
+- **Phase D — Settings relocation (corrected).** Tools (Rezdy importer) and Security (API Keys) are reachable from Account **only** (`settings-station/register.ts`'s `stationIds: ['account']`) — the actual relocation; Services' own Settings tab presents General only. Service fields stays Services-only. The Settings/Security backend, credential broker, keyring, rotation and `qsd/v1` routes are completely untouched — only the `stationIds` array moved.
+- **Phase E — validation and handover, plus Reviewer correction.** Docs/roadmap updated; full `npm test` green. A Reviewer audit of the pushed branch found Phase B's lifecycle calls and Phase D's "additive" reading did not match the batch's intent, and ordered bounded corrections: AccountBrand now delegates to `StationLifecycle` (above) instead of reimplementing its guards inline, Phase D became the real relocation (above), and two new mounted-DOM regressions were added — `regression:account-mounted` (Home card + drawer, Save/Publish/Disable/Enable, and proof that no Archive/Trash control is reachable in the rendered footer on any status) and `regression:account-settings` (the detailed Tools/Security behavioural suite, re-mounted through Account instead of Services).
 
-**Deliberate, Owner-approved singleton carve-out, every phase:** no Archive/Trash/Restore/Delete route, footer control, or drawer action exists anywhere in `Modules/Account`/`account-station/`, and none should be added without a separate, explicit Owner decision — `npm run contract:account-registration` enforces this at the source level.
+**Open exception, not yet decided:** whether Account's omission of Archive/Trash/Restore/Delete should instead become full travel-table conformance for a true singleton is a proposed deviation awaiting an explicit Reviewer/Owner decision — not a self-granted exemption. `npm run contract:account-registration` enforces the current (no-travel-actions) state at the source level either way.
 
-**Not done:** Phase E (closeout/handover) and the push itself. Retiring Services' own Tools/Security reachability is explicitly deferred — the batch gates that on regression proof the Owner can see, not an automated check alone. The live WordPress/Rezdy credential-guard validation deferred under Security Phase 2 (above) is expected to run through this new Account Settings UI once it exists on staging2; it has not run yet and must never be described as passed until it has.
+**Not done:** the live WordPress/Rezdy credential-guard validation deferred under Security Phase 2 (above) is expected to run through the Account Settings UI once it exists on staging2; it has not run yet and must never be described as passed until it has.
 
-## Next — Settings → Security completion, UI, then Tools
-
-Owner-approved presentation model:
+## Settings presentation model (current)
 
 ```text
-Services Station
-├─ Details
-├─ Connections
-└─ Settings
-   ├─ General
-   ├─ Tools
-   │  ├─ Rezdy importer
-   │  ├─ Stripe-related tools
-   │  └─ future operational tools
-   └─ Security
-      ├─ API keys
-      ├─ credentials
-      ├─ encryption
-      ├─ request-key broker
-      ├─ permissions
-      ├─ rotation/re-seal
-      └─ audit
+Services Station              Account Station
+├─ Details                    └─ Settings
+├─ Connections                   ├─ Tools (Rezdy importer, future tools)
+└─ Settings                      └─ Security (API keys, credentials,
+   └─ General                       encryption, broker, rotation, audit)
+      └─ Service fields
 ```
 
-`Settings` is a tab pattern inside a Station, not a separate Station. Other Stations may surface `General`, `Tools`, and/or `Security` where relevant. Shared General/Security data is owned once by the platform authority; screen placement never creates duplicate persistence or transfers domain authority.
+`Settings` is a tab pattern inside a Station, not a separate Station. Other Stations may surface `General`, `Tools`, and/or `Security` where relevant — the pattern is reusable, not fixed to these two. Shared data is owned once by the platform authority; screen placement never creates duplicate persistence or transfers domain authority.
 
 The current standalone Settings navigation/deck is an accepted foundation implementation but is now a **transitional presentation**. The backend Settings module remains the configuration/security authority while presentation is migrated into the Services Station Settings tab.
 
