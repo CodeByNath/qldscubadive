@@ -12,7 +12,7 @@ Global policy is defined by [AGENTS.md](../../../../../../AGENTS.md).
 - `presentation/SecurityApiKeysPanel.tsx` — Security → API Keys: secure-storage and access state, one card per provider, a write-only add/replace key flow, Remove key and Disconnect armed with `useInlineConfirm`, Test connection (the server-side validation run), and Rotate encryption key (administrators; no body, count-only result).
 - `presentation/ServiceMetaSchemaLane.tsx` (+ `ServiceMetaFieldEditor.tsx`) — General → Service fields.
 - `presentation/RezdyImporterTool.tsx` — Tools → Rezdy importer slot; the importer is Phase 3.
-- `register.ts` — contributes those three panels. Service fields is `services`-only (an Owner-excluded metafield from the global Account view); the Rezdy importer and API Keys panels also list `account` in their `stationIds` (Phase D's additive relocation — same panel, same data, reachable from a second Station). It is imported only by `resources/ts/modules/admin-station.ts` and never exported from `index.ts`.
+- `register.ts` — contributes those three panels. Service fields is `services`-only (an Owner-excluded metafield from the global Account view). The Rezdy importer and API Keys panels list `account` only in their `stationIds` — Phase D's actual relocation, not an additive second path: Services no longer presents Tools or Security, only General. Same panel, same data, same backend either way; only the `stationIds` array moved. It is imported only by `resources/ts/modules/admin-station.ts` and never exported from `index.ts`.
 
 ## Boundaries
 

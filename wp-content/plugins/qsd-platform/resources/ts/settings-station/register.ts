@@ -10,14 +10,15 @@ import { ServiceMetaSchemaLane } from './presentation/ServiceMetaSchemaLane';
 // Station reuses the same panel and the same data, never a second instance.
 // Imported only by the Admin Station entry.
 //
-// Account Phase D: Tools and Security are also reachable from Account's own
-// Settings section now (global Connections/Security relocation) — additive,
-// not a move; Services keeps its own `Settings → Tools | Security` until a
-// separate, explicit retirement step removes it there, per the batch's
-// "retire standalone Settings navigation only after regression proof."
-// Service fields stays Services-only by design: the batch spec excludes
-// Service Meta from the global Account view (an Owner-excluded metafield),
-// and its routes/data/access are unchanged either way.
+// Account Phase D correction: global Connections (Tools) and Security are now
+// reachable from Account ONLY — the actual relocation the batch spec asked
+// for, not an additive second path. Services' own `Settings → Tools |
+// Security` tabs are gone (General, carrying Service fields, is all that
+// remains there); the panels, their data, their endpoints, and the
+// credential-broker backend are completely unchanged — only which Station's
+// `stationIds` array can reach them moved. Service fields stays Services-only
+// by design: the batch spec excludes Service Meta from the global Account
+// view (an Owner-excluded metafield).
 export function registerSettingsStation(): void {
   registerStationSettings([
     {
@@ -31,7 +32,7 @@ export function registerSettingsStation(): void {
     {
       id: 'settings.rezdy-importer',
       section: 'tools',
-      stationIds: ['services', 'account'],
+      stationIds: ['account'],
       label: 'Rezdy importer',
       order: 10,
       panel: RezdyImporterTool,
@@ -39,7 +40,7 @@ export function registerSettingsStation(): void {
     {
       id: 'settings.api-keys',
       section: 'security',
-      stationIds: ['services', 'account'],
+      stationIds: ['account'],
       label: 'API Keys',
       order: 10,
       panel: SecurityApiKeysPanel,

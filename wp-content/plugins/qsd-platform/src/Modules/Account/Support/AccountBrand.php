@@ -2,17 +2,25 @@
 
 namespace QSD\Platform\Modules\Account\Support;
 
+use QSD\Platform\Modules\Admin\Support\StationLifecycle;
+
 /**
  * AccountBrand — field sanitization and the draft/settle/publish/disable/
  * enable lifecycle rules for the Account singleton's one module.
  *
  * Brand has no required field, so a saved draft always settles cleanly —
  * there is no "incomplete, falls back to not-configured" case. Publish is
- * settle-then-activate as one step. Disable/Enable are a platform-visible
- * presentation mask, never a lifecycle rewrite — this mirrors Service's
- * updateDisabledMask exactly: Enable always lands back on the unmasked
- * 'disabled' status (Pending), never straight to 'active'; the admin must
- * Publish again to go live.
+ * settle-then-activate as one step, and its status write is computed by the
+ * shared `StationLifecycle` engine itself (`statusRouteTransition`), the same
+ * call Service's own `/status` route makes — Account is restricted to the
+ * active/disabled subset of that engine's vocabulary (it never mints
+ * draft/archived/trashed records or wires Archive/Trash/Restore/Delete; see
+ * this module's CLAUDE.md), not a second implementation of the transition.
+ * Disable/Enable are a platform-visible presentation mask, never a lifecycle
+ * rewrite — this mirrors Service's updateDisabledMask exactly, including
+ * reusing `StationLifecycle::isLive()` for the same guard: Enable always
+ * lands back on the unmasked 'disabled' status (Pending), never straight to
+ * 'active'; the admin must Publish again to go live.
  */
 final class AccountBrand
 {
@@ -64,26 +72,46 @@ final class AccountBrand
         return $state;
     }
 
-    /** Publish: settle whatever is pending, then activate. */
-    public static function publish(array $state): array
+    /**
+     * Publish: settle whatever is pending, then activate via the shared
+     * engine's `/status` transition (`StationLifecycle::statusRouteTransition`
+     * targeting 'active') — the same call Service's canonical `/status` route
+     * makes. Returns null only if `$state['platform_status']` is ever
+     * something other than active/disabled, which Account never writes.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function publish(array $state): ?array
     {
-        $state                    = self::settle($state);
-        $state['platform_status'] = AccountSchema::STATUS_ACTIVE;
+        $state   = self::settle($state);
+        $current = (string) ($state['platform_status'] ?? AccountSchema::STATUS_DISABLED);
+        $change  = StationLifecycle::statusRouteTransition(
+            $current,
+            StationLifecycle::STATUS_ACTIVE,
+            (string) ($state['previous_platform_status'] ?? '') !== '' ? (string) $state['previous_platform_status'] : null
+        );
+        if ($change === null) {
+            return null;
+        }
+
+        $state['platform_status'] = $change['status'];
 
         return $state;
     }
 
     /**
      * Disable: explicit mask. Legal only from a live status (active or
-     * disabled). Captures previous_platform_status once; an already-masked
-     * state stays masked with its original captured value.
+     * disabled) — guarded by the same `StationLifecycle::isLive()` check
+     * Service's `updateDisabledMask` uses. Captures previous_platform_status
+     * once; an already-masked state stays masked with its original captured
+     * value.
      *
      * @return array<string, mixed>|null null when illegal from the current status
      */
     public static function disable(array $state): ?array
     {
         $current = (string) ($state['platform_status'] ?? '');
-        if ($current !== AccountSchema::STATUS_ACTIVE && $current !== AccountSchema::STATUS_DISABLED) {
+        if (!StationLifecycle::isLive($current)) {
             return null;
         }
 

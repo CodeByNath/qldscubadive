@@ -2,11 +2,13 @@
 // Station Manager, and its ownership boundaries hold.
 //
 // Three parts:
-//   1. Executed registration — the real Service, Settings and Admin register
-//      modules run through the real finalize. The public resolvers prove the
-//      Services Station presents `Settings → General | Tools | Security`, with
-//      each panel registered by its owner, and that the standalone Settings
-//      Station (navigation, destination, deck) is retired.
+//   1. Executed registration — the real Account, Service, Settings and Admin
+//      register modules run through the real finalize. The public resolvers
+//      prove Services presents `Settings → General` only, Account presents
+//      `Settings → Tools | Security` (Phase D's actual relocation, not an
+//      additive second path), each panel registered by its owner, and that
+//      the standalone Settings Station (navigation, destination, deck) is
+//      retired.
 //   2. Source boundaries — presentation never calls ./api; Settings imports no
 //      Service peer and Service imports no Settings panel; register.ts is
 //      entry-only; the secret projection type has no value slot.
@@ -68,13 +70,18 @@ check(defaultHomeStation() === 'services', 'Service remains the default Home');
 check(resolveDrawerTemplate('settings') === null, 'Settings registers no drawer — it has no lifecycle-managed record');
 
 const servicesSettings = resolveStationSettings('services');
-check(servicesSettings.map((s) => s.section).join() === 'general,tools,security', 'Services → Settings presents General, Tools, Security in that order');
+check(servicesSettings.map((s) => s.section).join() === 'general', 'Services → Settings presents General only — Tools/Security relocated to Account (Phase D correction)');
 const panelsOf = (section: string) => servicesSettings.find((s) => s.section === section)?.contributions ?? [];
 check(panelsOf('general').map((c) => c.id).join() === 'service.create,settings.service-meta'
   && panelsOf('general')[0].panel === ServiceCreateLaunchers && panelsOf('general')[1].panel === ServiceMetaSchemaLane, 'General holds Service\'s creation launchers, then the Settings-owned Service fields');
-check(panelsOf('tools').length === 1 && panelsOf('tools')[0].label === 'Rezdy importer' && panelsOf('tools')[0].panel === RezdyImporterTool, 'Tools holds the Rezdy importer slot');
-check(panelsOf('security').length === 1 && panelsOf('security')[0].label === 'API Keys' && panelsOf('security')[0].panel === SecurityApiKeysPanel, 'Security holds the API Keys panel');
-check(resolveStationSettings('settings').length === 0 && resolveStationSettings('packages').length === 0, 'no other Station presents these panels yet');
+check(panelsOf('tools').length === 0 && panelsOf('security').length === 0, 'Services no longer presents Tools or Security — those panels moved to Account');
+
+const accountSettings = resolveStationSettings('account');
+check(accountSettings.map((s) => s.section).join() === 'tools,security', 'Account → Settings presents Tools then Security — the actual relocation target');
+const accountPanelsOf = (section: string) => accountSettings.find((s) => s.section === section)?.contributions ?? [];
+check(accountPanelsOf('tools').length === 1 && accountPanelsOf('tools')[0].label === 'Rezdy importer' && accountPanelsOf('tools')[0].panel === RezdyImporterTool, 'Account Tools holds the Rezdy importer slot — the same panel Services used to present');
+check(accountPanelsOf('security').length === 1 && accountPanelsOf('security')[0].label === 'API Keys' && accountPanelsOf('security')[0].panel === SecurityApiKeysPanel, 'Account Security holds the API Keys panel — the same panel Services used to present');
+check(resolveStationSettings('settings').length === 0 && resolveStationSettings('packages').length === 0, 'no other Station presents these panels');
 
 // ── 2. Source boundaries ─────────────────────────────────────────────────────
 

@@ -78,21 +78,25 @@ check(settingsBinding.dataSourceKey === 'account' && settingsBinding.templateKit
 check(settingsBinding.drawerTemplateKey === undefined, 'the Settings section opens no drawer of its own — every panel inside is self-contained');
 check(settingsBinding.actionIntents.length === 0, 'the Settings section carries no action intents of its own');
 
-// Phase D: Tools and Security are reachable from Account's own Settings
-// section now (additive relocation), while Service fields stays
-// Services-only — an Owner-excluded metafield, not an oversight.
+// Phase D correction: Tools and Security are reachable from Account ONLY —
+// the actual relocation the batch spec asked for, not an additive second
+// path. Service fields stays Services-only — an Owner-excluded metafield,
+// not an oversight.
 const accountSettings = resolveStationSettings('account');
 check(accountSettings.map((s) => s.section).join() === 'tools,security', "Account's Settings section presents Tools then Security — no General, since Account contributes none");
 check(accountSettings.find((s) => s.section === 'tools')?.contributions.some((c) => c.id === 'settings.rezdy-importer'), 'the Rezdy importer panel is reachable from Account');
 check(accountSettings.find((s) => s.section === 'security')?.contributions.some((c) => c.id === 'settings.api-keys'), 'the API Keys panel is reachable from Account');
 check(!accountSettings.some((s) => s.contributions.some((c) => c.id === 'settings.service-meta')), 'Service fields is never reachable from Account — the backend/route stays Services-owned and unexposed here');
 
-// Cross-station: Services keeps every one of its own panels, unchanged, alongside the new Account reachability.
+// Cross-station: Services keeps General (Service fields, creation launchers);
+// Tools/Security are gone from Services — moved, not duplicated. The panels,
+// their data and their backend endpoints are completely unchanged; only
+// which Station's `stationIds` array can reach them moved.
 const servicesSettings = resolveStationSettings('services');
-check(servicesSettings.map((s) => s.section).join() === 'general,tools,security', "Service's own Settings section still presents General, Tools, Security in that order");
+check(servicesSettings.map((s) => s.section).join() === 'general', "Service's own Settings section presents General only — Tools/Security relocated to Account");
 check(servicesSettings.find((s) => s.section === 'general')?.contributions.some((c) => c.id === 'settings.service-meta'), 'Service fields remains reachable from Services');
-check(servicesSettings.find((s) => s.section === 'tools')?.contributions.some((c) => c.id === 'settings.rezdy-importer'), 'the Rezdy importer panel remains reachable from Services');
-check(servicesSettings.find((s) => s.section === 'security')?.contributions.some((c) => c.id === 'settings.api-keys'), 'the API Keys panel remains reachable from Services — nothing was moved, only additionally exposed');
+check(!servicesSettings.some((s) => s.contributions.some((c) => c.id === 'settings.rezdy-importer')), 'the Rezdy importer panel is no longer reachable from Services — it moved to Account');
+check(!servicesSettings.some((s) => s.contributions.some((c) => c.id === 'settings.api-keys')), 'the API Keys panel is no longer reachable from Services — it moved to Account');
 
 const drawer = resolveDrawerTemplate('account');
 check(!!drawer && drawer.title === 'Account', 'the Account drawer template is registered');

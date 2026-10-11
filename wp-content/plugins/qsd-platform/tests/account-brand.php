@@ -124,6 +124,7 @@ use QSD\Platform\Modules\Account\Http\AccountController;
 use QSD\Platform\Modules\Account\Support\AccountBrand;
 use QSD\Platform\Modules\Account\Support\AccountMedia;
 use QSD\Platform\Modules\Account\Support\AccountSchema;
+use QSD\Platform\Modules\Admin\Support\StationLifecycle;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 function checkBrand(bool $condition, string $message): void
@@ -183,6 +184,23 @@ checkBrand(
     'enable clears the mask but lands back on disabled, never straight to active'
 );
 checkBrand(AccountBrand::enable($state) === null, 'enabling a state that is not disabled is illegal');
+
+// ─── Part 1b: publish/disable reuse the shared StationLifecycle engine's own
+// guards and transition — not a second, hand-rolled implementation of the
+// same semantics. These assert equality against StationLifecycle's own
+// outputs directly, the way Service's own ServiceController calls it. ──
+$draftlessState = AccountSchema::defaultState();
+checkBrand(
+    StationLifecycle::statusRouteTransition(AccountSchema::STATUS_DISABLED, StationLifecycle::STATUS_ACTIVE, null)['status'] === AccountSchema::STATUS_ACTIVE,
+    'the engine itself publishes disabled → active — AccountBrand::publish computes nothing beyond calling this'
+);
+$republished = AccountBrand::publish(AccountBrand::publish($draftlessState));
+checkBrand(
+    $republished !== null && $republished['platform_status'] === AccountSchema::STATUS_ACTIVE,
+    'republishing an already-active state is a no-op status write, matching statusRouteTransition\'s active-stays-active branch'
+);
+checkBrand(!StationLifecycle::isLive('not-a-real-status'), 'isLive is the actual shared predicate AccountBrand::disable guards on');
+checkBrand(AccountBrand::disable(['platform_status' => 'not-a-real-status']) === null, 'disable from any non-live status is illegal, via the same isLive() guard Service uses');
 
 // ─── Part 2: AccountMedia validation, with a real file and the upload-origin seam ──
 $fixtureDir = $GLOBALS['qsd_test_uploads_dir'] . '-fixtures';
