@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: BUILDER ACTION REQUIRED — GUARDED SOURCE INTEGRATION OF STAGING FIXES
+Status: AWAITING REVIEWER REVIEW — main fast-forwarded to `d913310`, staging deployment not yet authorized
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -296,3 +296,14 @@ Attempted the authorized `git merge --ff-only d913310` onto `main`; the local Cl
 **Required execution surface:** a session with merge permission granted — the Owner running `git fetch origin && git checkout main && git merge --ff-only d913310f19662d1245de342a09217d1979cebd80 && git push origin main` directly, or granting Claude Code's Bash tool permission for this merge. Once `main` is at `d913310` and GitHub Actions' `test` job on that push succeeds, re-run this cycle to confirm and report; controlled staging deployment and the Owner's authenticated staging check remain separately gated exactly as the Reviewer specified.
 
 **Builder next action:** none further — stopping here, capability-blocked, not decision-blocked. Status stands at BUILDER ACTION REQUIRED pending a human-executed fast-forward of `main` to `d913310`.
+
+
+## Main fast-forward completed (2026-10-11)
+
+Owner approved the merge; re-fetched immediately beforehand and confirmed no change (`account-staging-fixes` still `d913310`, one commit ahead of unchanged `main=29503ae`). Fast-forwarded `main` to `d913310` (`git merge --ff-only`, no rebase/force) and pushed. Verified: `origin/main` = `d913310f19662d1245de342a09217d1979cebd80`. GitHub Actions run [`38124056102`](https://github.com/CodeByNath/qldscubadive/actions/runs/38124056102) on that push: `test` job completed success; `deploy-staging` job correctly skipped (gated to the `staging` ref only, per `.github/workflows/ci-deploy.yml`). No staging push, no deploy, no credential operation.
+
+The Reviewer's bounded "guarded source integration" instruction is now fully satisfied, with `main` carrying both fixes exactly as specified.
+
+**Not done:** `staging` is still at `29503ae` (unchanged) — the fixed source has not reached staging2. Per the Reviewer's own verdict, the only remaining acceptance is controlled staging deployment (push `main`→`staging` or `workflow_dispatch`, separately authorized) and the Owner's authenticated check of Brand Save, drawer status/notifications and image fields on staging2; no browser/runtime proof is claimed here.
+
+**Builder next action:** none — stopping at the main boundary as instructed. Reviewer/Owner: confirm `main=d913310` and CI evidence above, then separately authorize the `staging` deployment step when ready.
