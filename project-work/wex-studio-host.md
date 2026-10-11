@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: BUILDER ACTION REQUIRED — PHASE 1 RELEASED
-Actor now: Builder
+Status: AWAITING REVIEWER REVIEW — Phase 1 host pushed at `f0825cb`
+Actor now: Reviewer
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -27,3 +27,21 @@ Phase 1 below is released for Builder. This release does not authorize any stagi
 ## Handoff
 
 One governed QSD topic branch only after Reviewer releases the phase. Push candidate and verify exact remote SHA; update this same work file to AWAITING REVIEWER REVIEW with diff, test and host evidence. Stop; Reviewer then releases WEX Builder to complete WEX-side integration. Do not claim live /studio/ is deployed or validated merely from tests.
+
+## Builder Phase 1 handoff (2026-10-12)
+
+**Preconditions checked before branching:** `main`=`staging`=`d913310f19662d1245de342a09217d1979cebd80` (re-fetched fresh); remote heads were exactly the governed baseline of three — capacity for one topic branch. Opened `wex-studio-host` from `main` at that SHA.
+
+**What was built, one commit (`f0825cb`):** a separate `/studio/` host route, document, and access gate (`src/Modules/StudioHost/StudioHostModule.php`), reusing the existing `Core\PlatformAccess::CAP` capability `/station/` already gates on — no second authorization scheme, and a logged-out/unauthorized visitor is pointed at `/station/`'s real sign-in (`AdminStationModule::url()`, consumed only as a public URL helper) rather than a duplicated login form. A versioned WEX-only asset delivery seam (`StudioAssetGateway.php`) reads `studio-assets/manifest.json`, `realpath()`-contains every path to that directory, writes a Studio-scoped `window.QSDStudioConfig` (never the full `qsd/v1` root, never `/station/`'s `window.QSDConfig`), and enqueues nothing — the host still renders — until WEX actually supplies a bundle. A host-private writable identity-space root (`StudioStorage.php`, under `wp_upload_dir()`, `.htaccess`/`index.php`-protected) is initialized only by an explicit `POST /qsd/v1/studio/storage/init` action (`Http/StudioStorageController.php`) — never automatically — and exposes exactly one bounded identity-blob resource (`GET`/`PUT /qsd/v1/studio/storage/identity`), not a generic path-addressable file API. No frontend/`resources/ts/` code, no WEX markup, and no QSD business data are part of this phase.
+
+**Verified untouched, not assumed:** `git diff --stat` of `AdminStationModule.php`, `AdminStationAuth.php`, `AssetLoader.php`, and `PlatformIdentifier/` between `main` (`d913310`) and this branch is empty — zero changes to any of them. `ROUTE_SLUG`/`QUERY_VAR` are distinct constants (`studio`/`qsd_studio` vs `station`/`qsd_station`), so the two rewrite rules cannot collide.
+
+**Test evidence at `f0825cb`:** `npm test` green in full — typecheck; every PHP test including four new files (`tests/studio-host.php`, `tests/studio-asset-gateway.php`, `tests/studio-storage.php`, `tests/studio-storage-rest.php` — route/gate behaviour, asset-gateway enqueue gating including a path-escape attempt, storage fail-closed/idempotent/restart-persistence behaviour, and REST handshake/permission behaviour, all against real temp filesystems and stubbed WordPress primitives, not mocks of the classes under test); build; JS **27/27** unchanged (no new TS contract/regression — this phase is backend-only, so none was needed); `npm run docs:check` (52 Markdown files, 21 Code Maps, new `docs/code-map/studio-host.md` and `src/Modules/StudioHost/CLAUDE.md` added, `docs/roadmap.md` updated).
+
+**No CI run exists yet for `f0825cb`:** independently confirmed via the GitHub Actions API (`total_count: 0`) — by design, `.github/workflows/ci-deploy.yml` triggers only on push to `main`/`staging` or a pull request, never a plain topic-branch push, exactly as already established in the prior Account-fixes cycle. Local `npm test` above is the available evidence.
+
+**Verified remote state:** `origin/wex-studio-host` HEAD = `f0825cbeb9a919821bb6c554509652f9acdff7b2` (new branch, confirmed via `git rev-parse` after push). `origin/main`/`origin/staging` unchanged at `d913310`/`29503ae`. Remote branch count is now four (governed maximum).
+
+**Not done, per Phase 1's own bound:** no WEX markup/bundle/identity semantics (host-only, as instructed); no staging/production deployment; no browser/host runtime verification (`studio-assets/` is empty — nothing to verify live yet); no push to `main`/`staging`; no credential operation; no change to `/station/`, its bundle, or `PlatformIdentifierStation`.
+
+**Builder next action:** none — stopping here. Reviewer: `wex-studio-host` is pushed at `f0825cb`, independently inspectable, satisfying Phase 1's six numbered requirements. Awaiting verdict before any WEX-side integration or deployment.
