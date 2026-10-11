@@ -1,0 +1,22 @@
+# Studio Host
+
+Studio Host is the QSD-owned backend for a second, independently built frontend — the WEX Admin Dashboard — served at the fixed `/studio/` route. It coexists with Admin Station's `/station/` without changing it: separate rewrite rule, separate document template, separate asset delivery, separate private storage. It owns no WEX markup, presentation, identity semantics, or QSD business data.
+
+Backend root: `wp-content/plugins/qsd-platform/src/Modules/StudioHost/`
+
+## Ownership
+
+- `StudioHostModule.php` — the `/studio/` rewrite rule (query-var fallback `?qsd_studio=1`), its own document template, noindex/no-toolbar marking, and the access gate. Reuses the existing `Core\PlatformAccess::CAP` capability `/station/` already gates on — no second authorization scheme. A visitor who is not signed in, or lacks the capability, sees a bare access-denied state that links to `AdminStationModule::url()` (consumed only as a public URL helper, never its templates/CSS/UI) rather than a duplicated login form. `StudioHostModule::url()` is the one canonical address.
+- `StudioAssetGateway.php` — enqueues a WEX-supplied bundle only on `/studio/`, only for a signed-in platform manager. Reads `studio-assets/manifest.json` (`{entry, styles, version}`); resolves every path against the real `studio-assets/` root via `realpath()` containment so a manifest entry can never escape it. Writes `window.QSDStudioConfig` (a Studio-scoped REST root and nonce only — never the full `qsd/v1` business API root, and never the `/station/` `window.QSDConfig` global). With no manifest present, the route still renders its mount point with nothing enqueued: the host does not depend on WEX's bundle existing.
+- `StudioStorage.php` — the host-private writable root for WEX's own identity-space storage, under the WordPress uploads base (`wp_upload_dir()`, not inside the plugin), protected by its own `.htaccess`/`index.php` pair. First initialization (`initialize()`) is idempotent and fail-closed (returns false, never throws, if the root can't be made writable) and is only ever invoked by the explicit `POST /qsd/v1/studio/storage/init` action below — nothing calls it automatically. Holds exactly one resource, a single `identity.json` blob (size-capped, JSON-validated), not a generic path-addressable file API.
+- `Http/StudioStorageController.php` — the minimum authorized host handshake: `GET /qsd/v1/studio/storage` (init status), `POST /qsd/v1/studio/storage/init` (the explicit initialization action), `GET`/`PUT /qsd/v1/studio/storage/identity` (readback/write of the one identity blob). Every route's `permission_callback` requires `PlatformAccess::CAP`; no business-data route is exposed.
+- `app/modules/studio-host/templates/` — `studio-document.php` (the theme-independent document), `access-denied.php` (bare, no Atomic Engine CSS, no drawer kit), `studio-mount.php` (the mount point div only). None imports an Admin Station template.
+- `studio-assets/` — the versioned, publicly-fetchable delivery location WEX's own build is copied into (same trust model as `dist/js/admin-station.js`: no secret or business data in a bundle). Empty until WEX supplies `manifest.json` and its files.
+
+## Boundaries
+
+Studio Host never touches `/station/`'s rewrite rule, document, `AssetLoader`, or `window.QSDConfig`; `AdminStationModule`/`AssetLoader` are unmodified by this subsystem. It never mints identity through `PlatformIdentifierStation` — WEX's own UI identity and QSD business identity stay separate. It exposes no generic business-data API: the one REST resource is a bounded identity-space blob, not an arbitrary read/write-by-path adapter. No frontend code exists yet in `resources/ts/` for this host; WEX owns all markup, presentation, and design tokens for `/studio/` and is integrated in a later, separately released phase.
+
+## Related Code Maps
+
+[Admin Station](admin-station.md) (the sibling host `/studio/` coexists with, consumed only via its public `url()`), [Platform Identifier Station](platform-identifier-station.md) (deliberately untouched by this subsystem).

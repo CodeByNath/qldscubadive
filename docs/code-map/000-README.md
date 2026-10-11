@@ -19,6 +19,7 @@ The Code Map points to the **current implementation**: the small set of authorit
 - [Admin Station Cards](admin-station-cards.md)
 - [Drawer System](drawer-system.md)
 - [Lifecycle and Module State](lifecycle-system.md)
+- [Studio Host](studio-host.md)
 
 ### Domain Stations
 

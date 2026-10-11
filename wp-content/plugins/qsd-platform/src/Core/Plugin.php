@@ -8,12 +8,17 @@ use QSD\Platform\Modules\AdminStation\AdminStationAuth;
 use QSD\Platform\Modules\AdminStation\AdminStationModule;
 use QSD\Platform\Modules\Service\ServiceModule;
 use QSD\Platform\Modules\Settings\SettingsModule;
+use QSD\Platform\Modules\StudioHost\Http\StudioStorageController;
+use QSD\Platform\Modules\StudioHost\StudioAssetGateway;
+use QSD\Platform\Modules\StudioHost\StudioHostModule;
+use QSD\Platform\Modules\StudioHost\StudioStorage;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 /**
  * Platform boot. WordPress is the runtime and storage host only: this wires
  * access, entity registration, the permanent Platform ID station, the domain
- * Stations (Service, Category, Account), the Settings Station, and the Admin Station host.
+ * Stations (Service, Category, Account), the Settings Station, the Admin
+ * Station host, and the separate Studio host.
  *
  * Adding a Station: construct its module here and inject the shared
  * PlatformIdentifierStation when the Station issues permanent identifiers.
@@ -43,6 +48,10 @@ final class Plugin
         (new SettingsModule())->register();
         (new AdminStationModule())->register();
         (new AdminStationAuth())->register();
+
+        (new StudioHostModule())->register();
+        (new StudioAssetGateway())->register();
+        (new StudioStorageController(new StudioStorage()))->register();
 
         add_action('rest_api_init', [self::class, 'registerCoreRoutes']);
     }

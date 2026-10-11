@@ -171,6 +171,15 @@ Only after Security Phase 2 is accepted:
 - keep provider credentials in Security; Tools request controlled broker authority and never own/read long-lived credentials;
 - continue Service Meta / Service Elements / Service Options only after the existing Element-definition identity gate is resolved.
 
+## Studio host (Phase 1, pushed for review — not deployed)
+
+Separate `/studio/` host route for the independently built WEX Admin Dashboard, coexisting with `/station/` without changing it. Backend-only; no WEX bundle, UI, or business data is part of this phase.
+
+- `src/Modules/StudioHost/StudioHostModule.php` — its own rewrite rule/query var/document, gated on the same `PlatformAccess::CAP` capability `/station/` uses; a visitor who needs to sign in is pointed at `/station/`'s real sign-in rather than a duplicated login form.
+- `src/Modules/StudioHost/StudioAssetGateway.php` — enqueues a WEX-supplied `studio-assets/manifest.json` bundle only on `/studio/` for an authorized caller; the host works standalone with nothing enqueued until WEX supplies one.
+- `src/Modules/StudioHost/StudioStorage.php` + `Http/StudioStorageController.php` — the host-private writable identity-space root (outside the plugin, `.htaccess`-denied), initialized only by an explicit `POST /qsd/v1/studio/storage/init` action, never automatically; one bounded identity-blob read/write resource, not a generic business-data API.
+- Not done: no WEX bundle exists yet; not deployed to `staging`/staging2; no browser/runtime verification; live WEX-side integration is a later, separately released phase.
+
 ## Later — scuba domain
 
 - **New Stations** per [the AI index](ai-index.md#adding-a-station): e.g. Courses/Trips schedule, Dive Sites, Equipment, Staff. Each gets a prefix, a Code Map, and conformance with the lifecycle contract.
