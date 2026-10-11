@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: BUILDER ACTION REQUIRED — retire redundant `account-staging-fixes` topic branch to close this phase
+Status: DEFERRED — source integration accepted; branch cleanup held by Owner decision
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -318,3 +318,11 @@ The Reviewer's bounded "guarded source integration" instruction is now fully sat
 **Bounded Builder housekeeping action:** `account-staging-fixes` is now redundant (identical SHA to `main`). Re-verify the exact SHA match fresh immediately before deleting, then retire the topic branch (`git push origin --delete account-staging-fixes`), exactly as the established pattern for `account-station-transfer`'s own cleanup did — including the same requirement for a separate, explicit confirmation before the irreversible deletion, distinct from this review's acceptance alone. Record deletion evidence and the resulting remote head count. Do not touch `staging`; deployment remains ungated by this acceptance but still requires its own separate authorization when the Owner is ready.
 
 **Batch status after cleanup:** once the topic branch is retired, this work file's active phase is fully closed — both the original Account Station transfer and this staging-fix correction are accepted and integrated on `main`. Remote branch capacity returns to the governed baseline of three, clearing the precondition `project-work/wex-studio-host.md` states for releasing the WEX /studio integration phase. That phase remains its own separately-scoped, Owner-gated work item and is not started by this verdict.
+
+## Owner decision — branch cleanup held (2026-10-12)
+
+Asked the Owner directly whether to delete the redundant `account-staging-fixes` topic branch now. **Owner declined — leave it for now.** No deletion attempted.
+
+**Content-level acceptance is unaffected:** both Owner-reported staging defects remain fixed and accepted on `main` at `d913310`, exactly as the prior verdict recorded — this decision only holds the housekeeping step. Remote branch count stays at four (the governed maximum) until the Owner later authorizes retiring `account-staging-fixes`. Per `project-work/wex-studio-host.md`'s own release precondition ("safely complete required promotion/housekeeping and verify capacity before assigning this new phase"), **the WEX /studio integration phase remains queued and is not released** — capacity is not yet available. No WEX /studio work has been started.
+
+**Next action:** none pending from Builder or Reviewer right now. Whenever the Owner is ready, either authorize deleting `account-staging-fixes` (clearing capacity and fully closing this batch) or authorize the separate `staging` deployment/runtime verification this batch has deferred throughout.
