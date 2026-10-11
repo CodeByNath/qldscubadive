@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: DEFERRED — QUEUED BEHIND ACCOUNT STATION REVIEW
-Actor next: Reviewer to release only after existing QSD Account Station work is accepted/deferred and branch housekeeping is complete
+Status: BUILDER ACTION REQUIRED — PHASE 1 RELEASED
+Actor now: Builder
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -9,9 +9,11 @@ WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-a
 
 Make the existing independently built WEX Admin Dashboard accessible as QSD /studio/ while leaving original /station/ fully functional. QSD owns its host routing, server-side authorization/session checks, private writable allocation for WEX identity-space storage, and safe independent asset delivery. WEX owns all markup, UI components, presentation/design tokens, identity semantics, approved portable bootstrap and storage adapter. No reuse of legacy QSD UI, drawers, presentation templates or CSS. No QSD business records, data plugs, navigation or Logo wiring. Owner commands each future plug individually.
 
-## Release precondition (do not run immediately)
+## Release precondition — satisfied (2026-10-12)
 
-The active QSD work file project-work/account-station-transfer-batch.md currently says AWAITING REVIEWER REVIEW. Resolve that review, safely complete required promotion/housekeeping and verify capacity before assigning this new phase. QSD staging only when separately authorised; production deployment is excluded. This file is a queued scope record, not a competing active phase or permission to start a topic branch.
+Independently re-verified before release, not assumed: `project-work/account-station-transfer-batch.md` status is `ACCEPTED`. Fresh `git ls-remote --heads origin` shows exactly three permanent heads — `main` (`d913310`), `staging` (`29503ae`), `Project-work-instructions` — confirming the redundant `account-staging-fixes` topic branch was retired and capacity for one new topic branch is clear. QSD staging was NOT deployed and is not implied by this release; Account Station's own deployment gate stays exactly as that file records it, untouched by this action. Production deployment remains excluded.
+
+Phase 1 below is released for Builder. This release does not authorize any staging/production deployment, nor does it touch Account Station.
 
 ## Phase 1 — bounded host Builder task once released
 
