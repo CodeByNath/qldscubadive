@@ -47,7 +47,7 @@ final class AccountSchema
     {
         $nodes = [];
         foreach (self::NODE_ORDER as $entityType) {
-            $nodes[$entityType] = ['platform_id' => null];
+            $nodes[$entityType] = ['platform_id' => null, 'parent_platform_id' => null];
         }
 
         return [

@@ -42,6 +42,7 @@ use QSD\Platform\Modules\Account\Support\AccountIdentity;
 use QSD\Platform\Modules\Account\Support\AccountRepository;
 use QSD\Platform\Modules\Account\Support\AccountSchema;
 use QSD\Platform\Modules\Account\Support\AccountStorageBusy;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierConflict;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
@@ -162,5 +163,86 @@ try {
 }
 checkAccount($busy, 'exhausting the compare-and-swap retry budget fails closed rather than looping forever or writing silently');
 checkAccount($table4->rows[AccountSchema::OPTION_KEY] === $originalRow, 'a failed-closed commit leaves the row exactly as it was, no partial write');
+
+// ─── Scenario 6: recovery from a reserved-but-not-bound node ───────────────
+// Simulates a request that died inside PlatformIdentifierStation::assign(),
+// after it wrote the native storage slot but before it flipped the registry's
+// forward record from 'reserved' to 'bound'. A plain ensure() would see the
+// stored id and reject it as "already reserved, retired, or deleted"; this
+// must instead finish the bind with assign() and resume normally.
+$GLOBALS['qsd_test_options'] = [];
+$GLOBALS['qsd_test_autoload'] = [];
+$table5 = new AccountOptionsTable();
+$GLOBALS['wpdb'] = new AccountWpdb($table5);
+$station5 = new PlatformIdentifierStation();
+$repository5 = new AccountRepository();
+$identity5 = new AccountIdentity($station5, $repository5);
+
+$accountEntityType = PlatformIdentifierPolicy::ACCOUNT;
+$accountNative5 = AccountSchema::NATIVE_REFERENCES[$accountEntityType];
+$reservation5 = $station5->reserve($accountEntityType);
+$repository5->writeNodePlatformId($accountEntityType, $reservation5->platformId(), null);
+
+checkAccount(
+    $station5->resolve($reservation5->platformId())?->status() === PlatformIdentifierStation::STATUS_RESERVED,
+    'the simulated interruption leaves the forward record reserved, not bound'
+);
+
+$recovered = $identity5->bootstrap();
+checkAccount(
+    $recovered[$accountEntityType] === $reservation5->platformId(),
+    'the interrupted reservation is completed in place, never re-minted'
+);
+checkAccount(
+    $station5->resolve($reservation5->platformId())?->status() === PlatformIdentifierStation::STATUS_BOUND,
+    'the recovered node is now bound'
+);
+checkAccount($identity5->isBootstrapped() === true, 'bootstrap completes every remaining node after recovering the interrupted one');
+
+// ─── Scenario 7: parent linkage mismatch is caught, not silently chained ───
+$GLOBALS['qsd_test_options'] = [];
+$GLOBALS['qsd_test_autoload'] = [];
+$table6 = new AccountOptionsTable();
+$GLOBALS['wpdb'] = new AccountWpdb($table6);
+$station6 = new PlatformIdentifierStation();
+$repository6 = new AccountRepository();
+$identity6 = new AccountIdentity($station6, $repository6);
+
+$identity6->bootstrap();
+
+// Corrupt Settings' recorded parent independently of the registry, as if the
+// aggregate had been edited outside AccountIdentity's own write path.
+[$state6] = $repository6->read();
+$state6['nodes'][PlatformIdentifierPolicy::ACCOUNT_SETTINGS]['parent_platform_id'] = 'QSDA-not-the-real-parent';
+$table6->rows[AccountSchema::OPTION_KEY] = (string) json_encode($state6);
+
+$mismatchCaught = false;
+try {
+    $identity6->bootstrap();
+} catch (PlatformIdentifierConflict) {
+    $mismatchCaught = true;
+}
+checkAccount($mismatchCaught, 'a node naming a different parent than the current bootstrap order is rejected, not silently re-chained');
+
+// ─── Scenario 8: a node bound before parent linkage existed is not flagged ─
+// Mirrors a node bootstrapped by a prior version of this file that never
+// persisted parent_platform_id at all (key absent, not merely null).
+$GLOBALS['qsd_test_options'] = [];
+$GLOBALS['qsd_test_autoload'] = [];
+$table7 = new AccountOptionsTable();
+$legacyState = AccountSchema::defaultState();
+unset($legacyState['nodes'][PlatformIdentifierPolicy::ACCOUNT]['parent_platform_id']);
+$table7->rows[AccountSchema::OPTION_KEY] = (string) json_encode($legacyState);
+$GLOBALS['wpdb'] = new AccountWpdb($table7);
+$station7 = new PlatformIdentifierStation();
+$repository7 = new AccountRepository();
+$identity7 = new AccountIdentity($station7, $repository7);
+
+checkAccount(
+    $repository7->readNodeParentPlatformId(PlatformIdentifierPolicy::ACCOUNT) === null,
+    'a legacy row with no recorded parent reads as not-recorded, not as a mismatch'
+);
+$legacyBound = $identity7->bootstrap();
+checkAccount(count(array_unique($legacyBound)) === 4, 'bootstrapping a legacy row with no parent metadata still completes cleanly');
 
 echo "Account Station foundation: PASS\n";

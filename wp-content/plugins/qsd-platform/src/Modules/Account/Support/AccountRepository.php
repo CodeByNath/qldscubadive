@@ -101,12 +101,22 @@ final class AccountRepository
         return is_string($stored) ? $stored : '';
     }
 
-    public function writeNodePlatformId(string $entityType, string $platformId): void
+    public function writeNodePlatformId(string $entityType, string $platformId, ?string $parentPlatformId = null): void
     {
-        $this->commit(static function (array $state) use ($entityType, $platformId): array {
+        $this->commit(static function (array $state) use ($entityType, $platformId, $parentPlatformId): array {
             $state['nodes'][$entityType]['platform_id'] = $platformId;
+            $state['nodes'][$entityType]['parent_platform_id'] = $parentPlatformId;
             return $state;
         });
+    }
+
+    /** Null covers both "this is the root node" and a pre-existing row written before parent linkage was recorded. */
+    public function readNodeParentPlatformId(string $entityType): ?string
+    {
+        [$state] = $this->read();
+        $parent = $state['nodes'][$entityType]['parent_platform_id'] ?? null;
+
+        return $parent === null ? null : (string) $parent;
     }
 
     /** @return array<string, array{platform_id: string|null}> */

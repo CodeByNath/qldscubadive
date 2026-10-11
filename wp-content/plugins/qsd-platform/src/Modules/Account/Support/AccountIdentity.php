@@ -2,6 +2,9 @@
 
 namespace QSD\Platform\Modules\Account\Support;
 
+use QSD\Platform\PlatformIdentifier\PlatformIdentifier;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierConflict;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierReservation;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 /**
@@ -18,9 +21,19 @@ use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
  * id. Nodes are processed strictly in parent-to-child order so a child is
  * never addressed before its parent exists.
  *
- * A request that dies partway through `bootstrap()` leaves the already-bound
- * nodes untouched; the next call resumes from the first unbound node, because
- * `ensure()` reads each node's current state before deciding whether to mint.
+ * A request that dies between `AccountRepository::writeNodePlatformId()` and
+ * the registry's own bound-flip leaves that node's native storage holding an
+ * id whose registry record is still `reserved`; plain `ensure()` treats that
+ * as taken by someone else and throws rather than completing it. Before
+ * calling `ensure()`, each node is checked for exactly that state and, if
+ * found, finished with the Station's own `assign()` — re-validating the same
+ * reservation and read-back, minting nothing new. Each node's parent id is
+ * persisted alongside its own on first bind and re-checked against the
+ * current bootstrap order on every resumption, so an aggregate corrupted
+ * independently of this chain is caught rather than silently chained onto. A
+ * node bound before parent linkage existed stores no parent id yet; that is
+ * read as "not recorded", not as a mismatch.
+ *
  * This file never reads a `platform_id` on a write-path payload and never
  * invents a parallel reservation mechanism — it only sequences calls into the
  * one shared `PlatformIdentifierStation`.
@@ -36,23 +49,44 @@ final class AccountIdentity
     /** @return array<string, string> entity type => bound platform id, in AccountSchema::NODE_ORDER */
     public function bootstrap(): array
     {
-        $bound = [];
+        $bound  = [];
+        $parent = null;
 
         foreach (AccountSchema::NODE_ORDER as $entityType) {
-            $native = AccountSchema::NATIVE_REFERENCES[$entityType];
-
-            $binding = $this->platformIdentifiers->ensure(
-                $entityType,
-                $native,
-                fn(int|string $nativeReference): string => $this->repository->readNodePlatformId($entityType),
-                fn(int|string $nativeReference, string $platformId): mixed =>
-                    $this->repository->writeNodePlatformId($entityType, $platformId)
-            );
-
-            $bound[$entityType] = $binding->platformId();
+            $platformId = $this->ensureNode($entityType, AccountSchema::NATIVE_REFERENCES[$entityType], $parent);
+            $bound[$entityType] = $platformId;
+            $parent = $platformId;
         }
 
         return $bound;
+    }
+
+    private function ensureNode(string $entityType, string $native, ?string $expectedParent): string
+    {
+        $read  = fn(int|string $nativeReference): string => $this->repository->readNodePlatformId($entityType);
+        $write = fn(int|string $nativeReference, string $platformId): mixed =>
+            $this->repository->writeNodePlatformId($entityType, $platformId, $expectedParent);
+
+        $stored = $read($native);
+        if ($stored !== '' && $this->platformIdentifiers->resolve($stored)?->status() === PlatformIdentifierStation::STATUS_RESERVED) {
+            $this->platformIdentifiers->assign(
+                new PlatformIdentifierReservation(new PlatformIdentifier($entityType, $stored)),
+                $native,
+                $read,
+                $write
+            );
+        }
+
+        $binding = $this->platformIdentifiers->ensure($entityType, $native, $read, $write);
+
+        $storedParent = $this->repository->readNodeParentPlatformId($entityType);
+        if ($storedParent !== null && $storedParent !== $expectedParent) {
+            throw PlatformIdentifierConflict::registry(
+                "Account node '{$entityType}' names a different parent than the current bootstrap order."
+            );
+        }
+
+        return $binding->platformId();
     }
 
     /** Read-only: current node state, never minting. @return array<string, string|null> */
