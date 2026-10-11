@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: BUILDER ACTION REQUIRED — MINIMAL IDENTITY COMPLETION; NO DRAWER REBUILD
+Status: AWAITING REVIEWER REVIEW — minimal identity completion pushed at `29503ae`
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -170,3 +170,27 @@ Bounded correction executed on the same topic branch, two new commits:
 **Builder action, one bounded completion batch:** Review current QSD files first; implement only the two proven identity gaps and any clearly evidenced Account UI behavioural defect. Add focused tests, run `npm test` and `npm run docs:check`, update Code Map only for actual behaviour, push only `account-station-transfer`, record exact SHA and evidence here, then STOP for Reviewer. Do not merge, deploy or push main/staging. In any uncertainty, preserve existing working implementation and report the precise gap rather than expanding work.
 
 Earlier audit entries remain historical; **this section is the sole active instruction**.
+
+## Builder completion handoff (2026-10-11)
+
+Bounded completion executed on the same topic branch, one new commit, baseline unchanged (all seven prior commits kept as-is — no drawer file touched, no port of CompuZign's `AccountDrawerContent`/`EntityDrawer` attempted):
+
+| Full SHA | Commit |
+|---|---|
+| `29503aecaf262265b379e14ca8c16485466dd088` | `account: finish minimal identity completion — reserved-recovery and parent linkage` (branch HEAD) |
+
+**Verified remote state:** `origin/account-station-transfer` HEAD = `29503aecaf262265b379e14ca8c16485466dd088` (fast-forward push from `73706c3`, confirmed via `git rev-parse origin/account-station-transfer` after push). No `main`/`staging` push, no merge.
+
+**Identity gap 1 (reserved-after-persist recovery) — fixed.** Compared QSD's `AccountIdentity.php` directly against the pinned CompuZign reference (`fe2e571f` at `src/Modules/Account/Support/AccountIdentity.php`, read-only). QSD's `bootstrap()` called `PlatformIdentifierStation::ensure()` directly; `ensure()` throws when a node's native storage already holds an id whose registry forward record is still `reserved` rather than `bound` — exactly the state left behind by a request that died inside `PlatformIdentifierStation::assign()` between its native-storage write and its registry bound-flip. Fixed by adding a check before `ensure()`: if the stored id resolves to a `reserved` record, finish the bind with the Station's own `assign()` (re-validating the same reservation, read-back verified, no new id minted) before falling through to `ensure()`'s normal path. This is the identical pattern CompuZign's own `ensureNode()` uses — no new identity infrastructure invented.
+
+**Identity gap 2 (parent_platform_id) — fixed.** CompuZign persists and validates each node's `parent_platform_id`; QSD did not persist it at all. Added `parent_platform_id` to `AccountSchema::defaultState()`'s node shape (default `null`), extended `AccountRepository::writeNodePlatformId()` to accept and store it (written once, alongside `platform_id`, only on first bind — identity and parent are set together or not at all), and added `AccountRepository::readNodeParentPlatformId()`. `AccountIdentity::bootstrap()` now threads the previous node's bound id as `$expectedParent` down the chain and, after `ensure()`/`assign()` resolves a node, compares its *stored* parent against that expectation: a genuine mismatch throws `PlatformIdentifierConflict`; a node with no parent recorded at all (pre-existing row from before this fix — "safe handling of existing rows" as instructed) is read as unrecorded, not as a mismatch, and bootstrap proceeds normally. No destructive migration — nothing is rewritten for already-bound nodes.
+
+**Account UI behavioural defect — none found, none changed.** Re-read `AccountDrawerHost.tsx`, `AccountCard.tsx`, `useAccountStation.ts`, `AccountSettingsSection.tsx` against the withdrawn instruction's premise; found no demonstrable missing/failing functional contract versus CompuZign beyond the two identity gaps above (CompuZign's extra Archive/Trash-adjacent surface area is the already-resolved singleton-carve-out question, not a defect). File-layout differences were treated as differences, not defects, per this section's own instruction. No drawer file touched.
+
+**New/changed tests — `tests/account-station.php`:** three new scenarios (26 total assertions, up from 19): (6) a node reserved-but-not-yet-bound (simulated by reserving directly through the Station and writing only to native storage, bypassing `assign()`) is completed by `bootstrap()` in place, confirmed bound afterward, never re-minted; (7) a node whose stored `parent_platform_id` is corrupted independently of the registry causes `bootstrap()` to throw `PlatformIdentifierConflict` rather than silently re-chaining; (8) a legacy row built via `unset()` of the `parent_platform_id` key entirely (simulating a site bootstrapped before this fix) reads its parent as `null`, not a mismatch, and bootstraps cleanly.
+
+**Validation at `29503ae`:** `npm test` green in full — typecheck; every PHP test including `tests/account-station.php` now at 26 assertions; build; JS **27/27** unchanged (no frontend/regression file touched by this commit); `docs:check` (49 Markdown files, 20 Code Maps — `docs/code-map/account-station.md` and `src/Modules/Account/CLAUDE.md` updated for the two actual behaviour changes only, re-trimmed under the 600-word cap).
+
+**Not done / explicitly out of scope, per this section's own bound:** no push of `main`/`staging`; no merge; no deploy; no live Rezdy/WordPress validation (still deferred, never described as passed); no Settings/Security, StationLifecycle, drawer, or footer change (all already corrected in the prior cycle and untouched here); the Archive/Trash/Restore/Delete exception remains exactly as settled by this section — omitted, as a kept singleton carve-out, not re-opened. The repository-coordination "Cross-chat handover" Google Doc update was not attempted: the Google Drive connector is unauthenticated in this session's execution surface, so that continuity step is recorded here as unavailable rather than silently skipped.
+
+**Builder next action:** none — stopping here. Reviewer: `account-station-transfer` is pushed at `29503ae` with both identity gaps closed and three new regression assertions; current baseline unchanged otherwise. Awaiting verdict.
