@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: BLOCKED — DECISION REQUIRED (Account singleton lifecycle travel)
+Status: BUILDER ACTION REQUIRED — RESTORE PROVEN ACCOUNT TRANSFER FIDELITY
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -157,3 +157,17 @@ Bounded correction executed on the same topic branch, two new commits:
 **Unresolved Owner decision:** Account is an identity-permanent singleton. Should Account omit Archive/Trash/Restore/Delete entirely, as Builder currently proposes, or use complete established Station travel with identity preserved? Do not assume singleton permanence automatically exempts a Station from locked lifecycle rules. Do not change shared canonical footer or implement either alternative until the Owner decides. Account currently assembles `EntityActionFooter` rather than the canonical footer specifically because the latter exposes Archive/Trash.
 
 **Next action:** Owner chooses (A) explicit narrowly documented singleton exception (Save/Publish/Disable/Enable only), or (B) full lifecycle travel, with no destruction/re-minting of the singleton Platform IDs and precisely defined Archive/Trash/Restore/Delete semantics. If B cannot preserve fixed node identity, stop and bring back an architecture proposal rather than coding a destructive path. Builder remains stopped; do not merge, push main/staging, deploy or test live Rezdy secrets. Upon Owner decision, Reviewer issues bounded correction/acceptance path for same topic branch.
+
+
+## Reviewer comparison correction — 2026-10-11 (supersedes erroneous singleton choice gate)
+
+**Verdict: Proceed with safeguards.** Read-only comparison of original CompuZign `main` Account files and QSD `account-station-transfer@73706c3`: Both are permanent singleton Account → Settings → Tools → Profile, with Brand Save/Publish/Disable/Enable and NO Archive/Trash/Restore/Delete. CompuZign's own `AccountDrawerFooter` also uses lower-level `EntityActionFooter` with empty overflow. Thus prior Owner choice A/B and blanket footer criticism were errors; the established singleton behaviour is NOT a new design decision. Preserve it. No additional planning phases and no restart.
+
+**Verified transfer gaps:**
+1. CompuZign `AccountIdentity::ensureNode()` explicitly repairs interruption after a node's ID is stored but registry record remains RESERVED via existing `PlatformIdentifierStation::assign()`; QSD calls plain `ensure()`, and QSD's `ensure()` rejects stored RESERVED. QSD lacks the proven recovery path. Add it by adapting the original, not inventing a new identity engine. Add regression for persisted-ID + RESERVED and idempotent retry.
+2. CompuZign stores/checks each child `parent_platform_id` against parent; QSD stores only `platform_id`. Restore immutable parent linkage/checks in the same existing Account option, with non-destructive handling for an existing partial bootstrap; do not re-mint IDs or replace parent identities. Test parent mismatch failure.
+3. CompuZign `AccountDrawerHost` is a thin bridge to `AccountDrawerContent` using shared `EntityDrawer`, controller/Brand bindings/footer/dialogs. QSD collapses those responsibilities into `AccountDrawerHost`. Restore the established Account composition by transferring/adapting the known source pieces and QSD imports, not replacing QSD Station Manager/Admin shell. CompuZign footer's `EntityActionFooter` with empty Archive/Trash overflow is valid; preserve it. Keep actual QSD backend/API/security integration and Account-only global Settings routing.
+
+**One bounded Builder finish:** On SAME `account-station-transfer` branch, preserve the seven existing commits and adapt only the three verified gaps above, plus required tests/docs, as minimal reviewable correction commits. Review actual CompuZign files first, do not substitute an alternative architecture or initiate an A/B lifecycle decision. Preserve no Archive/Trash/Delete, shared StationLifecycle, QSD prefixes, QSD credential broker and untouched Services/Service Meta. Run `npm test` and `npm run docs:check`. Push only the topic branch for independent review, report exact SHAs and checks, STOP. No main/staging push, no merge/deploy/live Rezdy credential work. Any genuinely unsafe migration or binding conflict must stop before write, with evidence.
+
+Prior `BLOCKED — DECISION REQUIRED` entry remains historical and is superseded by this evidence-based instruction.
