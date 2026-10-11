@@ -6,3 +6,4 @@
 export * from './shared';
 export * from './service';
 export * from './category';
+export * from './account';

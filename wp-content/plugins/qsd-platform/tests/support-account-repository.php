@@ -6,8 +6,9 @@ declare(strict_types=1);
 // AccountRepository sees it through `$wpdb` directly (never through
 // get_option()/update_option()/the object cache). Backs exactly the three
 // statement shapes AccountRepository issues: a keyed SELECT, an INSERT IGNORE
-// first-create, and a BINARY-exact compare-and-swap UPDATE. Loaded by tests,
-// never run on its own.
+// first-create, and a BINARY-exact compare-and-swap UPDATE — including real
+// MySQL's "0 affected rows when the SET value is unchanged" quirk, not just a
+// WHERE-matched/unmatched boolean. Loaded by tests, never run on its own.
 
 if (!class_exists('AccountOptionsTable')) {
     final class AccountOptionsTable
@@ -62,6 +63,15 @@ if (!class_exists('AccountOptionsTable')) {
                     return 0;
                 }
                 if (!array_key_exists($name, $this->table->rows) || $this->table->rows[$name] !== $expected) {
+                    return 0;
+                }
+                // Real MySQL reports 0 affected rows when the SET value is byte-identical
+                // to the row's current value, even though the WHERE matched — WordPress's
+                // $wpdb never requests the CLIENT_FOUND_ROWS connection flag. A caller that
+                // treats "0 affected" as always meaning "lost the race" cannot tell this
+                // apart from a real conflict; mirroring it here is what makes that gap
+                // reproducible under test instead of only on a live database.
+                if ($this->table->rows[$name] === $value) {
                     return 0;
                 }
                 $this->table->rows[$name] = $value;

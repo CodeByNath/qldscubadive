@@ -35,7 +35,7 @@ export interface UseAccountStationResult {
   uploadMedia: (kind: AccountMediaKind, file: File) => Promise<string>;
 }
 
-export function useAccountStation(): UseAccountStationResult {
+export function useAccountStation(onMutationComplete?: () => void): UseAccountStationResult {
   const [detail, setDetail] = useState<AccountDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,13 +71,14 @@ export function useAccountStation(): UseAccountStationResult {
     try {
       const next = await mutate();
       setDetail(next);
+      onMutationComplete?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
       throw err;
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [onMutationComplete]);
 
   const bootstrap = useCallback(() => runMutation(bootstrapAccount), [runMutation]);
   const saveBrand = useCallback(

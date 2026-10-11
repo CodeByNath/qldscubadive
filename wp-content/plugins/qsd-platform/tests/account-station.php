@@ -245,4 +245,41 @@ checkAccount(
 $legacyBound = $identity7->bootstrap();
 checkAccount(count(array_unique($legacyBound)) === 4, 'bootstrapping a legacy row with no parent metadata still completes cleanly');
 
+// ─── Scenario 9: an idempotent commit succeeds without ever writing ───────
+// A real MySQL UPDATE whose SET value matches the row's current bytes
+// reports 0 affected rows even though the WHERE matched (no CLIENT_FOUND_ROWS).
+// AccountRepository::commit() must recognise a no-op mutation before
+// attempting that write, not treat the resulting 0 as a lost race — the exact
+// staging defect (a repeat/idempotent Brand Save 503ing after exhausting the
+// retry budget against an always-identical row).
+$table8 = new AccountOptionsTable();
+$table8->rows[AccountSchema::OPTION_KEY] = (string) json_encode(AccountSchema::defaultState());
+$GLOBALS['wpdb'] = new AccountWpdb($table8);
+$repository8 = new AccountRepository();
+
+// Every UPDATE this stub receives reports 0 affected rows, exactly as a real
+// no-op UPDATE would — if commit() ever reached the query for a true no-op,
+// it would spin through every attempt and throw, same as a real permanently
+// busy row.
+$table8->alwaysStale = true;
+
+$noopCommitSucceeded = true;
+try {
+    $repository8->commit(static fn(array $state): array => $state);
+} catch (AccountStorageBusy) {
+    $noopCommitSucceeded = false;
+}
+checkAccount($noopCommitSucceeded, 'a commit whose mutator changes nothing succeeds without ever attempting the always-failing write');
+
+$realChangeFailedClosed = false;
+try {
+    $repository8->commit(static function (array $state): array {
+        $state['brand']['name'] = 'Changed';
+        return $state;
+    });
+} catch (AccountStorageBusy) {
+    $realChangeFailedClosed = true;
+}
+checkAccount($realChangeFailedClosed, 'a commit that genuinely changes the row still fails closed against a permanently stale row — the no-op path is not a blanket bypass');
+
 echo "Account Station foundation: PASS\n";

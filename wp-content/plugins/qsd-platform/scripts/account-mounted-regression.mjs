@@ -269,9 +269,13 @@ check('Save POSTed the Brand profile exactly once', profileCalls === 1, `profile
 check('the saved name is reflected back', server.brand.name === 'Reef Co (edited)', server.brand.name);
 check('the module settles to pending after a Save — Publish alone activates', server.moduleStatus.brand === 'pending');
 
-console.log('\n5) Publish — settle-then-activate through the real footer button');
+console.log('\n5) Publish — settle-then-activate through the real footer button and confirm dialog');
 footerDom = renderFooterDom();
 clickButtonWithText('Publish', footerDom);
+await sleep(20);
+const publishConfirm = drawerContainer.querySelector('.cz-publish-confirm');
+check('the publish confirm dialog opened', publishConfirm != null);
+publishConfirm?.querySelector('.cz-admin-btn--primary')?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
 await waitToSettle();
 check('the status endpoint was called once for Publish', statusCalls === 1, `statusCalls=${statusCalls}`);
 check('Publish sent platform_status=active', lastStatusPayload?.platform_status === 'active', JSON.stringify(lastStatusPayload));

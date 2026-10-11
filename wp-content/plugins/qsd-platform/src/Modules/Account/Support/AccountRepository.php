@@ -60,6 +60,17 @@ final class AccountRepository
             $next    = $mutate($state);
             $encoded = (string) json_encode($next);
 
+            // Identical bytes: the row already holds exactly this state. A real
+            // MySQL UPDATE whose SET value matches the current value reports 0
+            // affected rows (WordPress's $wpdb does not request
+            // CLIENT_FOUND_ROWS), which the loop below cannot tell apart from a
+            // lost race — so a repeat or idempotent commit would otherwise spin
+            // through every attempt and fail closed even though nothing is
+            // actually wrong. Nothing to write.
+            if ($raw !== null && $raw === $encoded) {
+                return $next;
+            }
+
             if ($raw === null) {
                 $affected = $wpdb->query($wpdb->prepare(
                     "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')",

@@ -126,10 +126,24 @@ const entry = source('resources/ts/modules/admin-station.ts');
 check(/registerAccountStation\(\);/.test(entry), 'the entry registers Account');
 check(/registerServiceStation\(\);\s*registerSettingsStation\(\);\s*registerAdminStation\(\);/.test(entry), "Account's registration does not disturb the pinned Service/Settings/Admin adjacency");
 
-// No file under account-station mentions an archive/trash/restore/permanent-delete
+// No file under account-station, nor the Account-owned entity-drawer
+// composition it mounts, mentions an archive/trash/restore/permanent-delete
 // concept — the singleton carve-out stays a source-level absence, not just an
-// unregistered intent.
-for (const file of accountFiles) {
+// unregistered intent. The entity-drawer files are named explicitly (not
+// scanned by directory) because entity-drawers/shared/ is Category's shared
+// chrome too and legitimately discusses archive/trash for OTHER entities.
+const accountEntityDrawerFiles = [
+  'resources/ts/entity-drawers/account/accountDrawerTypes.ts',
+  'resources/ts/entity-drawers/account/useAccountDrawerController.ts',
+  'resources/ts/entity-drawers/account/AccountDrawerContent.tsx',
+  'resources/ts/entity-drawers/account/AccountDrawerFooter.tsx',
+  'resources/ts/entity-drawers/account/AccountDrawerDialogs.tsx',
+  'resources/ts/entity-drawers/schema/entities/account.ts',
+  'resources/ts/entity-drawers/schema/bindings/account.tsx',
+  'resources/ts/entity-drawers/editors/AccountBrandEditor.tsx',
+  'resources/ts/drawer-kit/utils/moduleNotifications/account.ts',
+];
+for (const file of [...accountFiles, ...accountEntityDrawerFiles]) {
   const text = source(file).replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
   check(!/\barchive\b|\btrash\b|\brestore\b|permanent.?delete/i.test(text), `${file} contains no archive/trash/restore/delete concept`);
 }

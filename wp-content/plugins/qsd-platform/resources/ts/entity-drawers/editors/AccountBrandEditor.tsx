@@ -2,16 +2,20 @@
 // always settles cleanly on save (AccountBrand::settle). File upload is not
 // one of the eight AdminFieldType controls (none exists in Admin Station), so
 // the two media pickers are their own small dedicated control rather than a
-// field definition.
+// field definition. Mounted as a ShellEditorSchema.render, so upload wiring
+// (not part of the generic ShellEditSession contract) travels through
+// session.extras — the same seam Service's Category picker uses.
 
 import { useId } from 'preact/hooks';
 import { AdminField } from '@/drawer-kit/fields';
-import type { AccountMediaKind } from '../types';
+import type { AccountMediaKind } from '@/account-station/types';
 
 export interface AccountBrandDraft {
   name: string;
   code: string;
+  logoMediaId?: string;
   logoUrl: string | null;
+  faviconMediaId?: string;
   faviconUrl: string | null;
 }
 
