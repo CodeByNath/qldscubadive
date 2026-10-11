@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: BUILDER ACTION REQUIRED — ARCHITECTURE CORRECTIONS BEFORE ACCEPTANCE — account-station-transfer pushed to origin for independent review only
+Status: AWAITING REVIEWER REVIEW — correction applied; account-station-transfer re-pushed at 73706c3 for independent review
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -104,6 +104,38 @@ Bounded Reviewer instruction executed exactly: rechecked remote/local state, con
 **Not done, per the Reviewer's exact bound:** no push of `main`/`staging`, no merge, no deploy, no Rezdy credential validation started, no scope widened beyond the single topic-branch push and this status update.
 
 **Builder next action:** none — stopping here. Reviewer: `account-station-transfer` is now pushed and independently inspectable on `CodeByNath/qldscubadive` at `b13b7e2`. Awaiting your review verdict.
+
+## Independent Reviewer audit — pushed `b13b7e2` (2026-10-11)
+
+**Verdict: Stop — architectural risk.** Blocking differences found: (1) `AccountBrand`'s publish/disable/enable constitute a parallel lifecycle implementation never explicitly approved as a Owner exception to the locked `StationLifecycle` engine; (2) the Settings `stationIds` change was additive reachability (`['services','account']`), not the actual relocation the batch asked for; (3) `AccountDrawerHost`'s footer composition needed precise comparison to Service's canonical pattern, not assumed conformity. Bounded correction ordered: reuse platform lifecycle components wherever applicable and propose any true singleton exception with evidence before implementing an alternative; make the Settings relocation real (Services no longer offers the global panels); add mounted Preact regression for the Account card/drawer plus source+PHP lifecycle regressions; update docs to remove invented Owner approvals; keep `npm test`/`docs:check` green; no merge/deploy/push of unrelated work.
+
+## Builder correction handoff (2026-10-11)
+
+Bounded correction executed on the same topic branch, two new commits:
+
+| Full SHA | Commit |
+|---|---|
+| `e356a340eac46d63d344824a4b243ffb0d98af83` | `account: reviewer correction — StationLifecycle reuse, Settings relocation, mounted regressions` |
+| `73706c36893ce49e7c8374b70188f9e84601b6b2` | `account: reviewer correction — docs reflect actual implementation, no invented approvals` (branch HEAD) |
+
+**Verified remote state:** `origin/account-station-transfer` HEAD = `73706c36893ce49e7c8374b70188f9e84601b6b2` (fast-forward push from `b13b7e2`, confirmed via `git rev-parse origin/account-station-transfer`). No `main`/`staging` push, no merge.
+
+**Finding 1 (lifecycle) — fixed, not exempted.** `AccountBrand::publish()` now calls `StationLifecycle::statusRouteTransition($current, 'active', $previous)` directly; `disable()` guards with `StationLifecycle::isLive($current)` — the identical calls `ServiceController`'s own `/status` route makes. `tests/account-brand.php` adds direct equality assertions against `StationLifecycle`'s own output, not just AccountBrand's wrapper. This resolves the "parallel implementation" finding for the `active`/`disabled` subset Account actually uses. It does **not** resolve whether Account should also wire Archive/Trash/Restore/Delete like every other Station: that remains an **open exception proposal**, not something this fix presumes settled. Evidence for the proposal: (a) the batch's own original Phase B line — "no Archive/Trash/Delete unless an explicit Owner-approved architecture decision" — read by the Builder as pre-authorizing the omission as the default, which the Reviewer's audit held is not itself that authorization; (b) `CanonicalEntityFooter`'s non-bin branch unconditionally places Archive (and Trash, unless new) in its overflow with no suppression option, so reusing it as written would force those actions into a singleton's footer — adding a suppression option is a shared-component change touching Category and Package Family too, not an Account-local decision. Docs now state this as open rather than settled either way; the Builder takes no further position and awaits an explicit Reviewer/Owner call.
+
+**Finding 2 (Settings relocation) — fixed as instructed.** `settings-station/register.ts`'s `settings.rezdy-importer`/`settings.api-keys` `stationIds` changed to `['account']` only. Services' own Settings tab now presents `General` only (Service fields, creation launchers). The panels, their data, and the credential-broker backend (`Security/`, `Connections/`) are byte-for-byte unchanged — only which Station's array reaches them moved. The detailed Tools/Security behavioural regression that used to mount through Service (`scripts/services-settings-regression.mjs`, 11 numbered scenarios covering write-only secrets, rotation, connection test, disconnect) now mounts through Account instead (new `scripts/account-settings-regression.mjs`), against the identical panels and backend; the Services script is trimmed to its remaining General-only scope (4 scenarios). `contract:account-registration` and `contract:settings-station` assertions rewritten to match the real post-relocation state (Services: `general` section only; Account: `tools,security` only).
+
+**Finding 3 (footer) — compared, not changed.** `AccountDrawerHost` continues to compose `EntityActionFooter` directly rather than `CanonicalEntityFooter`, now with the comparison made explicit in code and docs (see Finding 1's evidence (b)). New `scripts/account-mounted-regression.mjs` mounts the REAL `AccountCard` and `AccountDrawerHost` (esbuild + happy-dom + Preact, same technique as `service-disable-enable-regression.mjs`) and proves through actual rendered DOM — not inspected props — that Save, Publish, Disable and Enable all work via real button clicks, and that clicking the real (disabled) overflow chevron never opens an Archive/Trash menu, on any status.
+
+**Documentation — invented-approval language removed.** "Deliberate, Owner-approved deviation" (account-station.md) and "additive relocation... Services keeps its own reachability" (settings-station.md, both CLAUDE.md files, roadmap.md) are replaced with accurate, unresolved framing: StationLifecycle reuse stated as fact; the Archive/Trash omission stated as an open exception proposal; the Settings move stated as an actual relocation, not an addition.
+
+**Validation at `73706c3`:** `npm test` green — typecheck; every PHP test (`tests/account-brand.php` now 39 assertions incl. the new `StationLifecycle` parity checks); build; JS **27/27** (added `regression:account-settings`, `regression:account-mounted`; `contract:account-registration` and `contract:settings-station` re-verified against the new state); `docs:check` (49 Markdown files, 20 Code Maps, both touched Code Maps re-trimmed under the 600-word cap).
+
+**Still not done / still open, stated rather than hidden:**
+1. The Archive/Trash/Restore/Delete exception for Account remains an open question for explicit Reviewer/Owner decision — not resolved by this correction, which only removed the *inline-reimplementation* half of the original finding.
+2. Live WordPress/Rezdy credential-guard runtime validation remains deferred; not attempted; never described as passed.
+3. No fully mounted regression exists yet for the Account Settings-section *placement itself inside the Admin Station shell* (nav → Account → Settings → Tools/Security tab clicks through the real shell chrome) — `regression:account-mounted` and `regression:account-settings` each mount the relevant component directly, which is the same technique every existing mounted regression in this codebase uses, but does not include the surrounding shell/navigation DOM.
+
+**Builder next action:** none — stopping here. Reviewer: `account-station-transfer` is pushed at `73706c3` with both corrections and new regression evidence, ready for the independent review the Reviewer's own audit called for. Awaiting verdict.
 
 
 ## Independent Reviewer audit — pushed `b13b7e2` (2026-10-11)
