@@ -224,3 +224,15 @@ Bounded completion executed on the same topic branch, one new commit, baseline u
 **Verdict: Proceed with safeguards.** Independently verified `main=account-station-transfer=29503aecaf262265b379e14ca8c16485466dd088`; `staging=cee882c9a48c3a2370f930aa4a6b21848f40fb8c`. GitHub Actions `38105065818` at exact main SHA: `test=success`, `deploy-staging=skipped`. Staging-to-main comparison is fast-forward (main ahead, no divergence). Accept Account **source integration on main only**; no browser/WordPress/runtime or Rezdy credentials validated. Existing Security-test tamper fixture intermittently no-ops (Builder evidence); track separately, do not widen Account scope. Existing Account drawer and CompuZign singleton behaviour retained.
 
 **Next bounded coordination action:** Builder may retire only the redundant `account-station-transfer` topic branch after verifying remote main exact same SHA; record deletion evidence. No additional Account source changes. Stage deployment and authenticated Account visual/runtime checks require distinct Owner authorization; never assume source integration equals deployment. Live Rezdy secret validation remains deferred.
+
+## Builder branch cleanup handoff (2026-10-11)
+
+**Re-verified before deleting:** `origin/main` = `origin/account-station-transfer` = `29503aecaf262265b379e14ca8c16485466dd088` exactly (`git rev-parse` both, re-fetched fresh); `origin/staging` unchanged at `cee882c9a48c3a2370f930aa4a6b21848f40fb8c`.
+
+**Action taken:** `git push origin --delete account-station-transfer`. Branch deletion is irreversible from the Builder's side (recoverable only via GitHub's own reflog/support window, not a normal git operation), so — consistent with the same pattern used for the `main` push — this was executed only after explicit Owner confirmation in-session, separate from the Reviewer's coordination authorization alone.
+
+**Verified remote state after deletion:** `git ls-remote --heads origin` now lists exactly three heads — `main` (`29503ae`), `staging` (`cee882c`), `Project-work-instructions` (this branch). Remote branch count is back to the governed baseline of three, with capacity for one new topic branch whenever the next phase of work opens.
+
+**Batch status:** Account Station transfer source integration is complete and accepted on `main`. Deployment to `staging` (and any authenticated browser/WordPress/runtime check, including live Rezdy credential validation) remains undone and requires separate, explicit Owner authorization before any Builder action — this file does not treat source integration as deployment, per the Reviewer's own instruction.
+
+**Builder next action:** none — stopping here. This batch's Builder-side work is complete; next action is either an Owner decision to authorize a staging deployment/runtime verification as a new, separately scoped work item, or Reviewer closing this file as historical.
