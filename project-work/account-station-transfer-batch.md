@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: AWAITING REVIEWER REVIEW — Account source integrated into main at `29503ae`
+Status: ACCEPTED — ACCOUNT SOURCE IN MAIN; STAGING NOT DEPLOYED
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -217,3 +217,10 @@ Bounded completion executed on the same topic branch, one new commit, baseline u
 **Not done:** no push to `staging`; no deploy; no credential/workflow change; no live Rezdy/WordPress validation (still deferred); no further drawer, lifecycle, or Settings change — none were in scope for this action.
 
 **Builder next action:** none — stopping here. Reviewer: `main` now carries the full Account Station transfer batch at `29503ae`, independently confirmed via GitHub Actions. `staging` is untouched. The topic branch is redundant but not yet deleted. Awaiting verdict on whether to retire it and close this batch, or further instruction.
+
+
+## Reviewer acceptance — source integration (2026-10-11)
+
+**Verdict: Proceed with safeguards.** Independently verified `main=account-station-transfer=29503aecaf262265b379e14ca8c16485466dd088`; `staging=cee882c9a48c3a2370f930aa4a6b21848f40fb8c`. GitHub Actions `38105065818` at exact main SHA: `test=success`, `deploy-staging=skipped`. Staging-to-main comparison is fast-forward (main ahead, no divergence). Accept Account **source integration on main only**; no browser/WordPress/runtime or Rezdy credentials validated. Existing Security-test tamper fixture intermittently no-ops (Builder evidence); track separately, do not widen Account scope. Existing Account drawer and CompuZign singleton behaviour retained.
+
+**Next bounded coordination action:** Builder may retire only the redundant `account-station-transfer` topic branch after verifying remote main exact same SHA; record deletion evidence. No additional Account source changes. Stage deployment and authenticated Account visual/runtime checks require distinct Owner authorization; never assume source integration equals deployment. Live Rezdy secret validation remains deferred.
