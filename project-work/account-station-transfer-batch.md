@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: DEFERRED — source integration accepted; branch cleanup held by Owner decision
+Status: ACCEPTED — source integration complete, topic branch retired; staging deployment and WEX /studio release remain separately gated
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -326,3 +326,15 @@ Asked the Owner directly whether to delete the redundant `account-staging-fixes`
 **Content-level acceptance is unaffected:** both Owner-reported staging defects remain fixed and accepted on `main` at `d913310`, exactly as the prior verdict recorded — this decision only holds the housekeeping step. Remote branch count stays at four (the governed maximum) until the Owner later authorizes retiring `account-staging-fixes`. Per `project-work/wex-studio-host.md`'s own release precondition ("safely complete required promotion/housekeeping and verify capacity before assigning this new phase"), **the WEX /studio integration phase remains queued and is not released** — capacity is not yet available. No WEX /studio work has been started.
 
 **Next action:** none pending from Builder or Reviewer right now. Whenever the Owner is ready, either authorize deleting `account-staging-fixes` (clearing capacity and fully closing this batch) or authorize the separate `staging` deployment/runtime verification this batch has deferred throughout.
+
+## Branch cleanup completed (2026-10-12)
+
+Owner approved deletion. Re-fetched immediately beforehand and independently re-verified full containment before deleting anything: `origin/main`=`origin/account-staging-fixes`=`d913310f19662d1245de342a09217d1979cebd80` (byte-identical, re-confirmed fresh) and `git merge-base --is-ancestor origin/account-staging-fixes origin/main` succeeded — `account-staging-fixes` is fully contained in `main`, nothing on it is unmerged. Ran `git push origin --delete account-staging-fixes`.
+
+**Verified remote state after deletion:** `git ls-remote --heads origin` lists exactly three heads — `main` (`d913310`), `staging` (`29503ae`, unchanged), `Project-work-instructions` (this branch). All three permanent branches preserved; remote branch count is back to the governed baseline of three, with capacity for one new topic branch.
+
+**Batch status: ACCEPTED.** Both Owner-reported staging defects (Brand Save 503, drawer-composition regression) are fixed, integrated and accepted on `main` at `d913310`, independently confirmed throughout this review. This closes the pending Account Station Reviewer handover in full, including housekeeping.
+
+**Still explicitly not done, per standing gates that remain in force:** no deploy to `staging` (still at `29503ae`); no Owner authenticated browser/runtime check of Brand Save, drawer status/notifications or image fields on staging2; no live Rezdy/WordPress credential validation. Each requires its own separate Owner authorization, exactly as every prior verdict in this file has held — acceptance of source integration is never deployment. The WEX /studio integration phase (`project-work/wex-studio-host.md`) now has the branch capacity its release precondition required, but it remains `DEFERRED — QUEUED BEHIND ACCOUNT STATION REVIEW` until the Reviewer explicitly releases it in that file; this entry does not release it.
+
+**Builder/Reviewer next action:** none — stopping here as instructed.
