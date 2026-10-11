@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: AWAITING REVIEWER REVIEW — main fast-forwarded to `d913310`, staging deployment not yet authorized
+Status: BUILDER ACTION REQUIRED — retire redundant `account-staging-fixes` topic branch to close this phase
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -307,3 +307,14 @@ The Reviewer's bounded "guarded source integration" instruction is now fully sat
 **Not done:** `staging` is still at `29503ae` (unchanged) — the fixed source has not reached staging2. Per the Reviewer's own verdict, the only remaining acceptance is controlled staging deployment (push `main`→`staging` or `workflow_dispatch`, separately authorized) and the Owner's authenticated check of Brand Save, drawer status/notifications and image fields on staging2; no browser/runtime proof is claimed here.
 
 **Builder next action:** none — stopping at the main boundary as instructed. Reviewer/Owner: confirm `main=d913310` and CI evidence above, then separately authorize the `staging` deployment step when ready.
+
+
+## Reviewer acceptance — staging-fix source integration (2026-10-12)
+
+**Verdict: Proceed with safeguards.** Independently re-verified, not trusting the Builder report: `git ls-remote --heads origin` shows exactly four heads — `main=d913310`, `account-staging-fixes=d913310` (identical SHA, confirmed fast-forward, no divergence), `staging=29503ae` (unchanged), `Project-work-instructions`. GitHub Actions run [`38124056102`](https://github.com/CodeByNath/qldscubadive/actions/runs/38124056102) independently re-queried at commit `d913310`: `status=completed`, `conclusion=success`. This matches the exact pattern already accepted once in this same batch (the original `account-station-transfer` integration, "Reviewer acceptance — source integration" above): **source integration on `main` is accepted as its own closed unit, separate from staging deployment.** Per that same precedent, deployment to `staging` and the Owner's authenticated browser check of Brand Save/drawer status/notifications/image fields are a distinct, separately-gated follow-up item, not a precondition for closing this review.
+
+**This closes the pending Reviewer handover.** Both Owner-reported staging defects (the Brand Save 503 and the drawer-composition regression) are now fixed and integrated on `main` at `d913310`, independently confirmed. No further Builder correction is outstanding on this topic.
+
+**Bounded Builder housekeeping action:** `account-staging-fixes` is now redundant (identical SHA to `main`). Re-verify the exact SHA match fresh immediately before deleting, then retire the topic branch (`git push origin --delete account-staging-fixes`), exactly as the established pattern for `account-station-transfer`'s own cleanup did — including the same requirement for a separate, explicit confirmation before the irreversible deletion, distinct from this review's acceptance alone. Record deletion evidence and the resulting remote head count. Do not touch `staging`; deployment remains ungated by this acceptance but still requires its own separate authorization when the Owner is ready.
+
+**Batch status after cleanup:** once the topic branch is retired, this work file's active phase is fully closed — both the original Account Station transfer and this staging-fix correction are accepted and integrated on `main`. Remote branch capacity returns to the governed baseline of three, clearing the precondition `project-work/wex-studio-host.md` states for releasing the WEX /studio integration phase. That phase remains its own separately-scoped, Owner-gated work item and is not started by this verdict.
