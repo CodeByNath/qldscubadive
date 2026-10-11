@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: AWAITING REVIEWER REVIEW — correction applied; account-station-transfer re-pushed at 73706c3 for independent review
+Status: BLOCKED — DECISION REQUIRED (Account singleton lifecycle travel)
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -148,3 +148,12 @@ Bounded correction executed on the same topic branch, two new commits:
 3. `AccountDrawerHost` directly composes `EntityActionFooter` and a separate editor arrangement rather than demonstrating conformity to the established canonical footer/identity-handoff/notification system. Need a precise comparison to the Service implementation; do not instantiate a second component/lifecycle contract.
 
 **Bounded Builder correction on SAME topic branch:** Audit Service/Category against Account for lifecycle, drawer, statuses, footer, notification and identity handoff; reuse platform owners and established components wherever applicable. Provide an explicit exception proposal only for truly immutable singleton operations, with evidence and Owner decision BEFORE implementing an alternative lifecycle. Relocate global Tools/Security presentation so Services no longer offers their global panels, while Service Meta stays Services-only and security APIs/storage remain unchanged. Add mounted Preact regression for Account card/drawer and navigation/Settings route placement, plus source+PHP lifecycle transition regressions. Update Code Maps/roadmap to reflect actual implementation without invented Owner approvals. Run `npm test` and `npm run docs:check`. Do not merge/deploy/push unrelated work; stop if decision needed. Keep Account identity prefixes and fixed native binding only if they pass architecture comparison.
+
+
+## Reviewer decision on correction `73706c3` — 2026-10-11
+
+**Verdict: Stop — architectural risk.** Independently inspected pushed `AccountBrand.php`, `settings-station/register.ts`, `AccountDrawerHost.tsx`, `docs/code-map/account-station.md` against main StationDrawerLifecycleContract-v1 and QSD architecture skill. Corrected source now calls shared `StationLifecycle::statusRouteTransition` for publish and `isLive` for disable; global Tools/Security registered to Account alone, with Service fields under Services. Mounted test outcomes are Builder-reported, not independently executed; no deployed runtime was verified.
+
+**Unresolved Owner decision:** Account is an identity-permanent singleton. Should Account omit Archive/Trash/Restore/Delete entirely, as Builder currently proposes, or use complete established Station travel with identity preserved? Do not assume singleton permanence automatically exempts a Station from locked lifecycle rules. Do not change shared canonical footer or implement either alternative until the Owner decides. Account currently assembles `EntityActionFooter` rather than the canonical footer specifically because the latter exposes Archive/Trash.
+
+**Next action:** Owner chooses (A) explicit narrowly documented singleton exception (Save/Publish/Disable/Enable only), or (B) full lifecycle travel, with no destruction/re-minting of the singleton Platform IDs and precisely defined Archive/Trash/Restore/Delete semantics. If B cannot preserve fixed node identity, stop and bring back an architecture proposal rather than coding a destructive path. Builder remains stopped; do not merge, push main/staging, deploy or test live Rezdy secrets. Upon Owner decision, Reviewer issues bounded correction/acceptance path for same topic branch.
