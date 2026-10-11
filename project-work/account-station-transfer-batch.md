@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: ACCEPTED — ACCOUNT SOURCE IN MAIN; STAGING NOT DEPLOYED
+Status: BUILDER ACTION REQUIRED — STAGING ACCOUNT SAVE 503
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -236,3 +236,10 @@ Bounded completion executed on the same topic branch, one new commit, baseline u
 **Batch status:** Account Station transfer source integration is complete and accepted on `main`. Deployment to `staging` (and any authenticated browser/WordPress/runtime check, including live Rezdy credential validation) remains undone and requires separate, explicit Owner authorization before any Builder action — this file does not treat source integration as deployment, per the Reviewer's own instruction.
 
 **Builder next action:** none — stopping here. This batch's Builder-side work is complete; next action is either an Owner decision to authorize a staging deployment/runtime verification as a new, separately scoped work item, or Reviewer closing this file as historical.
+
+
+## Owner staging runtime defect — 2026-10-11 (active)
+
+**Status: BUILDER ACTION REQUIRED — ACCOUNT PROFILE SAVE 503.** Owner-provided staging2 screenshots show Account Profile drawer POST `qsd/v1/admin/account/profile` returns HTTP 503 with `The Account Station is busy with another change. Please try again.` when attempting to save Brand name/code. Account card remains Pending. Independent source inspection: `AccountController::saveProfile` maps `AccountStorageBusy` from `AccountRepository::commit()` to 503; commit's 40-attempt `$wpdb` CAS returns zero affected rows (or false) and retries. Root cause is not yet established; PHP/SQL/WordPress runtime evidence is needed. Owner screenshots separately show saved Rezdy API key, 14/14 security checks passed, successful provider check and successful encryption-key rotation. Do not redo those operations or handle secrets.
+
+**Bounded Builder instruction:** On QSD only, reproduce/debug Account Brand save on staging2 safely: inspect actual DB option row presence/value and `$wpdb->last_error`/affected rows with secret-free server diagnostics, inspect `AccountRepository::commit()` SQL against real WordPress/MySQL behavior (including BINARY comparison and unchanged-value zero-row updates), contrast with proven CompuZign AccountRepository, and distinguish an actual concurrent conflict from SQL failure/no-op. Protect stored Account IDs, draft/media data and Security credentials. Fix only the demonstrated Account persistence defect and any necessary targeted regression against realistic WP database semantics. Avoid writing actual credentials or running rotations/tests of live secrets; no station/drawer/security redesign. Run `npm test` and `npm run docs:check`, report exact commit and evidence for Reviewer. Use one governed topic branch; no automatic staging/production deployment, destructive migration, or main push without separate approval. Keep this work within existing Account area; prior completed source transfer remains accepted.
