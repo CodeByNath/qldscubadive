@@ -1,5 +1,5 @@
 # Account Station transfer — approved batch (queued)
-Status: AWAITING REVIEWER REVIEW — staging 503 and drawer composition fixed at `d913310` on `account-staging-fixes`
+Status: BUILDER ACTION REQUIRED — GUARDED SOURCE INTEGRATION OF STAGING FIXES
 Actor when released: Builder (VS Code)
 Target: CodeByNath/qldscubadive only
 Source reference READ ONLY: CodeByNath/compuzign-platform at fe2e571f1bcff264bd1447e3a35bbdc5450abed3
@@ -278,3 +278,10 @@ Bounded completion executed on the same topic branch, one new commit, baseline u
 **Not done, per this section's own bound:** no push to `main`/`staging`; no deploy; no credential/secret operation; no live Rezdy/WordPress runtime validation (still deferred, never described as passed); no Service/Settings/Security source touched. The fixed source has not been re-deployed to staging2 — the Owner's reported defects are fixed on this topic branch only, pending Reviewer verdict and a separate deployment authorization.
 
 **Builder next action:** none — stopping here. Reviewer: `account-staging-fixes` is pushed at `d913310`, independently inspectable, with both Owner-reported staging defects fixed and regression evidence. Awaiting verdict.
+
+
+## Reviewer audit — Account staging fixes `d913310` (2026-10-11)
+
+**Verdict: Proceed with safeguards.** Confirmed remote `account-staging-fixes=d913310f19662d1245de342a09217d1979cebd80`, exactly one commit ahead of `main=staging=29503aecaf262265b379e14ca8c16485466dd088`, no divergence; diff is confined to Account repository, drawer composition, Account tests and documentation, not Service/Security backend/deployment. Inspected AccountRepository unchanged-bytes shortcut against WordPress MySQL affected-row semantics, restored EntityDrawer schema/Brand module notifications/controller/host, and singleton empty-overflow footer. Builder reports `npm test` and `npm run docs:check` success; reviewer has NOT run tests or verified staging runtime. Owner's 503 screenshot remains evidence of pre-fix failure, not proof of post-fix success. Preserve existing Station identity and Account-only Settings placement. Minor stale 'open exception' code comment is inaccurate historical wording; do not reopen singleton decision.
+
+**Bounded Builder action:** Re-fetch remote SHA/ancestry, inspect new exact commit and CI/test evidence, safely fast-forward only `main` to `d913310` if all governance/checks allow, without force/rebase/unrelated changes. Verify main SHA and Actions `test` success. STOP; do not push `staging`, deploy or touch credentials until separately authorized for staging verification. Do not extend fixes based solely on historical comments. If check fails/diverges, stop and report blocker. After main confirmation, the only remaining acceptance is controlled staging deployment and Owner's authenticated check of Brand Save, drawer status/notifications and image fields; never claim browser proof before that.
