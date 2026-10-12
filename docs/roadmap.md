@@ -177,7 +177,7 @@ Separate `/studio/` host route for the independently built WEX Admin Dashboard, 
 
 - `src/Modules/StudioHost/StudioHostModule.php` — its own rewrite rule/query var/document, gated on the same `PlatformAccess::CAP` capability `/station/` uses; a visitor who needs to sign in is pointed at `/station/`'s real sign-in rather than a duplicated login form.
 - `src/Modules/StudioHost/StudioAssetGateway.php` — enqueues a WEX-supplied `studio-assets/manifest.json` bundle only on `/studio/` for an authorized caller; the host works standalone with nothing enqueued until WEX supplies one.
-- `src/Modules/StudioHost/StudioStorage.php` + `Http/StudioStorageController.php` — the host-private writable identity-space root, one directory above the WordPress install itself (outside any web server's document root regardless of server software), initialized only by an explicit `POST /qsd/v1/studio/storage/init` action, never automatically; one bounded identity-blob read/write resource, not a generic business-data API.
+- `src/Modules/StudioHost/StudioStorage.php` + `Http/StudioStorageController.php` — the host-private writable identity-space root, requiring an administrator-confirmed `QSD_STUDIO_PRIVATE_ROOT` constant rather than any inferred path position; initialized only by an explicit `POST /qsd/v1/studio/storage/init` action, never automatically; one bounded identity-blob read/write resource, not a generic business-data API.
 - Not done: no WEX bundle exists yet; not deployed to `staging`/staging2; no browser/runtime verification; live WEX-side integration is a later, separately released phase.
 
 ## Later — scuba domain

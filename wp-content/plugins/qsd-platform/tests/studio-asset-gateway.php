@@ -184,6 +184,36 @@ echo "\n7) a symlink inside studio-assets/ that points outside it is refused, no
     }
 }
 
+// ── 8) URL-unsafe manifest entry forms are rejected before any filesystem
+//      check — an absolute path, a Windows-style path, and a percent-encoded
+//      form must never reach either the real-path check or the browser URL ─
+echo "\n8) absolute, Windows-style, and percent-encoded manifest entries are all rejected\n";
+{
+    global $__fixtureRoot, $__enqueuedScripts;
+
+    $unsafeEntries = [
+        'an absolute path'        => '/etc/passwd',
+        'a Windows drive path'    => 'C:\\Windows\\System32\\config.sys',
+        'a bare backslash form'   => 'studio-assets\\..\\secret.js',
+        'a percent-encoded form'  => '%2e%2e%2fsecret.js',
+        'a literal dot segment'   => './studio.js/../../secret.js',
+    ];
+
+    foreach ($unsafeEntries as $label => $entry) {
+        $__enqueuedScripts = [];
+        file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => $entry]));
+        $gateway->enqueue();
+        check_studio_asset(!isset($__enqueuedScripts['qsd-studio-host']), "{$label} ('{$entry}') is rejected outright, never enqueued", $__enqueuedScripts);
+    }
+
+    // A safe entry still works after all those rejections — the validator
+    // does not over-reject plain, legitimate relative paths.
+    $__enqueuedScripts = [];
+    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => 'studio.js']));
+    $gateway->enqueue();
+    check_studio_asset(isset($__enqueuedScripts['qsd-studio-host']), 'a plain, legitimate relative entry still enqueues correctly after the stricter validation');
+}
+
 if ($failures !== []) {
     fwrite(STDERR, "\n" . count($failures) . " check(s) failed.\n");
     exit(1);

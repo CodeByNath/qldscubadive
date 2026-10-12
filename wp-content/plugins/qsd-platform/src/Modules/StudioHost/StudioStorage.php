@@ -6,17 +6,25 @@ namespace QSD\Platform\Modules\StudioHost;
  * StudioStorage — the host-private writable root for WEX's own
  * identity-space storage, isolated from every QSD business record.
  *
- * The root is one directory above the WordPress install itself
- * (`dirname(ABSPATH)`), never under `wp_upload_dir()` or anywhere inside
- * `ABSPATH`. A web server's document root is always configured to the
- * WordPress install directory or somewhere under it; a path one level above
- * that is outside every URL a visitor can request, on Apache, Nginx, or
- * anything else — a stronger, server-config-independent guarantee than
- * `.htaccess` alone, which Nginx does not read at all. The `.htaccess`/
- * `index.php` pair is still written as cheap defence in depth on servers
- * that do honour it, but the real boundary is the filesystem location.
- * `ensureProtectedRoot()` fails closed (returns false) if either file
- * cannot actually be written, rather than silently proceeding unprotected.
+ * The root's location is never inferred from `ABSPATH`'s filesystem
+ * position (a prior version used `dirname(ABSPATH)`, assuming one directory
+ * above the WordPress install is always outside the served document root —
+ * false for a WordPress install living in a subdirectory beneath a broader
+ * docroot, or behind a web alias covering its parent). No code running
+ * inside the install can see its own server's vhost/docroot configuration,
+ * so it can never safely infer that a path is non-public — only the host
+ * administrator who configures that server can confirm it. The root
+ * therefore requires an explicit `QSD_STUDIO_PRIVATE_ROOT` constant (set in
+ * `wp-config.php`) naming a path the administrator has verified is outside
+ * their document root; `root()` resolves to `''` — and every operation below
+ * fails closed — until that constant is defined. The `.htaccess`/
+ * `index.php` pair is still written underneath it as cheap defence in
+ * depth on servers that do honour it, and `ensureProtectedRoot()` fails
+ * closed (returns false) if either file cannot actually be written, rather
+ * than silently proceeding unprotected. Direct HTTP denial against the
+ * configured path still requires a real request against the actual
+ * deployed host — see `docs/code-map/studio-host.md` for that verification
+ * step; it is not, and cannot be, proven by this class or its tests alone.
  *
  * First initialization is an explicit administrator-approved runtime action
  * (`initialize()`, called only from the REST `POST /studio/storage/init`
@@ -39,8 +47,11 @@ class StudioStorage
 
     public function root(): string
     {
-        $wpRoot = defined('ABSPATH') ? rtrim((string) ABSPATH, '/\\') : '';
-        return $wpRoot === '' ? '' : dirname($wpRoot) . '/' . self::DIR_NAME;
+        if (!defined('QSD_STUDIO_PRIVATE_ROOT')) {
+            return '';
+        }
+        $configured = rtrim((string) constant('QSD_STUDIO_PRIVATE_ROOT'), '/\\');
+        return $configured === '' ? '' : $configured . '/' . self::DIR_NAME;
     }
 
     public function isInitialized(): bool

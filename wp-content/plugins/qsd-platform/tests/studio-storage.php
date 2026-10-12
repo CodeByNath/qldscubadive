@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 // StudioStorage: the host-private writable root for WEX's identity-space
 // storage. Exercises the real class against a real temporary filesystem
-// (only the ABSPATH constant and wp_json_encode() are stubbed) — isolation,
-// fail-closed behaviour, idempotent initialization, and restart persistence
-// are all genuine filesystem operations, not mocked. The root is required to
-// resolve one directory ABOVE a fake "WordPress install" directory, exactly
-// as production does, so a bug that put it back under the install root (or
-// under an uploads-style path inside it) would show up as a real path
-// assertion failure here, not just a reviewed intent.
+// (only the QSD_STUDIO_PRIVATE_ROOT constant and wp_json_encode() are
+// stubbed) — isolation, fail-closed behaviour, idempotent initialization,
+// and restart persistence are all genuine filesystem operations, not
+// mocked. The administrator-configured root here is a plain writable temp
+// directory with no particular relationship to any fake WordPress
+// install — the whole point of requiring this constant is that StudioStorage
+// itself never infers safety from filesystem position; whether the
+// configured path is genuinely non-public is the administrator's claim to
+// verify, not something this class can determine. The "not configured"
+// and "configured but unwritable" fail-closed paths are covered by
+// tests/studio-storage-unconfigured.php and
+// tests/studio-storage-unwritable-root.php, since the constant cannot be
+// redefined to a second state within this same process.
 
-$__testBase = sys_get_temp_dir() . '/qsd-studio-test-' . bin2hex(random_bytes(6));
-$__wpRoot   = $__testBase . '/wordpress';
-mkdir($__wpRoot, 0755, true);
-define('ABSPATH', $__wpRoot . '/');
+$__configuredRoot = sys_get_temp_dir() . '/qsd-studio-test-' . bin2hex(random_bytes(6));
+mkdir($__configuredRoot, 0755, true);
+define('QSD_STUDIO_PRIVATE_ROOT', $__configuredRoot);
 
 function wp_json_encode(mixed $value): string|false { return json_encode($value); }
 
@@ -38,21 +43,16 @@ function check_studio_storage(bool $condition, string $label, mixed $detail = nu
 // ── 1) Uninitialized by default; nothing is created merely by asking ──────
 echo "1) a fresh root is uninitialized, and checking it creates nothing\n";
 {
-    global $__wpRoot, $__testBase;
+    global $__configuredRoot;
     $storage = new StudioStorage();
     check_studio_storage(!$storage->isInitialized(), 'isInitialized() is false before any action');
     check_studio_storage(!is_dir($storage->root()), 'the root directory does not exist merely from checking status — no silent preapproval');
     check_studio_storage($storage->readIdentity() === null, 'readIdentity() on an uninitialized root returns null');
 
     check_studio_storage(
-        !str_starts_with($storage->root(), $__wpRoot),
-        'the storage root resolves OUTSIDE the WordPress install directory itself (ABSPATH), not merely outside its uploads folder',
-        $storage->root(),
-    );
-    check_studio_storage(
-        dirname($storage->root()) === $__testBase,
-        'the root is exactly one directory above the WordPress install — one level outside any web server document root',
-        [$storage->root(), $__testBase],
+        dirname($storage->root()) === $__configuredRoot,
+        'the root lives exactly under the administrator-configured QSD_STUDIO_PRIVATE_ROOT — never inferred from ABSPATH',
+        [$storage->root(), $__configuredRoot],
     );
 }
 

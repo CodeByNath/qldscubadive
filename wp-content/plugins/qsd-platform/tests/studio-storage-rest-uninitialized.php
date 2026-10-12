@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 // StudioStorageController over a fresh, never-initialized StudioStorage:
 // writes must be refused, not silently accepted. Split into its own process
-// so the one ABSPATH-derived root this file resolves to is guaranteed never
-// to have been initialized by an earlier scenario.
+// so the one configured root this file resolves to is guaranteed never to
+// have been initialized by an earlier scenario.
 
-$__wpRoot = sys_get_temp_dir() . '/qsd-studio-rest-uninit-test-' . bin2hex(random_bytes(6)) . '/wordpress';
-mkdir($__wpRoot, 0755, true);
-define('ABSPATH', $__wpRoot . '/');
+$__configuredRoot = sys_get_temp_dir() . '/qsd-studio-rest-uninit-test-' . bin2hex(random_bytes(6));
+mkdir($__configuredRoot, 0755, true);
+define('QSD_STUDIO_PRIVATE_ROOT', $__configuredRoot);
 
 function wp_json_encode(mixed $value): string|false { return json_encode($value); }
 

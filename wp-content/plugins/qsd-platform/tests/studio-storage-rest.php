@@ -7,9 +7,9 @@ declare(strict_types=1);
 // Exercises the real controller against a real StudioStorage over a real
 // temp directory; only WordPress's own REST/user primitives are stubbed.
 
-$__wpRoot = sys_get_temp_dir() . '/qsd-studio-rest-test-' . bin2hex(random_bytes(6)) . '/wordpress';
-mkdir($__wpRoot, 0755, true);
-define('ABSPATH', $__wpRoot . '/');
+$__configuredRoot = sys_get_temp_dir() . '/qsd-studio-rest-test-' . bin2hex(random_bytes(6));
+mkdir($__configuredRoot, 0755, true);
+define('QSD_STUDIO_PRIVATE_ROOT', $__configuredRoot);
 
 function wp_json_encode(mixed $value): string|false { return json_encode($value); }
 

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-// StudioStorage fail-closed path when its resolved root (one directory above
-// ABSPATH) cannot be made writable. Split into its own process/file because
-// ABSPATH is a real PHP constant: it cannot be redefined to a second,
-// deliberately-locked location within the same run, the way the other
-// StudioStorage scenarios' fixtures can vary.
+// StudioStorage fail-closed path when its administrator-configured root
+// cannot be made writable (e.g. permissions on an otherwise correctly
+// non-public path). Split into its own process/file because
+// QSD_STUDIO_PRIVATE_ROOT is a real PHP constant: it cannot be redefined to
+// a second, deliberately-locked location within the same run, the way the
+// other StudioStorage scenarios' fixtures can vary.
 
-$__testBase = sys_get_temp_dir() . '/qsd-studio-test-unwritable-' . bin2hex(random_bytes(6));
-$__wpRoot   = $__testBase . '/wordpress';
-mkdir($__wpRoot, 0755, true);
-define('ABSPATH', $__wpRoot . '/');
+$__configuredRoot = sys_get_temp_dir() . '/qsd-studio-test-unwritable-' . bin2hex(random_bytes(6));
+mkdir($__configuredRoot, 0755, true);
+define('QSD_STUDIO_PRIVATE_ROOT', $__configuredRoot);
 
 function wp_json_encode(mixed $value): string|false { return json_encode($value); }
 

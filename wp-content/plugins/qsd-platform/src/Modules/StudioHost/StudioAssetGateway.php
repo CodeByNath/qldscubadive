@@ -15,6 +15,14 @@ use QSD\Platform\Core\PlatformAccess;
  * path. Until WEX supplies `studio-assets/manifest.json` and its build, the
  * host route still renders its own mount point with nothing enqueued — the
  * host does not depend on WEX's bundle existing yet.
+ *
+ * Every manifest-supplied path is rejected outright if it is not a plain,
+ * URL-safe relative form (see `isUrlSafeRelativePath()`) before any
+ * filesystem check, and is further required to resolve, by real path, inside
+ * `studio-assets/` (see `assetPath()`). The identical validated string is
+ * used both to resolve the real file and to build the URL handed to the
+ * browser, so there is never a gap between what was checked and what is
+ * actually requested.
  */
 class StudioAssetGateway
 {
@@ -81,12 +89,13 @@ class StudioAssetGateway
     }
 
     /**
-     * Null when missing, or when the resolved real path escapes the asset
-     * root — defence in depth only: every filename here comes from WEX's own
-     * manifest file, never from a request. `realpath()` on `$relative` also
-     * resolves a symlink to its real target, so a symlink planted inside
-     * `studio-assets/` that points outside it is rejected by the same
-     * containment check as a plain `../` traversal.
+     * Null when the string fails the URL-safety check below, is missing, or
+     * resolves (via `realpath()`) outside the asset root — defence in depth
+     * only: every filename here comes from WEX's own manifest file, never
+     * from a request. `realpath()` on `$relative` also resolves a symlink to
+     * its real target, so a symlink planted inside `studio-assets/` that
+     * points outside it is rejected by the same containment check as a
+     * plain `../` traversal.
      *
      * The containment check requires an exact match or a boundary at a
      * directory separator — a bare `str_starts_with($real, $root)` would
@@ -94,9 +103,18 @@ class StudioAssetGateway
      * same characters (e.g. a sibling `studio-assets-evil/` next to
      * `studio-assets/`), since the string "studio-assets" is itself a
      * prefix of "studio-assets-evil".
+     *
+     * `isUrlSafeRelativePath()` runs first, before any filesystem call: the
+     * exact same `$relative` string that passes here is also what
+     * `assetUrl()` sends to the browser, so rejecting an unsafe form here
+     * guarantees it is never enqueued as a URL either — not merely blocked
+     * from being read server-side while still reaching the client.
      */
     private function assetPath(string $relative): ?string
     {
+        if (!$this->isUrlSafeRelativePath($relative)) {
+            return null;
+        }
         $root = realpath($this->rootPath());
         if ($root === false) {
             return null;
@@ -111,9 +129,36 @@ class StudioAssetGateway
         return is_file($real) ? $real : null;
     }
 
+    /**
+     * A plain, forward-slash relative path only: no `..`/`.` segment, no
+     * leading slash or backslash, no Windows drive letter, and no `%`
+     * (rejected outright rather than decoded — a manifest value is never a
+     * URL that should carry percent-encoding in the first place). This is
+     * an explicit input-validation layer independent of the `realpath()`
+     * containment check in `assetPath()`, not a replacement for it.
+     */
+    private function isUrlSafeRelativePath(string $relative): bool
+    {
+        if ($relative === '' || str_contains($relative, "\0") || str_contains($relative, '%')) {
+            return false;
+        }
+        if (str_starts_with($relative, '/') || str_starts_with($relative, '\\') || str_contains($relative, '\\')) {
+            return false;
+        }
+        if (preg_match('/^[A-Za-z]:/', $relative) === 1) {
+            return false;
+        }
+        foreach (explode('/', $relative) as $segment) {
+            if ($segment === '.' || $segment === '..') {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private function assetUrl(string $relative): string
     {
-        return QSD_PLUGIN_URL . self::DIR_NAME . '/' . ltrim($relative, '/');
+        return QSD_PLUGIN_URL . self::DIR_NAME . '/' . $relative;
     }
 
     private function rootPath(): string
