@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: BUILDER ACTION REQUIRED — Phase 1 host privacy gate
-Actor now: Builder
+Status: AWAITING REVIEWER REVIEW — second-round security corrections pushed at `69a106b`
+Actor now: Reviewer
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -96,3 +96,30 @@ QSD/WordPress is **only runtime, storage infrastructure and host auth**, not WEX
 **Further containment safeguard:** `assetUrl()` currently reuses manifest relative strings even when the canonical filesystem path passes. Require URL-safe normalized paths; reject `..`, absolute paths and encoded/special path forms before enqueue. Verify with regression tests.
 
 Run `npm test` and `npm run docs:check`, push a bounded correction to existing `wex-studio-host` branch, record exact SHA and evidence here, return `AWAITING REVIEWER REVIEW`, then stop. No new features, no business data, no WEX UI and no staging/production deployment.
+
+
+## Builder correction handoff — second-round security (2026-10-12)
+
+Bounded correction executed on the SAME `wex-studio-host` branch, one new commit, fast-forward from `914002e`:
+
+| Full SHA | Commit |
+|---|---|
+| `69a106bc7be0de7325f3010664991356e0b89f18` | `studio: second-round Reviewer security corrections` (branch HEAD) |
+
+**Correction 1 (storage root assumption) — the flawed assumption removed, not patched over.** Agreed with the Reviewer's diagnosis: `dirname(ABSPATH)` is an inference about hosting topology QSD's own code cannot safely make — it's true for the actual staging2 target (`.../public_html` is the vhost docroot), but not for every "supported installation," exactly as flagged. Replaced it with an explicit `QSD_STUDIO_PRIVATE_ROOT` constant the administrator sets in `wp-config.php`, only after confirming that path against their own server's actual configuration — the one party who genuinely can know it. `root()` returns `''`, and every operation (`isInitialized`, `initialize`, `readIdentity`, `writeIdentity`) fails closed, until that constant is defined; proven by a new dedicated test (`tests/studio-storage-unconfigured.php`) rather than asserted. `.htaccess`/`index.php` remain underneath it as defence in depth, with their creation's success already checked from the prior round.
+
+**What this does and does not prove, stated plainly.** This correction proves the *fail-closed* behaviour (nothing is ever auto-provisioned or guessed) and removes the specific false structural claim the Reviewer identified. It does NOT and cannot prove the administrator-configured path is actually non-public on any given real server — that is why the constant exists: it shifts the "demonstrably non-public" claim to the party who can verify it, rather than having QSD's code assert something it cannot see. The required direct-HTTP-denial test against the actual deployed host remains exactly as pending as before — documented as a required deployment-time step in `docs/code-map/studio-host.md`'s new "Deployment-time verification" section — not performed here, and not claimed as performed.
+
+**Correction 2 (URL safety) — the exact gap closed.** `assetUrl()` built the browser-facing URL from the same raw manifest string `assetPath()` validated for filesystem containment, but that containment check alone was the only line of defence on the string itself. Added `isUrlSafeRelativePath()`: rejects (before any filesystem call) any path that is empty, contains a null byte or `%`, starts with `/` or `\`, contains `\`, matches a Windows drive-letter pattern, or contains a literal `.`/`..` segment. `assetPath()` now calls this first; `assetUrl()` is only ever reached with a string that already passed it, so there is no gap between what was validated and what is sent to the browser. New test scenario 8 in `tests/studio-asset-gateway.php` proves five unsafe forms (`/etc/passwd`, a Windows path, a backslash traversal, a percent-encoded traversal, a dotted-segment traversal) are all rejected, and that a plain legitimate entry still works afterward (no over-rejection).
+
+**Test restructuring required by correction 1:** `QSD_STUDIO_PRIVATE_ROOT` is a real PHP constant and cannot be redefined within one process. `tests/studio-storage.php`, `tests/studio-storage-unwritable-root.php`, `tests/studio-storage-rest.php`, and `tests/studio-storage-rest-uninitialized.php` were updated to define it instead of the prior round's `ABSPATH`; `tests/studio-storage-unconfigured.php` is new, covering the "not configured at all" fail-closed path the prior round's tests had no way to exercise (the prior `dirname(ABSPATH)` design always resolved to *something*).
+
+**Verified unchanged, not assumed:** `git diff --stat 914002e -- src/Modules/AdminStation src/Core/AssetLoader.php src/PlatformIdentifier src/Modules/Account src/Modules/Service src/Modules/Settings` is empty. Full `git status`/diff against `914002e` touches only Studio Host's own files, its tests, and two Markdown docs.
+
+**Validation at `69a106b`:** `npm test` green in full — typecheck; every PHP test including the new `tests/studio-storage-unconfigured.php` and the four updated `tests/studio-storage*`/`studio-storage-rest*` files, plus `tests/studio-asset-gateway.php`'s new scenario 8; build; JS **27/27** unchanged; `npm run docs:check` (52 Markdown files, 21 Code Maps — `docs/code-map/studio-host.md` rewritten for the corrected design and re-trimmed under its 600-word cap after several passes, `src/Modules/StudioHost/CLAUDE.md` and `docs/roadmap.md` updated).
+
+**Confirmed, per the Owner's standing constraint:** WordPress remains runtime/storage/host-auth only; WEX still reaches QSD exclusively through `qsd/v1/studio/*` REST routes, no direct WordPress DB queries anywhere; no legacy QSD UI/drawer/presentation code referenced (the existing structural scan in `tests/studio-host.php` is unaffected and still passes).
+
+**Not done, per this correction's own bound:** no new branch; no push to `main`/`staging`; no deployment; no WEX UI/components/data plugs; no API-boundary change. `QSD_STUDIO_PRIVATE_ROOT` has not been set on any real host, and the direct-HTTP-denial verification remains honestly pending, not performed — it requires an actual deployed target, which this correction does not authorize.
+
+**Builder next action:** none — stopping here. Reviewer: `wex-studio-host` is pushed at `69a106b`, independently inspectable, addressing both second-round corrections. Awaiting verdict.
