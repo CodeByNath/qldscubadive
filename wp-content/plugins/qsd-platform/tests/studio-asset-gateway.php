@@ -144,6 +144,46 @@ echo "\n5) a manifest entry path cannot escape the studio-assets/ root\n";
     check_studio_asset(!isset($__enqueuedScripts['qsd-studio-host']), 'an entry path resolving outside studio-assets/ is never enqueued as the WEX bundle', $__enqueuedScripts);
 }
 
+// ── 6) A sibling directory whose name merely starts with "studio-assets"
+//      must not pass containment by string prefix alone ──────────────────
+echo "\n6) a sibling directory like studio-assets-evil/ cannot pass as contained by a bare string prefix match\n";
+{
+    global $__fixtureRoot, $__enqueuedScripts;
+    $__enqueuedScripts = [];
+    mkdir($__fixtureRoot . 'studio-assets-evil', 0755, true);
+    file_put_contents($__fixtureRoot . 'studio-assets-evil/secret2.js', '// should never be reachable either');
+    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => '../studio-assets-evil/secret2.js']));
+
+    $gateway->enqueue();
+    check_studio_asset(
+        !isset($__enqueuedScripts['qsd-studio-host']),
+        'an entry resolving into a sibling "studio-assets-evil/" directory is rejected, not accepted by a bare prefix match',
+        $__enqueuedScripts,
+    );
+}
+
+// ── 7) A symlink planted inside studio-assets/ pointing outside it ────────
+echo "\n7) a symlink inside studio-assets/ that points outside it is refused, not followed\n";
+{
+    global $__fixtureRoot, $__enqueuedScripts;
+    $__enqueuedScripts = [];
+    file_put_contents($__fixtureRoot . 'outside-secret.js', '// should never be reachable via a symlink either');
+    @unlink($__fixtureRoot . 'studio-assets/escape-link.js');
+    $linked = @symlink($__fixtureRoot . 'outside-secret.js', $__fixtureRoot . 'studio-assets/escape-link.js');
+    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => 'escape-link.js']));
+
+    if (!$linked) {
+        echo "  skip — this filesystem/environment does not support creating symlinks\n";
+    } else {
+        $gateway->enqueue();
+        check_studio_asset(
+            !isset($__enqueuedScripts['qsd-studio-host']),
+            'a symlink resolving outside studio-assets/ is rejected, never enqueued as the WEX bundle',
+            $__enqueuedScripts,
+        );
+    }
+}
+
 if ($failures !== []) {
     fwrite(STDERR, "\n" . count($failures) . " check(s) failed.\n");
     exit(1);

@@ -7,10 +7,10 @@ declare(strict_types=1);
 // Exercises the real controller against a real StudioStorage over a real
 // temp directory; only WordPress's own REST/user primitives are stubbed.
 
-$__uploadBase = sys_get_temp_dir() . '/qsd-studio-rest-test-' . bin2hex(random_bytes(6));
-mkdir($__uploadBase, 0755, true);
+$__wpRoot = sys_get_temp_dir() . '/qsd-studio-rest-test-' . bin2hex(random_bytes(6)) . '/wordpress';
+mkdir($__wpRoot, 0755, true);
+define('ABSPATH', $__wpRoot . '/');
 
-function wp_upload_dir(): array { global $__uploadBase; return ['basedir' => $__uploadBase]; }
 function wp_json_encode(mixed $value): string|false { return json_encode($value); }
 
 $__currentUserCan = true;
@@ -102,17 +102,10 @@ echo "\n4) identity readback roundtrips a valid payload and rejects invalid ones
     check_studio_rest($getAfterBad->data === ['identity' => ['deviceId' => 'xyz']], 'the previously-stored good value survives a rejected bad write');
 }
 
-// ── 5) Writes before initialization are refused, not silently accepted ────
-echo "\n5) a controller over a fresh, never-initialized storage refuses writes\n";
-{
-    global $__uploadBase;
-    $__uploadBase = sys_get_temp_dir() . '/qsd-studio-rest-test-uninit-' . bin2hex(random_bytes(6));
-    mkdir($__uploadBase, 0755, true);
-
-    $freshController = new StudioStorageController(new StudioStorage());
-    $response         = $freshController->identity(new WP_REST_Request('PUT', '{"a":1}'));
-    check_studio_rest($response->status === 409, 'a PUT against an uninitialized store is rejected with 409, not silently accepted', $response->status);
-}
+// Writes before any init() call are covered by
+// tests/studio-storage-rest-uninitialized.php — ABSPATH is a constant, so a
+// second, never-touched root cannot be obtained within this same process
+// once scenario 3 above has already initialized the one root it resolves to.
 
 if ($failures !== []) {
     fwrite(STDERR, "\n" . count($failures) . " check(s) failed.\n");

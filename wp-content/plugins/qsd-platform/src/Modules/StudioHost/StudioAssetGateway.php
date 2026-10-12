@@ -83,7 +83,17 @@ class StudioAssetGateway
     /**
      * Null when missing, or when the resolved real path escapes the asset
      * root — defence in depth only: every filename here comes from WEX's own
-     * manifest file, never from a request.
+     * manifest file, never from a request. `realpath()` on `$relative` also
+     * resolves a symlink to its real target, so a symlink planted inside
+     * `studio-assets/` that points outside it is rejected by the same
+     * containment check as a plain `../` traversal.
+     *
+     * The containment check requires an exact match or a boundary at a
+     * directory separator — a bare `str_starts_with($real, $root)` would
+     * wrongly accept a sibling directory whose name merely starts with the
+     * same characters (e.g. a sibling `studio-assets-evil/` next to
+     * `studio-assets/`), since the string "studio-assets" is itself a
+     * prefix of "studio-assets-evil".
      */
     private function assetPath(string $relative): ?string
     {
@@ -92,7 +102,10 @@ class StudioAssetGateway
             return null;
         }
         $real = realpath($root . '/' . $relative);
-        if ($real === false || !str_starts_with($real, $root)) {
+        if ($real === false) {
+            return null;
+        }
+        if ($real !== $root && !str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
             return null;
         }
         return is_file($real) ? $real : null;

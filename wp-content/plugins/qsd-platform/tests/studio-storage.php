@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 // StudioStorage: the host-private writable root for WEX's identity-space
 // storage. Exercises the real class against a real temporary filesystem
-// (only wp_upload_dir()/wp_json_encode() are stubbed) — isolation,
+// (only the ABSPATH constant and wp_json_encode() are stubbed) — isolation,
 // fail-closed behaviour, idempotent initialization, and restart persistence
-// are all genuine filesystem operations, not mocked.
+// are all genuine filesystem operations, not mocked. The root is required to
+// resolve one directory ABOVE a fake "WordPress install" directory, exactly
+// as production does, so a bug that put it back under the install root (or
+// under an uploads-style path inside it) would show up as a real path
+// assertion failure here, not just a reviewed intent.
 
-$__uploadBase = sys_get_temp_dir() . '/qsd-studio-test-' . bin2hex(random_bytes(6));
-mkdir($__uploadBase, 0755, true);
+$__testBase = sys_get_temp_dir() . '/qsd-studio-test-' . bin2hex(random_bytes(6));
+$__wpRoot   = $__testBase . '/wordpress';
+mkdir($__wpRoot, 0755, true);
+define('ABSPATH', $__wpRoot . '/');
 
-function wp_upload_dir(): array
-{
-    global $__uploadBase;
-    return ['basedir' => $__uploadBase];
-}
 function wp_json_encode(mixed $value): string|false { return json_encode($value); }
 
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioStorage.php';
@@ -37,10 +38,22 @@ function check_studio_storage(bool $condition, string $label, mixed $detail = nu
 // ── 1) Uninitialized by default; nothing is created merely by asking ──────
 echo "1) a fresh root is uninitialized, and checking it creates nothing\n";
 {
+    global $__wpRoot, $__testBase;
     $storage = new StudioStorage();
     check_studio_storage(!$storage->isInitialized(), 'isInitialized() is false before any action');
     check_studio_storage(!is_dir($storage->root()), 'the root directory does not exist merely from checking status — no silent preapproval');
     check_studio_storage($storage->readIdentity() === null, 'readIdentity() on an uninitialized root returns null');
+
+    check_studio_storage(
+        !str_starts_with($storage->root(), $__wpRoot),
+        'the storage root resolves OUTSIDE the WordPress install directory itself (ABSPATH), not merely outside its uploads folder',
+        $storage->root(),
+    );
+    check_studio_storage(
+        dirname($storage->root()) === $__testBase,
+        'the root is exactly one directory above the WordPress install — one level outside any web server document root',
+        [$storage->root(), $__testBase],
+    );
 }
 
 // ── 2) Fail-closed before initialization ───────────────────────────────────
@@ -116,29 +129,10 @@ echo "\n6) invalid or oversized payloads are refused, and never clobber the last
     check_studio_storage($storage->writeIdentity('null') === true, 'the literal JSON value null is accepted (valid JSON, not an error sentinel)');
 }
 
-// ── 7) Fail-closed when the resolved root cannot be made writable ─────────
-echo "\n7) initialize() fails closed, never throws, when the root cannot be writable\n";
-{
-    if (function_exists('posix_getuid') && posix_getuid() === 0) {
-        echo "  skip — running as root; filesystem permission bits are not enforced, so this fail-closed path cannot be exercised here\n";
-    } else {
-        global $__uploadBase;
-        $lockedBase = $__uploadBase . '-locked';
-        mkdir($lockedBase, 0755, true);
-        $lockedRoot = $lockedBase . '/qsd-studio-private';
-        mkdir($lockedRoot, 0500, true); // exists, but not writable
-
-        // wp_upload_dir() reads this global directly, so retargeting it is
-        // enough to redirect the class without redefining the function.
-        $__uploadBase = $lockedBase;
-        $storage      = new StudioStorage();
-        $ok           = $storage->initialize(1);
-        check_studio_storage($ok === false, 'initialize() returns false (not an exception) when the pre-existing root directory is not writable');
-        check_studio_storage(!is_file($lockedRoot . '/.initialized'), 'no marker is written when initialization failed');
-
-        chmod($lockedRoot, 0755); // restore so cleanup can remove it
-    }
-}
+// Fail-closed behaviour when the root cannot be made writable is covered by
+// tests/studio-storage-unwritable-root.php — ABSPATH is a constant and
+// cannot be redefined to a second, deliberately-locked location within this
+// same process.
 
 if ($failures !== []) {
     fwrite(STDERR, "\n" . count($failures) . " check(s) failed.\n");

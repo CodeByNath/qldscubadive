@@ -6,15 +6,24 @@ namespace QSD\Platform\Modules\StudioHost;
  * StudioStorage — the host-private writable root for WEX's own
  * identity-space storage, isolated from every QSD business record.
  *
- * The root lives under the WordPress uploads base (`wp_upload_dir()`), not
- * inside the plugin itself, and is protected by its own `.htaccess`/
- * `index.php` pair so it is never directly web-reachable, unlike the public
- * `dist/` and `studio-assets/` directories. First initialization is an
- * explicit administrator-approved runtime action (`initialize()`, called only
- * from the REST `POST /studio/storage/init` route) — nothing here runs it
- * automatically, so a page load alone never provisions it. Every operation is
- * fail-closed: an unwritable root, a missing initialization, or an invalid
- * payload returns false/null rather than throwing or silently proceeding.
+ * The root is one directory above the WordPress install itself
+ * (`dirname(ABSPATH)`), never under `wp_upload_dir()` or anywhere inside
+ * `ABSPATH`. A web server's document root is always configured to the
+ * WordPress install directory or somewhere under it; a path one level above
+ * that is outside every URL a visitor can request, on Apache, Nginx, or
+ * anything else — a stronger, server-config-independent guarantee than
+ * `.htaccess` alone, which Nginx does not read at all. The `.htaccess`/
+ * `index.php` pair is still written as cheap defence in depth on servers
+ * that do honour it, but the real boundary is the filesystem location.
+ * `ensureProtectedRoot()` fails closed (returns false) if either file
+ * cannot actually be written, rather than silently proceeding unprotected.
+ *
+ * First initialization is an explicit administrator-approved runtime action
+ * (`initialize()`, called only from the REST `POST /studio/storage/init`
+ * route) — nothing here runs it automatically, so a page load alone never
+ * provisions it. Every operation is fail-closed: an unwritable root, a
+ * missing initialization, or an invalid payload returns false/null rather
+ * than throwing or silently proceeding.
  *
  * The one stored resource is a single identity-space JSON blob
  * (`identity.json`) — not a generic path-addressable file API. WEX's host
@@ -30,9 +39,8 @@ class StudioStorage
 
     public function root(): string
     {
-        $upload = wp_upload_dir();
-        $base   = is_array($upload) && !empty($upload['basedir']) ? (string) $upload['basedir'] : '';
-        return $base === '' ? '' : rtrim($base, '/') . '/' . self::DIR_NAME;
+        $wpRoot = defined('ABSPATH') ? rtrim((string) ABSPATH, '/\\') : '';
+        return $wpRoot === '' ? '' : dirname($wpRoot) . '/' . self::DIR_NAME;
     }
 
     public function isInitialized(): bool
@@ -104,12 +112,12 @@ class StudioStorage
         }
 
         $htaccess = $root . '/.htaccess';
-        if (!is_file($htaccess)) {
-            @file_put_contents($htaccess, "Require all denied\nDeny from all\n");
+        if (!is_file($htaccess) && @file_put_contents($htaccess, "Require all denied\nDeny from all\n") === false) {
+            return false;
         }
         $index = $root . '/index.php';
-        if (!is_file($index)) {
-            @file_put_contents($index, "<?php\n// Silence is golden.\n");
+        if (!is_file($index) && @file_put_contents($index, "<?php\n// Silence is golden.\n") === false) {
+            return false;
         }
 
         return true;
