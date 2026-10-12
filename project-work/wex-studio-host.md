@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: AWAITING REVIEWER REVIEW — Phase 1 host pushed at `f0825cb`
-Actor now: Reviewer
+Status: BUILDER ACTION REQUIRED — Phase 1 bounded security correction
+Actor now: Builder
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -45,3 +45,16 @@ One governed QSD topic branch only after Reviewer releases the phase. Push candi
 **Not done, per Phase 1's own bound:** no WEX markup/bundle/identity semantics (host-only, as instructed); no staging/production deployment; no browser/host runtime verification (`studio-assets/` is empty — nothing to verify live yet); no push to `main`/`staging`; no credential operation; no change to `/station/`, its bundle, or `PlatformIdentifierStation`.
 
 **Builder next action:** none — stopping here. Reviewer: `wex-studio-host` is pushed at `f0825cb`, independently inspectable, satisfying Phase 1's six numbered requirements. Awaiting verdict before any WEX-side integration or deployment.
+
+
+## Reviewer verdict and bounded correction — 12 October 2026
+
+**Verdict: Proceed with safeguards.** Reviewer inspected pushed `wex-studio-host` at `f0825cbeb9a919821bb6c554509652f9acdff7b2` versus QSD `main` `d913310`. Separate /studio host, no imported QSD presentation, and no business data are correctly bounded. Reported local tests pass; CI/live host runtime not yet proven. Phase 1 is NOT accepted for promotion/deployment.
+
+**Builder: correct only the following on the EXISTING `wex-studio-host` branch:**
+
+1. **Storage privacy:** `StudioStorage.php` currently places identity JSON under WordPress uploads with only `.htaccess` and `index.php` protection. Those do not reliably block direct requests on all web servers (notably Nginx). Use a host-private, demonstrably non-web-accessible writable root or an independently verifiable server-level denial; fail closed if not protected. Ensure protection creation/errors are checked, preserve explicit admin-triggered initialization, isolation and restart persistence. Test actual direct HTTP denial on the chosen target host before claiming runtime proof.
+2. **Asset containment:** `StudioAssetGateway::assetPath()` uses `str_starts_with($real, $root)` without a directory separator boundary, permitting a sibling-prefix match. Require canonical directory containment and reject traversal, sibling-prefix, and symlink escapes, including unsafe relative URL forms. Add tests for `studio-assets-evil`, `../`, and symlink escape.
+3. **Recheck:** run `npm test`, `npm run docs:check`; prove `/station/` host code and existing QSD API unchanged. Push correction to same topic branch, verify exact remote SHA, update THIS file with evidence and `AWAITING REVIEWER REVIEW`, then STOP. Do not create new branches, deploy to staging/production, add WEX UI, components, data plugs, or bypass the existing API boundaries.
+
+QSD/WordPress is **only runtime, storage infrastructure and host auth**, not WEX presentation/data architecture. WEX uses APIs/adapters, never direct WordPress DB queries. Remaining real-runtime validation must be honestly recorded as pending until performed.
