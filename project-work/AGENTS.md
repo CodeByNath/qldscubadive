@@ -136,3 +136,12 @@ Rules:
 - At a clean chat start, read the handover, then run the normal repository cycle against GitHub authority.
 - Update the same document after material project-state changes or before intentionally moving to a fresh chat.
 - Do not create a new handover document for each chat.
+
+## Owner-only override and agent role lock (12 October 2026)
+
+- **Only the human Owner may override** an accepted manual workflow, phase boundary, hard exclusion, architecture decision gate, design token, repository boundary, permission restriction, or deployment/security safeguard. An AI agent (including Claude Code, Codex, ChatGPT or their subagents) must not grant itself an override, infer one from convenience, or treat a Builder report as approval.
+- The Owner must explicitly identify the specific exception and scope. Record it in the same active work file before acting; changes to product authority require the appropriate reviewed `main` authority/ADR, not merely a coordination edit. Silence, broad access, a successful test, or an earlier permission does not count.
+- **Frontend/Backend assignment:** Codex + ChatGPT handle frontend inspection/composition and visual review only when assigned; Claude Code handles QSD backend/API/adapter work only when assigned. Assignments do not supersede the Builder/Reviewer cycle or grant cross-repository writes.
+- **WEX presentation exclusive:** no inline CSS, style attributes or runtime style injection; no agent-invented colours, spacing, dimensions, breakpoints, or variants. Use only values and behaviours registered by authoritative WEX source. Any missing value is an Owner/architecture gate, not permission to improvise.
+- **Dynamic slots:** Header/shell owns allocation and approved named-slot composition; mounted components own internals. Use verified WEX identity/composition contracts, not fabricated IDs, root DOM/CSS traversal or client-side identity read/modify/write. QSD owns branding/record authority; WEX owns UI presentation. Distinct Header allocations may bind distinct Logo instances via approved contracts.
+- **First Logo plug:** no new UI, component, CSS or visual change. Audit actual QSD branding API, WEX Header/Logo slot identity and accepted identity adapter first. QSD's existing blob GET/PUT is not the required atomic WEX adapter; never bypass it. Stop for Owner/Reviewer architecture resolution if an essential contract is missing.
