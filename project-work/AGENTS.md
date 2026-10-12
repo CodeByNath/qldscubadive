@@ -145,3 +145,16 @@ Rules:
 - **WEX presentation exclusive:** no inline CSS, style attributes or runtime style injection; no agent-invented colours, spacing, dimensions, breakpoints, or variants. Use only values and behaviours registered by authoritative WEX source. Any missing value is an Owner/architecture gate, not permission to improvise.
 - **Dynamic slots:** Header/shell owns allocation and approved named-slot composition; mounted components own internals. Use verified WEX identity/composition contracts, not fabricated IDs, root DOM/CSS traversal or client-side identity read/modify/write. QSD owns branding/record authority; WEX owns UI presentation. Distinct Header allocations may bind distinct Logo instances via approved contracts.
 - **First Logo plug:** no new UI, component, CSS or visual change. Audit actual QSD branding API, WEX Header/Logo slot identity and accepted identity adapter first. QSD's existing blob GET/PUT is not the required atomic WEX adapter; never bypass it. Stop for Owner/Reviewer architecture resolution if an essential contract is missing.
+
+## Builder specialisations (one project cycle)
+
+The existing `run the cycle` sequence and independent Reviewer are unchanged. Every active workstream identifies `Builder: BUILDER`, `Builder: CODER`, or `Builder: DESIGNER` (equivalent actor labels `BUILDER`, `BUILDER:CODER`, `BUILDER:DESIGNER`). These are **identifiers within the existing Builder role**, not separate cycle governance or independent approval authorities.
+
+- `BUILDER`: existing general assigned implementation; do not guess its specialization.
+- `BUILDER:CODER`: Claude Code or Owner-designated coder; assigned backend/data/API/adapter/persistence and its tests, **only within authorised scope**.
+- `BUILDER:DESIGNER`: Codex/ChatGPT or Owner-designated designer; assigned UI/UX, frontend composition, interaction, visual testing and WEX-conformant presentation, **only within authorised scope**.
+- `REVIEWER`: unchanged independent acceptance. No self-review and no Builder-to-Builder approval.
+
+Parallel CODER and DESIGNER work is permitted only where the Owner/work instructions give distinct, non-overlapping scopes, file ownership, and branch/handover plans within existing capacity. Same feature may have distinct bounded work areas; do not add a competing approval system or overwrite the other agent's work. Shared contract work requires a defined interface, not a speculative architecture gate. One agent cannot block its independent producer-side task merely because another agent's consumer cannot render yet. Example: Profile ID -> QSD logo data -> stop; WEX independently handles Logo rendering/fallback. An actual missing contract required to complete the agent's **own assigned operation** is a stop condition.
+
+Only Owner can authorise manual exceptions or scope overrides, explicitly and specifically. Every agent reads root `AGENTS.md`, `Project-work-instructions/project-work/AGENTS.md`, current active file, and the **existing platform-architecture skill** when an architecture decision is relevant. Platform skills explain **domain architecture**, not new work-cycle rules; `run the cycle` uses the single WeeraX Project Cycle procedure. Product authority stays in each repo, never transplanted from CompuZign.
