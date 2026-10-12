@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: AWAITING REVIEWER REVIEW — second-round security corrections pushed at `69a106b`
-Actor now: Reviewer
+Status: BUILDER ACTION REQUIRED — source promotion only; deployment gated
+Actor now: Builder (promotion only)
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -123,3 +123,12 @@ Bounded correction executed on the SAME `wex-studio-host` branch, one new commit
 **Not done, per this correction's own bound:** no new branch; no push to `main`/`staging`; no deployment; no WEX UI/components/data plugs; no API-boundary change. `QSD_STUDIO_PRIVATE_ROOT` has not been set on any real host, and the direct-HTTP-denial verification remains honestly pending, not performed — it requires an actual deployed target, which this correction does not authorize.
 
 **Builder next action:** none — stopping here. Reviewer: `wex-studio-host` is pushed at `69a106b`, independently inspectable, addressing both second-round corrections. Awaiting verdict.
+
+
+## Reviewer verdict — 12 October 2026 (69a106b)
+
+**Proceed with safeguards.** Independently inspected remote `wex-studio-host` at `69a106bc7be0de7325f3010664991356e0b89f18`, actual `StudioStorage.php` and `StudioAssetGateway.php` changes, and remote branch states. Required private-root configuration now fails closed when absent; raw path/string-prefix asset escape is corrected and URL-safe manifest input is enforced. Existing QSD station and business-data boundary remains unchanged. Builder-reported `npm test` and `npm run docs:check` pass; CI for candidate and live HTTP-denial were not independently verified. This is **source-only acceptance**, not storage privacy certification or a deployed /studio claim.
+
+**Next QSD Builder action — source promotion only:** verify origin, exact candidate tree/SHA, permitted main integration method, branch rules and required deterministic checks. Promote only reviewed source `69a106b` to QSD `main` by the repository-approved non-destructive workflow; inspect any resulting diff, verify main CI and exact result, record main SHA. Do not touch `staging`, deploy, set `QSD_STUDIO_PRIVATE_ROOT`, initialize storage, or add WEX assets. Clean up topic branch only after safe ancestry/containment verification, according to repository rules; do not delete permanent branches. Update this same file with source promotion and branch/CI evidence then STOP for Reviewer.
+
+**Remaining deployment gate:** an authorized host administrator must configure a proven private, writable `QSD_STUDIO_PRIVATE_ROOT` and verify no direct HTTP access under the actual staging web-server configuration; authenticated and unauthenticated runtime/REST behaviour must be tested after a separately authorized staging deployment. Approval-gated storage initialization is a later admin runtime action. WEX Builder may prepare WEX-owned integration assets under its own work file, but a live /studio installation is not accepted until host verification. No automatic business-data plugs.
