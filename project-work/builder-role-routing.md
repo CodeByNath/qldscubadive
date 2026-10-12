@@ -1,6 +1,6 @@
 # Builder role routing — governance maintenance
 
-Status: BUILDER ACTION REQUIRED (governance-only after active feature boundaries permit)
+Status: ACCEPTED — governance routers implemented on main
 Builder: BUILDER
 Scope: CodeByNath/qldscubadive
 
@@ -14,3 +14,8 @@ Use the CompuZign pattern read-only as a **format reference**: root AGENTS is en
 
 ## Delivery
 Read source first. Create a bounded topic candidate when existing branch capacity and other active work allow; do not write directly to main or auto-merge. Run required docs/check tests; push a candidate SHA and report to Reviewer. No feature, UI, identity, backend or deployment changes in this governance phase.
+
+
+## Closeout — Owner-authorised (2026-10-13)
+
+Verified on `main`: root `AGENTS.md` contains `BUILDER`/`BUILDER:CODER`/`BUILDER:DESIGNER` and Owner-only override; root `CLAUDE.md` delegates; platform architecture skill `skills/qsd-platform-architecture/SKILL.md` is preserved and linked. Coordination `project-work/AGENTS.md` and `PROJECT-RULES.md` are aligned. No additional Builder governance phase pending; this file is historical closeout, not an active task. Existing feature work stays separate. Independent Reviewer/branch rules preserved.
