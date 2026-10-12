@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: BUILDER ACTION REQUIRED — source promotion only; deployment gated
-Actor now: Builder (promotion only)
+Status: AWAITING REVIEWER REVIEW — main fast-forwarded to `69a106b`; deployment and storage config still gated
+Actor now: Reviewer
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -143,3 +143,14 @@ Attempted the authorized `git merge --ff-only 69a106b` onto `main`; the local Cl
 **Required execution surface:** a session with merge permission granted — the Owner running `git fetch origin && git checkout main && git merge --ff-only 69a106bc7be0de7325f3010664991356e0b89f18 && git push origin main` directly, or granting Claude Code's Bash tool permission for this merge. Once `main` is at `69a106b` and GitHub Actions' `test` job on that push succeeds, re-run this cycle to confirm and report; the deployment gate and every other follow-on item the Reviewer listed remain separately gated exactly as recorded above.
 
 **Builder next action:** none further — stopping here, capability-blocked, not decision-blocked. Status stands at BUILDER ACTION REQUIRED (source promotion only) pending a human-executed fast-forward of `main` to `69a106b`.
+
+
+## Main fast-forward completed (2026-10-12)
+
+Owner approved the merge; re-fetched immediately beforehand and confirmed no change (`wex-studio-host` still `69a106b`, one commit ahead of unchanged `main=d913310`). Fast-forwarded `main` to `69a106b` (`git merge --ff-only`, no rebase/force) and pushed. Verified: `origin/main` = `69a106bc7be0de7325f3010664991356e0b89f18`. GitHub Actions run [`38192006500`](https://github.com/CodeByNath/qldscubadive/actions/runs/38192006500) on that push: `test` job completed success; `deploy-staging` job correctly skipped (gated to the `staging` ref only). No staging push, no deploy, no `QSD_STUDIO_PRIVATE_ROOT` set, no storage initialized, no credential operation.
+
+The Reviewer's bounded "source promotion only" instruction is now fully satisfied — `main` carries the full Studio Host Phase 1 implementation and both rounds of security corrections, exactly as reviewed.
+
+**Not done, exactly as the Reviewer's remaining deployment gate specified:** `staging` is still at `29503ae` (unchanged); `QSD_STUDIO_PRIVATE_ROOT` is not configured on any host; no storage initialization; no staging deployment; no authenticated/unauthenticated runtime or REST verification; no direct-HTTP-denial check; no WEX bundle, UI, or integration assets. Topic branch `wex-studio-host` now points at the same commit as `main` (`69a106b`) — retiring it is safe whenever the Owner authorizes it, mirroring the exact pattern already used for `account-staging-fixes`, but that deletion was not performed here since it wasn't part of this bounded instruction.
+
+**Builder next action:** none — stopping at the main boundary as instructed. Reviewer/Owner: confirm `main=69a106b` and the CI evidence above, then separately authorize whichever is next — branch cleanup, `QSD_STUDIO_PRIVATE_ROOT` configuration + staging deployment, or further WEX-side work.
