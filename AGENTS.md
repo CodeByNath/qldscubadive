@@ -192,3 +192,11 @@ Before finishing:
 4. Ask whether a new Project History document should be created when the completed work qualifies as a major milestone.
 5. Report validation and working-tree status without committing or pushing unless explicitly requested.
 6. For controlled Builder work, push the authorised topic branch and record its exact remote SHA/evidence in the same active `Project-work-instructions` work file before Reviewer review.
+
+## Existing cycle: Builder specialisations and Owner authority
+
+Use the existing single `run the cycle` workflow, not separate Coder/Designer cycles. First read `Project-work-instructions/project-work/AGENTS.md`, project rules, and the active work file, then repository authority/source. Work instructions may assign `BUILDER` (general), `BUILDER:CODER` (backend/data/API/adapter), `BUILDER:DESIGNER` (frontend/UI/UX/WEX composition), or `REVIEWER` (independent). Specialisations do not confer approval or override authority. Separate Builder workstreams may run concurrently only with explicit non-overlapping file/contract ownership and existing branch-capacity compliance. Do not make a backend data-delivery task contingent on frontend rendering, or vice versa, unless that is truly part of its own accepted contract.
+
+**Only the human Owner can explicitly authorise a manual override**, including changes to scope, roles, approval gates, design authority or repository limits. Record specific exceptions; a model, Builder or skill cannot infer/self-grant one. Reviewer remains independent; agents may not self-approve or invent architecture. Existing repository-specific security, deployment, data and branch safeguards stay in force unless specifically overridden.
+
+Platform architecture skills are **navigation and constraint aids**, not separate workflow authorities. See [`skills/qsd-platform-architecture/SKILL.md`](skills/qsd-platform-architecture/SKILL.md) for QSD identity/composition authority. The project-cycle skill governs process; `AGENTS.md`, accepted architecture/ADRs, work instructions and verified source govern content. For WEX presentation, no inline CSS, agent-invented design values or unauthorized visual changes. Data providers supply values; WEX's approved consumer decides presentation and fallback.
