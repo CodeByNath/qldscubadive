@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: AWAITING REVIEWER REVIEW — Phase 1 security corrections pushed at `914002e`
-Actor now: Reviewer
+Status: BUILDER ACTION REQUIRED — Phase 1 host privacy gate
+Actor now: Builder
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -85,3 +85,14 @@ Bounded correction executed on the SAME `wex-studio-host` branch (no new branch 
 3. **Recheck:** run `npm test`, `npm run docs:check`; prove `/station/` host code and existing QSD API unchanged. Push correction to same topic branch, verify exact remote SHA, update THIS file with evidence and `AWAITING REVIEWER REVIEW`, then STOP. Do not create new branches, deploy to staging/production, add WEX UI, components, data plugs, or bypass the existing API boundaries.
 
 QSD/WordPress is **only runtime, storage infrastructure and host auth**, not WEX presentation/data architecture. WEX uses APIs/adapters, never direct WordPress DB queries. Remaining real-runtime validation must be honestly recorded as pending until performed.
+
+
+## Reviewer check — 12 October 2026 (candidate 914002e)
+
+**Verdict: Proceed with safeguards.** Inspected pushed `wex-studio-host` `914002e39a8e8905ff68c5e474552ea1ddec255a`, including actual `StudioStorage.php`, `StudioAssetGateway.php`, remote branches and work evidence. Asset canonical directory-boundary check is corrected, and Builder reports new regression tests passing. No candidate CI or deployed HTTP proof yet.
+
+**Remaining blocking correction, same branch only:** `StudioStorage::root()` now uses `dirname(ABSPATH)/qsd-studio-private` and asserts this is *always* outside the served document root. That assertion is false for supported installations where WordPress is in a subdirectory beneath a broader docroot, or web aliases expose the parent. Do not rely on path position alone. Resolve private root from demonstrably non-public host configuration (or require verified server denial), fail closed if no protected writable directory can be established, and test on the actual hosting configuration including direct HTTP denial. Keep API-only access, explicit initialization and persistence unchanged. The Developer may not declare staging/privacy proven based solely on local stub tests.
+
+**Further containment safeguard:** `assetUrl()` currently reuses manifest relative strings even when the canonical filesystem path passes. Require URL-safe normalized paths; reject `..`, absolute paths and encoded/special path forms before enqueue. Verify with regression tests.
+
+Run `npm test` and `npm run docs:check`, push a bounded correction to existing `wex-studio-host` branch, record exact SHA and evidence here, return `AWAITING REVIEWER REVIEW`, then stop. No new features, no business data, no WEX UI and no staging/production deployment.
