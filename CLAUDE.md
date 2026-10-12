@@ -19,3 +19,5 @@ Instead, before normal source work:
 9. Update the same active work file with the required evidence/handoff and stop at the defined role boundary.
 
 `Project-work-instructions` coordinates work only. It never replaces QSD product architecture or verified `main` source.
+
+Claude Code runs as `BUILDER:CODER` only when the active work file assigns that specialisation; otherwise follow its assigned role. Read root `AGENTS.md` and the current Project-work-instructions first. QSD architecture routing: [`skills/qsd-platform-architecture/SKILL.md`](skills/qsd-platform-architecture/SKILL.md). The existing run-the-cycle protocol remains singular; only the human Owner may authorise specific manual overrides. Do not change UI/WEX presentation under a backend-only assignment.
