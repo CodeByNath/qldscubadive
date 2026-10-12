@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: BUILDER ACTION REQUIRED — Phase 1 bounded security correction
-Actor now: Builder
+Status: AWAITING REVIEWER REVIEW — Phase 1 security corrections pushed at `914002e`
+Actor now: Reviewer
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -45,6 +45,33 @@ One governed QSD topic branch only after Reviewer releases the phase. Push candi
 **Not done, per Phase 1's own bound:** no WEX markup/bundle/identity semantics (host-only, as instructed); no staging/production deployment; no browser/host runtime verification (`studio-assets/` is empty — nothing to verify live yet); no push to `main`/`staging`; no credential operation; no change to `/station/`, its bundle, or `PlatformIdentifierStation`.
 
 **Builder next action:** none — stopping here. Reviewer: `wex-studio-host` is pushed at `f0825cb`, independently inspectable, satisfying Phase 1's six numbered requirements. Awaiting verdict before any WEX-side integration or deployment.
+
+
+## Builder correction handoff — Phase 1 security (2026-10-12)
+
+Bounded correction executed on the SAME `wex-studio-host` branch (no new branch opened), one new commit, fast-forward from `f0825cb`:
+
+| Full SHA | Commit |
+|---|---|
+| `914002e39a8e8905ff68c5e474552ea1ddec255a` | `studio: Reviewer-requested Phase 1 security corrections` (branch HEAD) |
+
+**Correction 1 (storage privacy) — fixed, not just mitigated.** `StudioStorage::root()` previously resolved under `wp_upload_dir()`'s basedir — inside the WordPress install directory, which is exactly what a web server's document root is configured to, so `.htaccess`/`index.php` were the *only* barrier, and the Reviewer correctly noted Nginx never reads `.htaccess` at all. Root now resolves to `dirname(ABSPATH)` — one directory *above* the WordPress install itself. No web server, Apache or Nginx, is ever configured to serve a path outside its own document root; this is a structural guarantee independent of server config, not an additional rule that could be misconfigured. `.htaccess`/`index.php` are kept as cheap defence in depth on servers that do honour them, and `ensureProtectedRoot()` now checks both writes' return values — a failed write to either fails the whole `initialize()` closed rather than silently proceeding unprotected. New test assertions (`tests/studio-storage.php`, scenario 1) prove the resolved root is structurally outside the fake `ABSPATH` fixture, and is exactly one directory above it.
+
+**What was NOT re-verified, stated rather than implied:** "test actual direct HTTP denial on the chosen target host" is real-server/browser-level runtime proof that requires a deployed host — explicitly not authorized in this bounded correction (no deployment). What this candidate proves is the structural guarantee (the resolved path is outside the directory any document-root configuration points at) and the filesystem-level fail-closed behaviour; the live-host HTTP check itself remains pending until a staging deployment is separately authorized, exactly as the Reviewer's own closing line requires.
+
+**Correction 2 (asset containment) — the exact bug fixed, verified real.** `StudioAssetGateway::assetPath()`'s check was `str_starts_with($real, $root)` with no boundary, so a sibling directory merely named with `$root`'s name as a string prefix (e.g. `studio-assets-evil/` against `studio-assets/`) would incorrectly pass containment. Proved this was a real, not theoretical, defect: temporarily restored the exact pre-correction file (`git show f0825cb:...StudioAssetGateway.php`) and reran the new tests against it — scenario 6 (the sibling-prefix case) failed exactly as expected, enqueuing `../studio-assets-evil/secret2.js` as the WEX bundle; scenario 7 (the symlink case) passed even against the old code, because `realpath()` already resolved the symlink to its outside target before the (buggy) prefix check ran, and that outside path didn't happen to share a string prefix with `root` in this fixture — so symlink resolution was already safe, and scenario 7 is confirmatory coverage rather than a second bug this correction fixes. Restored the corrected file and reconfirmed all tests pass. The check now requires `$real === $root || str_starts_with($real, $root . DIRECTORY_SEPARATOR)`. Three named scenarios exist: scenario 5 (pre-existing, `../`), scenario 6 (new: sibling-prefix `studio-assets-evil/` — the one that actually caught the reported bug), scenario 7 (new: a real symlink planted inside `studio-assets/` pointing outside it).
+
+**Test restructuring required by the fix itself:** two scenarios from the original `tests/studio-storage.php`/`tests/studio-storage-rest.php` (the unwritable-root fail-closed path, and the uninitialized-store REST rejection) previously worked by reassigning a stubbed `wp_upload_dir()` global mid-script to point at a second fixture location. Since the corrected design reads the real PHP constant `ABSPATH` instead, and constants cannot be redefined within one process, those two scenarios now live in their own dedicated files (`tests/studio-storage-unwritable-root.php`, `tests/studio-storage-rest-uninitialized.php`) with their own fixture `ABSPATH`. No coverage was dropped — each assertion that existed before still exists, just relocated.
+
+**Verified unchanged, not assumed:** `git diff --stat f0825cb -- src/Modules/AdminStation src/Core/AssetLoader.php src/PlatformIdentifier src/Modules/Account src/Modules/Service src/Modules/Settings` is empty — zero lines changed in `/station/`'s own code or any existing QSD module/API by this correction. The full `git diff --stat f0825cb` touches only `StudioAssetGateway.php`, `StudioStorage.php`, `CLAUDE.md`, the five `tests/studio-*` files, and two Markdown docs.
+
+**Validation at `914002e`:** `npm test` green in full — typecheck; every PHP test including two new files (`tests/studio-storage-unwritable-root.php`, `tests/studio-storage-rest-uninitialized.php`) and three rewritten ones (`tests/studio-storage.php`, `tests/studio-storage-rest.php`, `tests/studio-asset-gateway.php` — the latter gaining the two new escape-path scenarios); build; JS **27/27** unchanged (backend-only correction, no TS touched); `npm run docs:check` (52 Markdown files, 21 Code Maps — `docs/code-map/studio-host.md` and `src/Modules/StudioHost/CLAUDE.md` updated to describe the corrected design).
+
+**Confirmed, per the Owner's standing constraint:** WordPress remains runtime/storage/host-auth only — `StudioStorage`'s new root is still filesystem storage WordPress's own install directory sits beside, not a new database or external store; WEX still reaches QSD exclusively through the same `qsd/v1/studio/*` REST routes (no direct WordPress DB queries are exposed, and none were added); no legacy QSD UI, drawer, or presentation code is referenced anywhere in Studio Host (re-verified by the existing structural scan in `tests/studio-host.php`, unaffected by this correction and still passing).
+
+**Not done, per this correction's own bound:** no new branch (same `wex-studio-host`); no push to `main`/`staging`; no deployment; no WEX UI/components/data plugs; no API-boundary change or new route. Live-host HTTP-denial verification remains honestly recorded as pending, not performed.
+
+**Builder next action:** none — stopping here. Reviewer: `wex-studio-host` is pushed at `914002e`, independently inspectable, addressing both numbered corrections. Awaiting verdict.
 
 
 ## Reviewer verdict and bounded correction — 12 October 2026
