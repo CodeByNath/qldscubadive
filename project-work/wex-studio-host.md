@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: AWAITING REVIEWER REVIEW — main fast-forwarded to `69a106b`; deployment and storage config still gated
-Actor now: Reviewer
+Status: ACCEPTED — source promoted; branch cleanup and staging runtime deferred
+Actor now: Reviewer closeout complete; Builder for authorized housekeeping only
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -154,3 +154,12 @@ The Reviewer's bounded "source promotion only" instruction is now fully satisfie
 **Not done, exactly as the Reviewer's remaining deployment gate specified:** `staging` is still at `29503ae` (unchanged); `QSD_STUDIO_PRIVATE_ROOT` is not configured on any host; no storage initialization; no staging deployment; no authenticated/unauthenticated runtime or REST verification; no direct-HTTP-denial check; no WEX bundle, UI, or integration assets. Topic branch `wex-studio-host` now points at the same commit as `main` (`69a106b`) — retiring it is safe whenever the Owner authorizes it, mirroring the exact pattern already used for `account-staging-fixes`, but that deletion was not performed here since it wasn't part of this bounded instruction.
 
 **Builder next action:** none — stopping at the main boundary as instructed. Reviewer/Owner: confirm `main=69a106b` and the CI evidence above, then separately authorize whichever is next — branch cleanup, `QSD_STUDIO_PRIVATE_ROOT` configuration + staging deployment, or further WEX-side work.
+
+
+## Reviewer source-promotion closeout — 12 October 2026
+
+**Verdict: Proceed with safeguards.** Independently verified remote `main` = `69a106bc7be0de7325f3010664991356e0b89f18` and topic `wex-studio-host` at the identical SHA. GitHub Actions run `38192006500` completed successfully on exactly that `main` SHA. The reviewed WEX /studio QSD host source is accepted and promoted; no further QSD source correction assigned. `staging` remains at `29503ae`, unmodified. No staged/live runtime, storage-root web-denial, authenticated access, identity persistence, or WEX UI installation has been verified; none is claimed.
+
+**Housekeeping boundary:** `wex-studio-host` is now redundant (exactly equal to `main`), but still exists remotely at the governed branch limit. The authorized Git-capable QSD Builder may delete only this branch after fresh ancestry/equality verification and Owner confirmation of remote deletion; never touch the three permanent branches. Record resulting remote heads in this same file. No new implementation topic branch until cleanup.
+
+**Later separate staging gate:** provision a verified non-public `QSD_STUDIO_PRIVATE_ROOT` on the target host, staging deployment under separate authorization, negative HTTP direct-access tests and auth/API/storage checks. Do not conflate source acceptance with that gate or trigger storage initialization automatically. The WEX-side Builder may prepare its own WEX-owned bundle under independent WEX authority, without business-data plugs, but cannot claim deployed /studio before runtime proof.
