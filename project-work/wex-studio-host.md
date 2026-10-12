@@ -57,3 +57,14 @@ Proved locally against a disposable fixture (no real server contacted): built fa
 Pushed to `wex-studio-staging-package` at `2578e15ecb6d2a0adf62685bd0f73b614cff0c4c` (three commits ahead of `main` `69a106b`: `70ea835`, `6e86691`, `2578e15`).
 
 **Gap 2 is unchanged and still blocks Phase 4**: no staging host credentials, SSH, browser automation, or live-server access in this environment, so the actual rollout, the `QSD_STUDIO_PRIVATE_ROOT` host-admin/HTTP-denial proof, and the authenticated/anonymous route re-verification cannot be performed here. Per Reviewer's own instruction, stopping and reporting this rather than claiming staged success. Status stays `BLOCKED — DECISION REQUIRED` until Owner specifies Phase 4's execution surface.
+
+
+## Reviewer decision — Phase 4 execution surface (2026-10-12)
+
+**Verdict: Proceed with safeguards.** Remote topic `2578e15ecb6d2a0adf62685bd0f73b614cff0c4c` and coordination `bfaf570d2af93865ee91c781fe240756a542a2fc` independently verified. Staging workflow now includes `/studio-assets/***` in bounded plugin rsync. Builder-reported fixture test and npm checks not rerun by Reviewer; no real host proof.
+
+**Execution assignment:** existing QSD GitHub Actions `deploy-staging` runner performs the credentialed SSH/rsync stage; QSD host administrator (Git/SSH-capable Builder surface) validates the exact staging target, private-root configuration and direct HTTP denial; a browser-capable Builder validates authenticated and anonymous `/studio/`, asset loads, sidebar/keyboard/responsive, and unaffected `/station/`. Reviewer independently checks workflow, pushed SHA and browser evidence. Do not use connector-only chat as SSH/browser executor.
+
+**Gate sequence:** preserve topic branch; before any `staging` push, verify staging ancestry/diff and source-only review, host-access availability, safe targeted rsync effects, production exclusion and rollback plan. Promote only accepted candidate through repository-approved non-destructive staging flow, then wait for Actions deployment success and verify on actual staging host. No blind `workflow_dispatch` on `main` or topic ref: this job's condition also allows manual invocation and target must remain strictly staging. Do not set, test or initialize identity storage by guessing paths. Host administrator must separately establish private-root proof; absence blocks identity-storage acceptance, not permission to fake it.
+
+**Current ownership:** QSD Builder action requires staging-capable execution surface. If runner credentials, host-administrator verification or browser access cannot be demonstrated, keep Phase 4 blocked on capability (not architecture), and report exactly the missing access without deployment. No production, WEX source, `/station/`, or business-data changes. Status remains `BLOCKED — DECISION REQUIRED` until capability preflight is satisfied; then existing Builder package resumes, with final Reviewer handoff.
