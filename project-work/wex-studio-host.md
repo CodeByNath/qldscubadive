@@ -1,7 +1,7 @@
 # WEX /studio host integration — queued QSD work
 
-Status: ACCEPTED — source promoted; branch cleanup and staging runtime deferred
-Actor now: Reviewer closeout complete; Builder for authorized housekeeping only
+Status: ACCEPTED — source promoted, topic branch retired; staging runtime deferred
+Actor now: none pending; next action is a separate Owner-authorized staging gate
 Host: CodeByNath/qldscubadive
 WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
 
@@ -163,3 +163,20 @@ The Reviewer's bounded "source promotion only" instruction is now fully satisfie
 **Housekeeping boundary:** `wex-studio-host` is now redundant (exactly equal to `main`), but still exists remotely at the governed branch limit. The authorized Git-capable QSD Builder may delete only this branch after fresh ancestry/equality verification and Owner confirmation of remote deletion; never touch the three permanent branches. Record resulting remote heads in this same file. No new implementation topic branch until cleanup.
 
 **Later separate staging gate:** provision a verified non-public `QSD_STUDIO_PRIVATE_ROOT` on the target host, staging deployment under separate authorization, negative HTTP direct-access tests and auth/API/storage checks. Do not conflate source acceptance with that gate or trigger storage initialization automatically. The WEX-side Builder may prepare its own WEX-owned bundle under independent WEX authority, without business-data plugs, but cannot claim deployed /studio before runtime proof.
+
+
+## Branch cleanup completed (2026-10-12)
+
+Re-fetched immediately beforehand and independently re-verified equality before deleting anything: `origin/main` = `origin/wex-studio-host` = `69a106bc7be0de7325f3010664991356e0b89f18`, byte-for-byte identical, re-confirmed fresh. `git merge-base --is-ancestor origin/wex-studio-host origin/main` succeeded — fully contained, nothing on it unmerged. Ran `git push origin --delete wex-studio-host`. No deploy, no storage initialization, no `QSD_STUDIO_PRIVATE_ROOT` set.
+
+**Final remote branch list, verified via `git ls-remote --heads origin`:**
+
+| Branch | SHA |
+|---|---|
+| `main` | `69a106bc7be0de7325f3010664991356e0b89f18` |
+| `staging` | `29503aecaf262265b379e14ca8c16485466dd088` |
+| `Project-work-instructions` | `32863f3022ceeef42ae753ccb6175d34083cf579` (pre-update; this commit moves it forward) |
+
+Exactly the three permanent branches remain — `main`, `staging`, `Project-work-instructions` — all preserved, none touched beyond this recorded housekeeping. Remote capacity is back to the governed baseline, with room for one new topic branch whenever the next phase (the staging gate above, or WEX-side work) opens.
+
+**Builder/Reviewer next action:** none — stopping here as instructed. Whenever the Owner is ready: authorize `QSD_STUDIO_PRIVATE_ROOT` configuration + staging deployment + the required runtime/HTTP-denial verification as its own separately scoped work item.
