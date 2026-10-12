@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: AWAITING REVIEWER REVIEW
-Actor: Reviewer (CI/runtime evidence); separately, a browser-capable operator and host administrator for the still-unavailable checks
-Phase: `staging` promoted and pushed, triggering the real deploy-staging run; no CI/runtime/browser proof from this session
+Status: BUILDER ACTION REQUIRED — Logo backend contract audit only
+Actor: Claude Code Builder (read-only contract discovery first; implementation gated)
+Phase: Owner-accepted Admin UI visual gate closed; QSD Logo/Brand slot integration preflight
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -58,3 +58,14 @@ Status set to `AWAITING REVIEWER REVIEW` for the pushed `staging`/topic candidat
 **Queued only; not an open Builder phase.** Owner assigns Claude Code to backend API/adapter work, with Codex + ChatGPT responsible for separately authorised frontend composition/visual inspection. First new plug is QSD's existing authoritative Logo resource to the already-existing WEX Header Logo/Brand slot. The Header targets an approved registered WEX allocation/slot and does not know Logo internals. Distinct Header allocations must eventually support independent Logo bindings. **Absolutely no UI source, CSS, inline styles, WEX values, new components, or visual redesign.** No arbitrary platform IDs, direct DOM/CSS targeting, domain-data duplication, or client-side identity blob workaround.
 
 **Prerequisite:** close the current `AWAITING REVIEWER REVIEW` staging runtime/browser/host checks or explicitly defer them through the Reviewer. Claude must first read both repositories' authoritative Code Maps/source in read-only mode and report the exact existing QSD Profile/Logo API, actual WEX Logo/slot/identity contract and the accepted storage adapter boundary. The existing QSD GET/PUT identity blob is not atomic; any essential missing adapter or registration contract is an architecture stop for Owner/Reviewer, not an opportunity for an agent to invent one. Then only a separate approved bounded QSD backend work phase may open. The current active file remains single source of coordination; no second active topic branch until closeout.
+
+
+## Reviewer closeout and Claude release — Owner acceptance (2026-10-12)
+
+**Verdict: Proceed with safeguards.** Owner explicitly confirms the deployed QSD staging Admin UI visual review was completed and accepted earlier. Do not request another Admin UI visual approval. GitHub Actions `38243207994` succeeded at staging `2578e15`. Separate authenticated/anonymous automated browser checks, accessibility, `/station/` regression and private-root HTTP-denial proof were not independently completed; **DEFER** these without representing them as successful. Do not initialise WEX identity storage. This deferral does not block Logo contract investigation.
+
+**Immediate Claude Code Builder assignment:** First read QSD `AGENTS.md`, `CLAUDE.md`, AI index, Logo/Profile/Account Code Maps and current QSD source; read WEX code maps/accepted schema and source read-only. Establish exact existing QSD logo resource, authorized read-only API, media URL/access semantics, WEX Logo component input contract, actual Header Brand/Logo slot registration and whether persistent WEX identity/atomic adapter is actually required to target it. Do not assume the shell already owns registered IDs merely from markup. Report evidence and precise smallest integration contract.
+
+**If compatible under existing accepted contracts:** implement **QSD backend/adapter ONLY**, scoped to read-only logo resolution for the existing approved slot, no UI/CSS/JS/components, no business-data duplication or new IDs; write bounded tests, commit per coherent phase and push reviewed candidate at final handoff. If existing QSD single-blob identity API would require atomic reserve/guarded transition/lookup, or WEX's slot/binding API is missing, **STOP — architecture gate**, document exact incompatibility and do not implement a workaround.
+
+**Git branch preflight:** remote heads currently occupy governed maximum (main, staging, Project-work-instructions, `wex-studio-staging-package`). Completed topic equals deployed staging SHA but must first be safely closed by authorised branch housekeeping (Owner confirmation of deletion, ancestry check). No new topic branch while four heads exist. This is not permission to delete it automatically or edit WEX source. No production deploy. Owner alone may override workflow and design authority.
