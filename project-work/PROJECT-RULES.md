@@ -72,3 +72,7 @@ Never import WEXdesigns or CompuZign product architecture merely because their w
 - Identify architecture, identity, lifecycle, compatibility, security, deployment, runtime, and regression risks as relevant.
 - Issue one defined verdict and prepare the precise next action.
 - Never implement the Builder's correction while acting as Reviewer.
+
+## One-cycle multi-builder routing
+
+`BUILDER`, `BUILDER:CODER` and `BUILDER:DESIGNER` share the SAME phase/status/review protocol; no parallel authority or skill-based bypass. Coordinator assigns independent scope and ownership per work area. Coder produces authorized data/backend/API contracts; Designer owns authorized UI/WEX composition. Backend output is accepted independently from frontend rendering; no dependent visual blocker unless required by coder's actual scope. Only Owner may override. Root `AGENTS.md` and local startup files should route to the existing platform architecture skill and this work protocol; skill content is advisory within architectural authority and cannot invent business/product rules.
