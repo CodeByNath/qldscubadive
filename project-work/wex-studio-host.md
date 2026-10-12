@@ -44,3 +44,10 @@ Phases 1–3 (WEX bundle built read-only from `CodeByNath/WEXdesigns`, copied in
 **What is NOT verified from this session:** the Actions run's pass/fail (no `gh` auth/API access here), the live `/studio/` route, asset loads, auth/anon behaviour, responsive/sidebar/keyboard checks, `/station/` non-regression, and the `QSD_STUDIO_PRIVATE_ROOT` host-admin/HTTP-denial proof. All require, per the Reviewer's own assignment, a browser-capable operator and a host administrator outside this session. No identity/storage initialization performed or attempted.
 
 Status set to `AWAITING REVIEWER REVIEW` for the pushed `staging`/topic candidate (`2578e15`) and this coordination update, per protocol — but final acceptance also needs the runtime/browser/host evidence above, which only a differently-capable operator can supply.
+
+
+## Reviewer cycle — staging CI deployment verified (2026-10-12)
+
+**Verdict: Proceed with safeguards.** Independently inspected remote `staging` and topic, both `2578e15ecb6d2a0adf62685bd0f73b614cff0c4c`. GitHub Actions run [38243207994](https://github.com/CodeByNath/qldscubadive/actions/runs/38243207994) is completed **success** at that exact SHA: `test` and `deploy-staging` jobs succeeded, including SSH load/login, exact staging target guard, plugin/theme rsync, and smoke check. This proves runner-level deployment, not authenticated browser success or host-private storage security.
+
+**Remaining evidence gate:** browser-capable authorised operator must capture actual `https://staging2.qldscubadive.com.au/studio/` authenticated Dashboard render, manifest JS/CSS/fonts/icons network loads, responsive/sidebar/keyboard/focus, anonymous denial, missing-resource/error behaviour and `/station/` coexistence. SiteGround host administrator separately verifies `QSD_STUDIO_PRIVATE_ROOT` configuration outside publicly served paths and direct HTTP denial; no storage init. Do not claim resource-connection acceptance until these checks are reported and reviewed. No further Builder source work assigned. Keep topic branch pending Reviewer closeout, no production deployment.
