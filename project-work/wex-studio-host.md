@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
 Status: BLOCKED — DECISION REQUIRED
-Actor: Owner (two capability decisions below); QSD Builder resumes once resolved
-Phase: Staging preparation and verification; final Reviewer handoff
+Actor: Owner (capability gap 2 only — Phase 4 execution surface, below); QSD Builder resumes Phase 4/5 once resolved
+Phase: Phases 1–3 complete and checked locally, not yet pushed; Phase 4 (staging rollout/runtime proof) blocked
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -27,14 +27,14 @@ Never modify WEX repository source, QSD `/station/` behaviour, production, host 
 ## Acceptance and notification
 Notify Owner only when Reviewer independently confirms the staging Dashboard, every required static resource, access denial, interaction/a11y basics and `/station/` preservation. A passing build alone is insufficient. No autonomous background monitor is implied.
 
-## Builder capability block — Phase 1/2/4 preflight (2026-10-12)
+## Builder progress — Phases 1–3 complete, gap 1 resolved (2026-10-12)
 
-Preflight performed before opening any topic branch or changing QSD source, per "stop before partial execution and report the capable surface required." No QSD repository file was changed; no topic branch was created.
+Full capability-gap detail (classifier denial, WEXdesigns investigation, exact SHAs) is in this file's Git history on this branch; summarized here. Owner approved retrying gap 1: built the WEX bundle read-only from `CodeByNath/WEXdesigns` `main` `02bbfb0e` (candidate commit `8409ae5`) in an isolated scratchpad clone — `pnpm install`, then building workspace deps (`@weerax/schemas`, `@weerax/wex`, `@weerax/catalogue`, `@weerax/ui`, a build-order step the WEX install doc omitted) before `build:studio-host` succeeded. Nothing written back to WEXdesigns; only build output copied out.
 
-**Confirmed reachable (read-only, external integration input):** `https://github.com/CodeByNath/WEXdesigns.git` HEAD/`main` = `02bbfb0e05702ab2b8beee629d2c328644d91c15`, matching the Accepted baseline exactly. Cloned read-only into an isolated scratchpad directory (never written back to). Bundle candidate commit `8409ae51f74dfe9ffb22b1b284c2a44c1a5eba8f` ("feat(studio): add portable dashboard host assets") located on that `main` history and confirmed as WEX source, not a prebuilt artifact: it adds `apps/web-runtime/src/studio-host.js`, `apps/web-runtime/vite.studio-host.config.ts`, and `apps/web-runtime/studio-host/README.md`. That README's documented install contract matches QSD's existing `studio-assets/README.md` contract exactly — `manifest.json` shaped `{ "entry": "assets/<name>-<hash>.js", "styles": ["assets/<hash>.css"], "version": "<string>" }`, built via `pnpm --filter @weerax/web-runtime build:studio-host` into `apps/web-runtime/studio-host-dist/`, whose contents (not the directory) are copied into QSD's `studio-assets/`. This satisfies Phase 1's manifest-contract confirmation.
+New, not-yet-pushed topic branch `wex-studio-staging-package` off `main` `69a106b`:
+- `70ea835` (Phase 2) — copies the built `manifest.json` + `assets/` into `wp-content/plugins/qsd-platform/studio-assets/`. `/station/` untouched; no API/storage/identity wiring.
+- `6e86691` (Phase 3) — `docs/code-map/studio-host.md`: records the populated bundle and the three-way resource split (GitHub owns WEX source/build; QSD media/uploads untouched; `QSD_STUDIO_PRIVATE_ROOT` the one private identity root). No new generic resource API or directory.
 
-**Capability gap 1 (Phase 2 — staging packaging):** Producing the actual bundle requires running `pnpm install` and the Vite build against the cloned WEXdesigns source. The Claude Code auto-mode classifier denied this (`Reason: [Untrusted Code Integration]`) when attempted in the isolated scratchpad clone. No workaround was attempted. Required to proceed: Owner either (a) grants one-time approval for `npx pnpm@11.16.0 install` + `pnpm --filter @weerax/web-runtime build:studio-host` to run against the read-only scratchpad clone (output only ever copied into QSD `studio-assets/`, nothing written back to WEXdesigns), or (b) supplies the already-built `studio-host-dist/` contents directly.
+Phase 5's non-host checks re-run clean after clearing stray local `node_modules/@types/* 2` duplicate artifacts (pre-existing local cruft, not committed): `npm test` full green, `npm run docs:check` passes. No staging deploy, storage init, or host contact performed.
 
-**Capability gap 2 (Phase 4 — staging rollout and runtime proof):** This execution environment has no staging host credentials/SSH, no browser automation, and no way to perform a host-admin-verified private-writable-directory check or a negative direct-HTTP test against the live server. These are indispensable per the work file's own Phase 4 gate ("A missing safe root or inability to prove denial blocks any privacy certification; report separately and do not bypass"). Required to proceed: Owner specifies the actual execution surface for Phase 4 (host-admin-supervised session, a different tooled environment, or Owner-performed steps with evidence handed back for Reviewer).
-
-No QSD architecture, security, or scope question is raised here — both gaps are tooling/authority preflight only, per `project-work/AGENTS.md` "Executor capability preflight." Builder keeps ownership and resumes Phase 1 commit + Phase 2 packaging immediately once gap 1 is resolved; Phase 4 remains blocked until gap 2 is resolved.
+**Phase 4 still blocked on capability gap 2** (no staging host/browser access in this environment). Branch held locally pending Owner's call on Phase 4's execution surface, per "push only at the final phase boundary" — unless Owner prefers an interim push now for early Reviewer visibility of Phases 1–3.
