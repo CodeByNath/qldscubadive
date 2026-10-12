@@ -1,7 +1,7 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: BLOCKED — DECISION REQUIRED
-Actor: Owner (capability gap 2 only — Phase 4 execution surface, below); QSD Builder resumes Phase 4/5 once resolved
+Status: BUILDER ACTION REQUIRED
+Actor: QSD Builder — limited staging pipeline preflight and rollout; Reviewer owns acceptance
 Phase: Reviewer's deployment-safety correction implemented, tested, and pushed; Phase 4 staging rollout still gated on gap 2
 Repository: `CodeByNath/qldscubadive` only
 
@@ -80,3 +80,12 @@ Re-ran preflight against Reviewer's three named execution surfaces; none is avai
 No `staging` push attempted: the gate sequence requires host-access availability confirmed *before* any staging push, which fails here. Topic branch `wex-studio-staging-package` (`2578e15`) is untouched and not promoted.
 
 Per Reviewer's own instruction, this is a capability gap, not an architecture or implementation gap — the Phase 1–3 candidate and the Phase 4 rsync-allowlist correction already pushed stand as-is. Status stays `BLOCKED — DECISION REQUIRED`, Actor Owner: resolving gap 2 requires either (a) an Owner/operator with GitHub repo admin access confirming the `deploy-staging` secrets, performing the host-admin and browser checks after a staging push, and recording results here, or (b) the Owner explicitly directing this session to proceed with only the operations it can execute (e.g. pushing the topic branch into `staging` to trigger the CI runner) while someone else performs the out-of-band host/browser verification before final acceptance.
+
+
+## Reviewer cycle — Owner confirms existing Actions staging settings (2026-10-12)
+
+**Verdict: Proceed with safeguards.** Owner confirms they previously configured the QSD staging Actions SSH/path settings and can access GitHub Actions and staging environment settings. This is sufficient to assign a staged **runner-side verification attempt**, not proof the credentials still work or that SSH/browser/host-admin access exists in the Builder's local session. Retain pushed topic `2578e15`; no source changes or deployment claimed by this coordination update.
+
+**Builder next action:** read fresh remote state, inspect exact topic-vs-staging diff, QSD deploy workflow and `rsync --delete` target contents/exclusions, rollback capability and guarded `STAGING_WP_PATH` target. Owner authorises a staging-only non-destructive promotion from the reviewed topic via repository-approved workflow **only after** the dry-run/safety preflight passes. Let the existing GitHub Actions runner validate configured secrets/SSH; never request or echo values, and do not bypass target checks. If preflight cannot establish safe deletion effects or correct staging target, STOP and report a capability/safety gate. Do not manually dispatch from wrong ref.
+
+After a successful staging deployment, gather Actions SHA/status, live `/studio/` asset and auth evidence, responsive/sidebar/keyboard checks and `/station/` regression via an authorised browser-capable operator; record any unavailable evidence explicitly. Host-private `QSD_STUDIO_PRIVATE_ROOT` configuration and HTTP-denial testing require a host administrator and are not implicitly granted here; identity/storage initialization remains forbidden. No production, WEX source, QSD data plug or wider adapter changes. Final handoff to Reviewer only with verifiable results; otherwise keep the precise runtime blocker visible.
