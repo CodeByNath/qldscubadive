@@ -2,7 +2,7 @@
 
 Status: BLOCKED — DECISION REQUIRED
 Actor: Owner (capability gap 2 only — Phase 4 execution surface, below); QSD Builder resumes Phase 4/5 once resolved
-Phase: Phases 1–3 pushed for review; Phase 4 staging rollout gated on deployment safety correction
+Phase: Reviewer's deployment-safety correction implemented, tested, and pushed; Phase 4 staging rollout still gated on gap 2
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -47,3 +47,13 @@ Phase 5's non-host checks re-run clean after clearing stray local `node_modules/
 **Deployment hard gate:** current `.github/workflows/ci-deploy.yml` staging `rsync --delete` plugin include list omits `/studio-assets/***`, meaning copied WEX resources will not be deployed and the destination may be deleted. Builder must correct the allowlist for only the approved WEX static resources and prove deployment behavior against a disposable fixture before staging push. Keep unrelated persistent resource directories out of deletion scope; inspect stage target and any pre-existing data first. No novel deployment platform: existing GitHub Actions staging pipeline is the approved execution surface, with a capable credentialed runner/host administrator for runtime checks.
 
 **Builder bounded next step (same topic branch):** fix and test manifest/asset deployment in existing workflow; commit correction; run QSD checks; verify target exactly staging. Then continue staging-only rollout only if all capability, private-root protection, and non-destructive gates are satisfied. `QSD_STUDIO_PRIVATE_ROOT` requires host-admin verified outside-webroot configuration and HTTP-denial proof; no identity initialization. If unavailable, stop and report host-access blocker, without claiming staged success. Re-verify authenticated/anonymous routes, assets, responsive/sidebar/keyboard, and `/station/` unaffected. Final pushed SHA and coordination update to `AWAITING REVIEWER REVIEW`; stop. No production changes.
+
+## Builder correction — rsync allowlist fixed, gap 2 still open (2026-10-12)
+
+`.github/workflows/ci-deploy.yml`'s staging rsync include list was missing `/studio-assets/***`: the WEX bundle would never have reached staging, and `--delete` would have removed any copy already there since it matched no include pattern — exactly Reviewer's finding. Fixed by adding `--include='/studio-assets/***'` alongside the existing includes.
+
+Proved locally against a disposable fixture (no real server contacted): built fake source/dest trees mirroring the plugin layout, ran the exact rsync flags from the workflow. Result — fresh `studio-assets/` files replace stale ones; the pre-existing "verify target is staging" guard and SSH-key handling are untouched; a sibling plugin directory and `wp-content/uploads` (business media) outside the two rsync destinations are untouched; `tests/`/`node_modules/` dev files stay excluded. `npm test` and `npm run docs:check` green on the branch with this change (one transient, unrelated `CredentialCipherUnavailable` PHP test failure reproduced once then passed clean on two reruns — confirmed pre-existing/flaky on `main` itself, not caused by this change).
+
+Pushed to `wex-studio-staging-package` at `2578e15ecb6d2a0adf62685bd0f73b614cff0c4c` (three commits ahead of `main` `69a106b`: `70ea835`, `6e86691`, `2578e15`).
+
+**Gap 2 is unchanged and still blocks Phase 4**: no staging host credentials, SSH, browser automation, or live-server access in this environment, so the actual rollout, the `QSD_STUDIO_PRIVATE_ROOT` host-admin/HTTP-denial proof, and the authenticated/anonymous route re-verification cannot be performed here. Per Reviewer's own instruction, stopping and reporting this rather than claiming staged success. Status stays `BLOCKED — DECISION REQUIRED` until Owner specifies Phase 4's execution surface.
