@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: BLOCKED — DECISION REQUIRED
-Actor: Owner/Reviewer (WEX schema/contract architecture decision); staging runtime/browser/host evidence remains separately deferred
-Phase: Logo/Brand audit complete — WEX side has no binding contract for external logo content; no QSD backend/adapter work opened
+Status: BUILDER ACTION REQUIRED
+Actor: Claude Code Builder — QSD Profile-ID Logo data plug only; WEX consumer deferred
+Phase: QSD Profile platform ID → existing Logo data resource; stop at data boundary
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -38,3 +38,12 @@ Phases 1–3 (WEX bundle, `studio-assets/`, Code Map) landed on topic `wex-studi
 **WEX side (accepted contracts only).** Logo's entire serializable schema is `{ label: string }` — `packages/schemas/src/components/logo.schema.ts`, `.strict()`, no image/URL/src field exists. ADR 0022 (Logo Render Description Boundary) makes this explicit by design: "Logo's serializable schema remains unchanged and continues to contain only its label." Header's Brand compartment (`WEXAMH`, ADR 0021) is a fixed 64×64 **layout allocation for the Logo component itself**, not a data-binding slot: the ADR states it "records identity semantics only; it does not authorise... host registration, identity issuance, storage, or fitting." No registration/slot-binding API for external content exists anywhere in WEX source — ADR 0018 (the only "registration" contract in the repo) is the identity-space bootstrap mechanism and explicitly excludes "Header work." Today, Admin Station's runtime (`apps/web-runtime/src/admin-station-runtime.js`) constructs Logo from a hardcoded in-source fixture object (`{ label: 'Logo' }`) passed directly to `createLogoRenderDescription` — not from any external or resolvable contract.
 
 **Conclusion: architecture gate, per this file's own stop condition ("WEX's slot/binding API is missing → STOP").** No existing accepted WEX contract can carry a QSD-resolved value — logo image URL or otherwise — into Header/Logo. Closing that gap needs a WEX schema/UI change (an image field on Logo, or a new Header slot-binding mechanism) or a WEX source edit; both are outside this Builder's authority (no UI/component/source changes; WEX presentation is Codex/ChatGPT's and WEX's own authority, not QSD backend). The identity-adapter question the Owner also asked is moot here but answered for completeness: reaching the Brand slot requires no WEX identity/storage adapter at all today (ADR 0021: the allocation "does not authorise... storage"); the blocker is the absent schema/binding contract, not adapter atomicity. **No QSD backend/adapter work opened; no files changed; no branch created.**
+
+
+## Owner correction / Reviewer cycle — 2026-10-12 (Logo data producer only)
+
+**Verdict: Proceed with safeguards.** Owner explicitly overrides the earlier sequencing gate that incorrectly made QSD data delivery depend on WEX's ability to display an image. Do not revisit Admin UI approval. WEX rendering, fallback/error decoding and Logo component/schema are **outside this QSD phase** and may remain unsupported. QSD must plug and stop at the data boundary; rendering success is not a QSD acceptance condition.
+
+**Claude Code Builder scope:** Use the existing authoritative QSD **Profile platform ID** as lookup/selection identity (verify its exact field/namespace from current Account/Profile source; do not confuse this with a WEX shell ID). Resolve that Profile's existing logo resource through authoritative QSD storage and existing access-controlled API/adapter contracts. Supply the minimal stable read-only data connection/payload that the external Logo consumer can receive; reuse current `brand.logo_url` or equivalent existing contract where possible. Keep binding between Profile ID and logo **data**, not DOM, CSS selector, component implementation or hardcoded fixture. If current `GET /qsd/v1/admin/account` already provides the profile-qualified logo to the authorised consumer, prove exact request/response and **do not add a redundant endpoint**. If a small backend-only missing mapping is necessary, implement only that mapping and tests, then stop. Do not build UI, WEX schema, visual/placeholder/error treatments, arbitrary ID allocation, identity-ledger writes, auth bypass, anonymous logo route, new storage or speculative generic adapter.
+
+**Stop/report:** Show exact Profile ID resolution, API/payload/permissions, test evidence and pushed SHA or zero-change proof. Explicitly state whether WEX can display it is **not established and not this task**. Stop on genuine backend contract/permission conflict, not merely because WEX lacks an image field. Follow four-branch cap; do not delete the existing topic without Owner-approved housekeeping. Owner alone may override. Deferred staging security/browser proof stays deferred.
