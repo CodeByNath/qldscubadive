@@ -1,182 +1,28 @@
-# WEX /studio host integration — queued QSD work
+# WEX /studio QSD staging — consolidated work package
 
-Status: ACCEPTED — source promoted, topic branch retired; staging runtime deferred
-Actor now: none pending; next action is a separate Owner-authorized staging gate
-Host: CodeByNath/qldscubadive
-WEX coordination: CodeByNath/WEXdesigns project-work/qsd-studio-host.md, Owner-approved contract recorded at f8d2d161cd2292329b7773e573a8899334ae1c8c
+Status: BUILDER ACTION REQUIRED
+Actor: QSD Builder (single bounded work package)
+Phase: Staging preparation and verification; final Reviewer handoff
+Repository: `CodeByNath/qldscubadive` only
 
-## Owner-approved objective
+## Accepted baseline
+QSD `main` `69a106bc7be0de7325f3010664991356e0b89f18`; `staging` `29503aecaf262265b379e14ca8c16485466dd088`. WEX approved source `main` `02bbfb0e05702ab2b8beee629d2c328644d91c15`; WEX host bundle candidate `8409ae51f74dfe9ffb22b1b284c2a44c1a5eba8f`. QSD Studio Host source and WEX Phase 1A accepted; completed topic branches retired. Past review/correction/promote evidence remains in Git history of this coordination file. No staging install/runtime proof yet.
 
-Make the existing independently built WEX Admin Dashboard accessible as QSD /studio/ while leaving original /station/ fully functional. QSD owns its host routing, server-side authorization/session checks, private writable allocation for WEX identity-space storage, and safe independent asset delivery. WEX owns all markup, UI components, presentation/design tokens, identity semantics, approved portable bootstrap and storage adapter. No reuse of legacy QSD UI, drawers, presentation templates or CSS. No QSD business records, data plugs, navigation or Logo wiring. Owner commands each future plug individually.
+## Owner approval and outcome
+Owner authorises QSD staging-only preparation/installation and verification of the existing independent WEX Dashboard and its static resources, plus an evidence-led logical resource-folder plan. One larger Builder batch, **commit logically after each phase and continue without micro-approval**. Push the completed governed topic branch and coordination handoff together only at the final phase boundary. **Stop early only for architecture/security compromise, missing indispensable capability/host approval, destructive change, or failed hard gate.** No production deployment.
 
-## Release precondition — satisfied (2026-10-12)
+## Preflight and authority
+Before work, read QSD `AGENTS.md`, `docs/ai-index.md`, `docs/roadmap.md`, `docs/foundation/repository-governance.md`, `docs/code-map/studio-host.md` and linked source/deployment authority; read WEX host bundle installer guidance as external integration input. Verify exact remote heads, origin, allowed branch capacity, staging pipeline, current host access and required runtime tools. If essential end-to-end capability is missing, stop before partial execution and report the capable surface required.
 
-Independently re-verified before release, not assumed: `project-work/account-station-transfer-batch.md` status is `ACCEPTED`. Fresh `git ls-remote --heads origin` shows exactly three permanent heads — `main` (`d913310`), `staging` (`29503ae`), `Project-work-instructions` — confirming the redundant `account-staging-fixes` topic branch was retired and capacity for one new topic branch is clear. QSD staging was NOT deployed and is not implied by this release; Account Station's own deployment gate stays exactly as that file records it, untouched by this action. Production deployment remains excluded.
+## Internal Builder phases (separate local commits)
+1. **Baseline and asset mapping.** Confirm QSD route/access/mount/gateway and WEX release manifest contract; record existing folder/resource owners and repeatable staging asset installation steps. Do not invent new runtime paths.
+2. **Staging packaging.** Prepare/copy approved WEX host bundle contents into QSD `wp-content/plugins/qsd-platform/studio-assets/` with hashed relative assets and `manifest.json`; keep QSD `/station/` untouched. Ensure source-vs-generated artifact and deployment pipeline compatibility. No QSD business records or API plugs.
+3. **Resource organisation contract.** Document mapping: GitHub owns source/versioned public bundles; QSD owns persistent media/user assets; private WEX identity space is separate. Reuse existing QSD facilities and only implement a minimal change if required by demonstrated staging needs and already authorised architecture. No new generic resource API, speculative directories or user-folder creation.
+4. **Staging rollout and runtime proof.** Using approved staging mechanism only, verify target host, auth/unauth route, WEX CSS/JS/icons, responsive sidebar, keyboard/focus, missing-asset/mount failure, and unchanged `/station/`. For `QSD_STUDIO_PRIVATE_ROOT`, require host-admin verified private writable directory and negative direct-HTTP test on actual server; never initialise storage. A missing safe root or inability to prove denial blocks any privacy certification; report separately and do not bypass.
+5. **Checks and handoff.** Run `npm test`, `npm run docs:check`, relevant browser checks and pipeline evidence. Record exact local phase commits, final remote SHA, changed files, staging deployment SHA/URL and observable success/failures. Update THIS work file to `AWAITING REVIEWER REVIEW` and stop for independent Reviewer acceptance.
 
-Phase 1 below is released for Builder. This release does not authorize any staging/production deployment, nor does it touch Account Station.
+## Hard exclusions and gates
+Never modify WEX repository source, QSD `/station/` behaviour, production, host secrets, business data, identity bootstrap, or atomic identity adapter. Existing QSD single-blob identity API does **not** meet WEX atomic reserve/transition/lookup contract: integration stays DEFERRED. A new adapter, credential change, questionable public/private path, service outage, production publication, or material scope expansion requires Reviewer/Owner decision, not improvisation. Do not confuse commit, branch push, CI, staged runtime and live proof.
 
-## Phase 1 — bounded host Builder task once released
-
-1. Read QSD AGENTS.md, docs/ai-index.md, docs/roadmap.md, docs/foundation/repository-governance.md, Admin Station and Platform ID Code Maps, Station/Drawer contract, and actual main source. Compare existing rewrite/module boot, assets, access gates and deployment boundaries. Read WEX contract as integration input, not QSD product authority.
-2. Implement a separate /studio/ host route/document with QSD-approved access control, using existing WordPress session and authorization capabilities; unauthorized callers cannot retrieve protected initialization or mutate identity. Do not change /station/ or its QSD bundle.
-3. Provide a versioned WEX-only asset mount/delivery seam that serves supplied WEX bundles without importing QSD visual code or depending on GitHub Pages paths.
-4. Provide a host-private writable identity storage root with isolation, readback, fail-closed permission checks, and administrator-approved first initialization. Do not create WEX IDs in QSD PlatformIdentifierStation; host business identity and WEX UI identity remain separate. Storage init approval is a runtime action; do not silently preapprove it.
-5. Expose only the minimum authorized host handshake required by WEX's approved bootstrap; do not invent business-data API or broad generic adapters. If contract requires new QSD ownership/architecture authority, stop for Reviewer before implementation.
-6. Verify anonymous/unauthorized denial, approved access, route conflict-free coexistence with /station/, WEX asset isolation, storage integrity/restart, and regression of existing QSD endpoints. Run npm test and npm run docs:check. Record relevant browser/host tests; staging deployment requires separate authorization.
-
-## Handoff
-
-One governed QSD topic branch only after Reviewer releases the phase. Push candidate and verify exact remote SHA; update this same work file to AWAITING REVIEWER REVIEW with diff, test and host evidence. Stop; Reviewer then releases WEX Builder to complete WEX-side integration. Do not claim live /studio/ is deployed or validated merely from tests.
-
-## Builder Phase 1 handoff (2026-10-12)
-
-**Preconditions checked before branching:** `main`=`staging`=`d913310f19662d1245de342a09217d1979cebd80` (re-fetched fresh); remote heads were exactly the governed baseline of three — capacity for one topic branch. Opened `wex-studio-host` from `main` at that SHA.
-
-**What was built, one commit (`f0825cb`):** a separate `/studio/` host route, document, and access gate (`src/Modules/StudioHost/StudioHostModule.php`), reusing the existing `Core\PlatformAccess::CAP` capability `/station/` already gates on — no second authorization scheme, and a logged-out/unauthorized visitor is pointed at `/station/`'s real sign-in (`AdminStationModule::url()`, consumed only as a public URL helper) rather than a duplicated login form. A versioned WEX-only asset delivery seam (`StudioAssetGateway.php`) reads `studio-assets/manifest.json`, `realpath()`-contains every path to that directory, writes a Studio-scoped `window.QSDStudioConfig` (never the full `qsd/v1` root, never `/station/`'s `window.QSDConfig`), and enqueues nothing — the host still renders — until WEX actually supplies a bundle. A host-private writable identity-space root (`StudioStorage.php`, under `wp_upload_dir()`, `.htaccess`/`index.php`-protected) is initialized only by an explicit `POST /qsd/v1/studio/storage/init` action (`Http/StudioStorageController.php`) — never automatically — and exposes exactly one bounded identity-blob resource (`GET`/`PUT /qsd/v1/studio/storage/identity`), not a generic path-addressable file API. No frontend/`resources/ts/` code, no WEX markup, and no QSD business data are part of this phase.
-
-**Verified untouched, not assumed:** `git diff --stat` of `AdminStationModule.php`, `AdminStationAuth.php`, `AssetLoader.php`, and `PlatformIdentifier/` between `main` (`d913310`) and this branch is empty — zero changes to any of them. `ROUTE_SLUG`/`QUERY_VAR` are distinct constants (`studio`/`qsd_studio` vs `station`/`qsd_station`), so the two rewrite rules cannot collide.
-
-**Test evidence at `f0825cb`:** `npm test` green in full — typecheck; every PHP test including four new files (`tests/studio-host.php`, `tests/studio-asset-gateway.php`, `tests/studio-storage.php`, `tests/studio-storage-rest.php` — route/gate behaviour, asset-gateway enqueue gating including a path-escape attempt, storage fail-closed/idempotent/restart-persistence behaviour, and REST handshake/permission behaviour, all against real temp filesystems and stubbed WordPress primitives, not mocks of the classes under test); build; JS **27/27** unchanged (no new TS contract/regression — this phase is backend-only, so none was needed); `npm run docs:check` (52 Markdown files, 21 Code Maps, new `docs/code-map/studio-host.md` and `src/Modules/StudioHost/CLAUDE.md` added, `docs/roadmap.md` updated).
-
-**No CI run exists yet for `f0825cb`:** independently confirmed via the GitHub Actions API (`total_count: 0`) — by design, `.github/workflows/ci-deploy.yml` triggers only on push to `main`/`staging` or a pull request, never a plain topic-branch push, exactly as already established in the prior Account-fixes cycle. Local `npm test` above is the available evidence.
-
-**Verified remote state:** `origin/wex-studio-host` HEAD = `f0825cbeb9a919821bb6c554509652f9acdff7b2` (new branch, confirmed via `git rev-parse` after push). `origin/main`/`origin/staging` unchanged at `d913310`/`29503ae`. Remote branch count is now four (governed maximum).
-
-**Not done, per Phase 1's own bound:** no WEX markup/bundle/identity semantics (host-only, as instructed); no staging/production deployment; no browser/host runtime verification (`studio-assets/` is empty — nothing to verify live yet); no push to `main`/`staging`; no credential operation; no change to `/station/`, its bundle, or `PlatformIdentifierStation`.
-
-**Builder next action:** none — stopping here. Reviewer: `wex-studio-host` is pushed at `f0825cb`, independently inspectable, satisfying Phase 1's six numbered requirements. Awaiting verdict before any WEX-side integration or deployment.
-
-
-## Builder correction handoff — Phase 1 security (2026-10-12)
-
-Bounded correction executed on the SAME `wex-studio-host` branch (no new branch opened), one new commit, fast-forward from `f0825cb`:
-
-| Full SHA | Commit |
-|---|---|
-| `914002e39a8e8905ff68c5e474552ea1ddec255a` | `studio: Reviewer-requested Phase 1 security corrections` (branch HEAD) |
-
-**Correction 1 (storage privacy) — fixed, not just mitigated.** `StudioStorage::root()` previously resolved under `wp_upload_dir()`'s basedir — inside the WordPress install directory, which is exactly what a web server's document root is configured to, so `.htaccess`/`index.php` were the *only* barrier, and the Reviewer correctly noted Nginx never reads `.htaccess` at all. Root now resolves to `dirname(ABSPATH)` — one directory *above* the WordPress install itself. No web server, Apache or Nginx, is ever configured to serve a path outside its own document root; this is a structural guarantee independent of server config, not an additional rule that could be misconfigured. `.htaccess`/`index.php` are kept as cheap defence in depth on servers that do honour them, and `ensureProtectedRoot()` now checks both writes' return values — a failed write to either fails the whole `initialize()` closed rather than silently proceeding unprotected. New test assertions (`tests/studio-storage.php`, scenario 1) prove the resolved root is structurally outside the fake `ABSPATH` fixture, and is exactly one directory above it.
-
-**What was NOT re-verified, stated rather than implied:** "test actual direct HTTP denial on the chosen target host" is real-server/browser-level runtime proof that requires a deployed host — explicitly not authorized in this bounded correction (no deployment). What this candidate proves is the structural guarantee (the resolved path is outside the directory any document-root configuration points at) and the filesystem-level fail-closed behaviour; the live-host HTTP check itself remains pending until a staging deployment is separately authorized, exactly as the Reviewer's own closing line requires.
-
-**Correction 2 (asset containment) — the exact bug fixed, verified real.** `StudioAssetGateway::assetPath()`'s check was `str_starts_with($real, $root)` with no boundary, so a sibling directory merely named with `$root`'s name as a string prefix (e.g. `studio-assets-evil/` against `studio-assets/`) would incorrectly pass containment. Proved this was a real, not theoretical, defect: temporarily restored the exact pre-correction file (`git show f0825cb:...StudioAssetGateway.php`) and reran the new tests against it — scenario 6 (the sibling-prefix case) failed exactly as expected, enqueuing `../studio-assets-evil/secret2.js` as the WEX bundle; scenario 7 (the symlink case) passed even against the old code, because `realpath()` already resolved the symlink to its outside target before the (buggy) prefix check ran, and that outside path didn't happen to share a string prefix with `root` in this fixture — so symlink resolution was already safe, and scenario 7 is confirmatory coverage rather than a second bug this correction fixes. Restored the corrected file and reconfirmed all tests pass. The check now requires `$real === $root || str_starts_with($real, $root . DIRECTORY_SEPARATOR)`. Three named scenarios exist: scenario 5 (pre-existing, `../`), scenario 6 (new: sibling-prefix `studio-assets-evil/` — the one that actually caught the reported bug), scenario 7 (new: a real symlink planted inside `studio-assets/` pointing outside it).
-
-**Test restructuring required by the fix itself:** two scenarios from the original `tests/studio-storage.php`/`tests/studio-storage-rest.php` (the unwritable-root fail-closed path, and the uninitialized-store REST rejection) previously worked by reassigning a stubbed `wp_upload_dir()` global mid-script to point at a second fixture location. Since the corrected design reads the real PHP constant `ABSPATH` instead, and constants cannot be redefined within one process, those two scenarios now live in their own dedicated files (`tests/studio-storage-unwritable-root.php`, `tests/studio-storage-rest-uninitialized.php`) with their own fixture `ABSPATH`. No coverage was dropped — each assertion that existed before still exists, just relocated.
-
-**Verified unchanged, not assumed:** `git diff --stat f0825cb -- src/Modules/AdminStation src/Core/AssetLoader.php src/PlatformIdentifier src/Modules/Account src/Modules/Service src/Modules/Settings` is empty — zero lines changed in `/station/`'s own code or any existing QSD module/API by this correction. The full `git diff --stat f0825cb` touches only `StudioAssetGateway.php`, `StudioStorage.php`, `CLAUDE.md`, the five `tests/studio-*` files, and two Markdown docs.
-
-**Validation at `914002e`:** `npm test` green in full — typecheck; every PHP test including two new files (`tests/studio-storage-unwritable-root.php`, `tests/studio-storage-rest-uninitialized.php`) and three rewritten ones (`tests/studio-storage.php`, `tests/studio-storage-rest.php`, `tests/studio-asset-gateway.php` — the latter gaining the two new escape-path scenarios); build; JS **27/27** unchanged (backend-only correction, no TS touched); `npm run docs:check` (52 Markdown files, 21 Code Maps — `docs/code-map/studio-host.md` and `src/Modules/StudioHost/CLAUDE.md` updated to describe the corrected design).
-
-**Confirmed, per the Owner's standing constraint:** WordPress remains runtime/storage/host-auth only — `StudioStorage`'s new root is still filesystem storage WordPress's own install directory sits beside, not a new database or external store; WEX still reaches QSD exclusively through the same `qsd/v1/studio/*` REST routes (no direct WordPress DB queries are exposed, and none were added); no legacy QSD UI, drawer, or presentation code is referenced anywhere in Studio Host (re-verified by the existing structural scan in `tests/studio-host.php`, unaffected by this correction and still passing).
-
-**Not done, per this correction's own bound:** no new branch (same `wex-studio-host`); no push to `main`/`staging`; no deployment; no WEX UI/components/data plugs; no API-boundary change or new route. Live-host HTTP-denial verification remains honestly recorded as pending, not performed.
-
-**Builder next action:** none — stopping here. Reviewer: `wex-studio-host` is pushed at `914002e`, independently inspectable, addressing both numbered corrections. Awaiting verdict.
-
-
-## Reviewer verdict and bounded correction — 12 October 2026
-
-**Verdict: Proceed with safeguards.** Reviewer inspected pushed `wex-studio-host` at `f0825cbeb9a919821bb6c554509652f9acdff7b2` versus QSD `main` `d913310`. Separate /studio host, no imported QSD presentation, and no business data are correctly bounded. Reported local tests pass; CI/live host runtime not yet proven. Phase 1 is NOT accepted for promotion/deployment.
-
-**Builder: correct only the following on the EXISTING `wex-studio-host` branch:**
-
-1. **Storage privacy:** `StudioStorage.php` currently places identity JSON under WordPress uploads with only `.htaccess` and `index.php` protection. Those do not reliably block direct requests on all web servers (notably Nginx). Use a host-private, demonstrably non-web-accessible writable root or an independently verifiable server-level denial; fail closed if not protected. Ensure protection creation/errors are checked, preserve explicit admin-triggered initialization, isolation and restart persistence. Test actual direct HTTP denial on the chosen target host before claiming runtime proof.
-2. **Asset containment:** `StudioAssetGateway::assetPath()` uses `str_starts_with($real, $root)` without a directory separator boundary, permitting a sibling-prefix match. Require canonical directory containment and reject traversal, sibling-prefix, and symlink escapes, including unsafe relative URL forms. Add tests for `studio-assets-evil`, `../`, and symlink escape.
-3. **Recheck:** run `npm test`, `npm run docs:check`; prove `/station/` host code and existing QSD API unchanged. Push correction to same topic branch, verify exact remote SHA, update THIS file with evidence and `AWAITING REVIEWER REVIEW`, then STOP. Do not create new branches, deploy to staging/production, add WEX UI, components, data plugs, or bypass the existing API boundaries.
-
-QSD/WordPress is **only runtime, storage infrastructure and host auth**, not WEX presentation/data architecture. WEX uses APIs/adapters, never direct WordPress DB queries. Remaining real-runtime validation must be honestly recorded as pending until performed.
-
-
-## Reviewer check — 12 October 2026 (candidate 914002e)
-
-**Verdict: Proceed with safeguards.** Inspected pushed `wex-studio-host` `914002e39a8e8905ff68c5e474552ea1ddec255a`, including actual `StudioStorage.php`, `StudioAssetGateway.php`, remote branches and work evidence. Asset canonical directory-boundary check is corrected, and Builder reports new regression tests passing. No candidate CI or deployed HTTP proof yet.
-
-**Remaining blocking correction, same branch only:** `StudioStorage::root()` now uses `dirname(ABSPATH)/qsd-studio-private` and asserts this is *always* outside the served document root. That assertion is false for supported installations where WordPress is in a subdirectory beneath a broader docroot, or web aliases expose the parent. Do not rely on path position alone. Resolve private root from demonstrably non-public host configuration (or require verified server denial), fail closed if no protected writable directory can be established, and test on the actual hosting configuration including direct HTTP denial. Keep API-only access, explicit initialization and persistence unchanged. The Developer may not declare staging/privacy proven based solely on local stub tests.
-
-**Further containment safeguard:** `assetUrl()` currently reuses manifest relative strings even when the canonical filesystem path passes. Require URL-safe normalized paths; reject `..`, absolute paths and encoded/special path forms before enqueue. Verify with regression tests.
-
-Run `npm test` and `npm run docs:check`, push a bounded correction to existing `wex-studio-host` branch, record exact SHA and evidence here, return `AWAITING REVIEWER REVIEW`, then stop. No new features, no business data, no WEX UI and no staging/production deployment.
-
-
-## Builder correction handoff — second-round security (2026-10-12)
-
-Bounded correction executed on the SAME `wex-studio-host` branch, one new commit, fast-forward from `914002e`:
-
-| Full SHA | Commit |
-|---|---|
-| `69a106bc7be0de7325f3010664991356e0b89f18` | `studio: second-round Reviewer security corrections` (branch HEAD) |
-
-**Correction 1 (storage root assumption) — the flawed assumption removed, not patched over.** Agreed with the Reviewer's diagnosis: `dirname(ABSPATH)` is an inference about hosting topology QSD's own code cannot safely make — it's true for the actual staging2 target (`.../public_html` is the vhost docroot), but not for every "supported installation," exactly as flagged. Replaced it with an explicit `QSD_STUDIO_PRIVATE_ROOT` constant the administrator sets in `wp-config.php`, only after confirming that path against their own server's actual configuration — the one party who genuinely can know it. `root()` returns `''`, and every operation (`isInitialized`, `initialize`, `readIdentity`, `writeIdentity`) fails closed, until that constant is defined; proven by a new dedicated test (`tests/studio-storage-unconfigured.php`) rather than asserted. `.htaccess`/`index.php` remain underneath it as defence in depth, with their creation's success already checked from the prior round.
-
-**What this does and does not prove, stated plainly.** This correction proves the *fail-closed* behaviour (nothing is ever auto-provisioned or guessed) and removes the specific false structural claim the Reviewer identified. It does NOT and cannot prove the administrator-configured path is actually non-public on any given real server — that is why the constant exists: it shifts the "demonstrably non-public" claim to the party who can verify it, rather than having QSD's code assert something it cannot see. The required direct-HTTP-denial test against the actual deployed host remains exactly as pending as before — documented as a required deployment-time step in `docs/code-map/studio-host.md`'s new "Deployment-time verification" section — not performed here, and not claimed as performed.
-
-**Correction 2 (URL safety) — the exact gap closed.** `assetUrl()` built the browser-facing URL from the same raw manifest string `assetPath()` validated for filesystem containment, but that containment check alone was the only line of defence on the string itself. Added `isUrlSafeRelativePath()`: rejects (before any filesystem call) any path that is empty, contains a null byte or `%`, starts with `/` or `\`, contains `\`, matches a Windows drive-letter pattern, or contains a literal `.`/`..` segment. `assetPath()` now calls this first; `assetUrl()` is only ever reached with a string that already passed it, so there is no gap between what was validated and what is sent to the browser. New test scenario 8 in `tests/studio-asset-gateway.php` proves five unsafe forms (`/etc/passwd`, a Windows path, a backslash traversal, a percent-encoded traversal, a dotted-segment traversal) are all rejected, and that a plain legitimate entry still works afterward (no over-rejection).
-
-**Test restructuring required by correction 1:** `QSD_STUDIO_PRIVATE_ROOT` is a real PHP constant and cannot be redefined within one process. `tests/studio-storage.php`, `tests/studio-storage-unwritable-root.php`, `tests/studio-storage-rest.php`, and `tests/studio-storage-rest-uninitialized.php` were updated to define it instead of the prior round's `ABSPATH`; `tests/studio-storage-unconfigured.php` is new, covering the "not configured at all" fail-closed path the prior round's tests had no way to exercise (the prior `dirname(ABSPATH)` design always resolved to *something*).
-
-**Verified unchanged, not assumed:** `git diff --stat 914002e -- src/Modules/AdminStation src/Core/AssetLoader.php src/PlatformIdentifier src/Modules/Account src/Modules/Service src/Modules/Settings` is empty. Full `git status`/diff against `914002e` touches only Studio Host's own files, its tests, and two Markdown docs.
-
-**Validation at `69a106b`:** `npm test` green in full — typecheck; every PHP test including the new `tests/studio-storage-unconfigured.php` and the four updated `tests/studio-storage*`/`studio-storage-rest*` files, plus `tests/studio-asset-gateway.php`'s new scenario 8; build; JS **27/27** unchanged; `npm run docs:check` (52 Markdown files, 21 Code Maps — `docs/code-map/studio-host.md` rewritten for the corrected design and re-trimmed under its 600-word cap after several passes, `src/Modules/StudioHost/CLAUDE.md` and `docs/roadmap.md` updated).
-
-**Confirmed, per the Owner's standing constraint:** WordPress remains runtime/storage/host-auth only; WEX still reaches QSD exclusively through `qsd/v1/studio/*` REST routes, no direct WordPress DB queries anywhere; no legacy QSD UI/drawer/presentation code referenced (the existing structural scan in `tests/studio-host.php` is unaffected and still passes).
-
-**Not done, per this correction's own bound:** no new branch; no push to `main`/`staging`; no deployment; no WEX UI/components/data plugs; no API-boundary change. `QSD_STUDIO_PRIVATE_ROOT` has not been set on any real host, and the direct-HTTP-denial verification remains honestly pending, not performed — it requires an actual deployed target, which this correction does not authorize.
-
-**Builder next action:** none — stopping here. Reviewer: `wex-studio-host` is pushed at `69a106b`, independently inspectable, addressing both second-round corrections. Awaiting verdict.
-
-
-## Reviewer verdict — 12 October 2026 (69a106b)
-
-**Proceed with safeguards.** Independently inspected remote `wex-studio-host` at `69a106bc7be0de7325f3010664991356e0b89f18`, actual `StudioStorage.php` and `StudioAssetGateway.php` changes, and remote branch states. Required private-root configuration now fails closed when absent; raw path/string-prefix asset escape is corrected and URL-safe manifest input is enforced. Existing QSD station and business-data boundary remains unchanged. Builder-reported `npm test` and `npm run docs:check` pass; CI for candidate and live HTTP-denial were not independently verified. This is **source-only acceptance**, not storage privacy certification or a deployed /studio claim.
-
-**Next QSD Builder action — source promotion only:** verify origin, exact candidate tree/SHA, permitted main integration method, branch rules and required deterministic checks. Promote only reviewed source `69a106b` to QSD `main` by the repository-approved non-destructive workflow; inspect any resulting diff, verify main CI and exact result, record main SHA. Do not touch `staging`, deploy, set `QSD_STUDIO_PRIVATE_ROOT`, initialize storage, or add WEX assets. Clean up topic branch only after safe ancestry/containment verification, according to repository rules; do not delete permanent branches. Update this same file with source promotion and branch/CI evidence then STOP for Reviewer.
-
-**Remaining deployment gate:** an authorized host administrator must configure a proven private, writable `QSD_STUDIO_PRIVATE_ROOT` and verify no direct HTTP access under the actual staging web-server configuration; authenticated and unauthenticated runtime/REST behaviour must be tested after a separately authorized staging deployment. Approval-gated storage initialization is a later admin runtime action. WEX Builder may prepare WEX-owned integration assets under its own work file, but a live /studio installation is not accepted until host verification. No automatic business-data plugs.
-
-
-## Builder capability block — main fast-forward (2026-10-12)
-
-Re-fetched fresh and confirmed no change: `wex-studio-host=69a106b`, exactly one commit ahead of unchanged `main=staging=d913310`, no divergence; four remote heads (governed maximum), so no branch housekeeping is needed before this promotion. Independently re-ran the required checks at the exact candidate commit (detached HEAD, clean `npm ci`, not trusting the prior Builder report alone): `npm test` green in full and `npm run docs:check` passes. Every governance/diff check the Reviewer's bounded instruction asked for is satisfied.
-
-Attempted the authorized `git merge --ff-only 69a106b` onto `main`; the local Claude Code execution surface denied it under its auto-mode classifier ("Merge Without Review"), which requires a human to grant that permission explicitly — no workaround was attempted. No merge executed: `main`/`staging` remain untouched at `d913310`/`29503ae`; `wex-studio-host` remains pushed and unchanged at `69a106b`. Per `project-work/AGENTS.md`'s capability preflight, this is a missing execution capability, not a project decision — Builder ownership of this step stands.
-
-**Required execution surface:** a session with merge permission granted — the Owner running `git fetch origin && git checkout main && git merge --ff-only 69a106bc7be0de7325f3010664991356e0b89f18 && git push origin main` directly, or granting Claude Code's Bash tool permission for this merge. Once `main` is at `69a106b` and GitHub Actions' `test` job on that push succeeds, re-run this cycle to confirm and report; the deployment gate and every other follow-on item the Reviewer listed remain separately gated exactly as recorded above.
-
-**Builder next action:** none further — stopping here, capability-blocked, not decision-blocked. Status stands at BUILDER ACTION REQUIRED (source promotion only) pending a human-executed fast-forward of `main` to `69a106b`.
-
-
-## Main fast-forward completed (2026-10-12)
-
-Owner approved the merge; re-fetched immediately beforehand and confirmed no change (`wex-studio-host` still `69a106b`, one commit ahead of unchanged `main=d913310`). Fast-forwarded `main` to `69a106b` (`git merge --ff-only`, no rebase/force) and pushed. Verified: `origin/main` = `69a106bc7be0de7325f3010664991356e0b89f18`. GitHub Actions run [`38192006500`](https://github.com/CodeByNath/qldscubadive/actions/runs/38192006500) on that push: `test` job completed success; `deploy-staging` job correctly skipped (gated to the `staging` ref only). No staging push, no deploy, no `QSD_STUDIO_PRIVATE_ROOT` set, no storage initialized, no credential operation.
-
-The Reviewer's bounded "source promotion only" instruction is now fully satisfied — `main` carries the full Studio Host Phase 1 implementation and both rounds of security corrections, exactly as reviewed.
-
-**Not done, exactly as the Reviewer's remaining deployment gate specified:** `staging` is still at `29503ae` (unchanged); `QSD_STUDIO_PRIVATE_ROOT` is not configured on any host; no storage initialization; no staging deployment; no authenticated/unauthenticated runtime or REST verification; no direct-HTTP-denial check; no WEX bundle, UI, or integration assets. Topic branch `wex-studio-host` now points at the same commit as `main` (`69a106b`) — retiring it is safe whenever the Owner authorizes it, mirroring the exact pattern already used for `account-staging-fixes`, but that deletion was not performed here since it wasn't part of this bounded instruction.
-
-**Builder next action:** none — stopping at the main boundary as instructed. Reviewer/Owner: confirm `main=69a106b` and the CI evidence above, then separately authorize whichever is next — branch cleanup, `QSD_STUDIO_PRIVATE_ROOT` configuration + staging deployment, or further WEX-side work.
-
-
-## Reviewer source-promotion closeout — 12 October 2026
-
-**Verdict: Proceed with safeguards.** Independently verified remote `main` = `69a106bc7be0de7325f3010664991356e0b89f18` and topic `wex-studio-host` at the identical SHA. GitHub Actions run `38192006500` completed successfully on exactly that `main` SHA. The reviewed WEX /studio QSD host source is accepted and promoted; no further QSD source correction assigned. `staging` remains at `29503ae`, unmodified. No staged/live runtime, storage-root web-denial, authenticated access, identity persistence, or WEX UI installation has been verified; none is claimed.
-
-**Housekeeping boundary:** `wex-studio-host` is now redundant (exactly equal to `main`), but still exists remotely at the governed branch limit. The authorized Git-capable QSD Builder may delete only this branch after fresh ancestry/equality verification and Owner confirmation of remote deletion; never touch the three permanent branches. Record resulting remote heads in this same file. No new implementation topic branch until cleanup.
-
-**Later separate staging gate:** provision a verified non-public `QSD_STUDIO_PRIVATE_ROOT` on the target host, staging deployment under separate authorization, negative HTTP direct-access tests and auth/API/storage checks. Do not conflate source acceptance with that gate or trigger storage initialization automatically. The WEX-side Builder may prepare its own WEX-owned bundle under independent WEX authority, without business-data plugs, but cannot claim deployed /studio before runtime proof.
-
-
-## Branch cleanup completed (2026-10-12)
-
-Re-fetched immediately beforehand and independently re-verified equality before deleting anything: `origin/main` = `origin/wex-studio-host` = `69a106bc7be0de7325f3010664991356e0b89f18`, byte-for-byte identical, re-confirmed fresh. `git merge-base --is-ancestor origin/wex-studio-host origin/main` succeeded — fully contained, nothing on it unmerged. Ran `git push origin --delete wex-studio-host`. No deploy, no storage initialization, no `QSD_STUDIO_PRIVATE_ROOT` set.
-
-**Final remote branch list, verified via `git ls-remote --heads origin`:**
-
-| Branch | SHA |
-|---|---|
-| `main` | `69a106bc7be0de7325f3010664991356e0b89f18` |
-| `staging` | `29503aecaf262265b379e14ca8c16485466dd088` |
-| `Project-work-instructions` | `32863f3022ceeef42ae753ccb6175d34083cf579` (pre-update; this commit moves it forward) |
-
-Exactly the three permanent branches remain — `main`, `staging`, `Project-work-instructions` — all preserved, none touched beyond this recorded housekeeping. Remote capacity is back to the governed baseline, with room for one new topic branch whenever the next phase (the staging gate above, or WEX-side work) opens.
-
-**Builder/Reviewer next action:** none — stopping here as instructed. Whenever the Owner is ready: authorize `QSD_STUDIO_PRIVATE_ROOT` configuration + staging deployment + the required runtime/HTTP-denial verification as its own separately scoped work item.
+## Acceptance and notification
+Notify Owner only when Reviewer independently confirms the staging Dashboard, every required static resource, access denial, interaction/a11y basics and `/station/` preservation. A passing build alone is insufficient. No autonomous background monitor is implied.
