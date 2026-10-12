@@ -2,7 +2,7 @@
 
 Status: BLOCKED — DECISION REQUIRED
 Actor: Owner (capability gap 2 only — Phase 4 execution surface, below); QSD Builder resumes Phase 4/5 once resolved
-Phase: Phases 1–3 complete and checked locally, not yet pushed; Phase 4 (staging rollout/runtime proof) blocked
+Phase: Phases 1–3 pushed for review; Phase 4 staging rollout gated on deployment safety correction
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -38,3 +38,12 @@ New, not-yet-pushed topic branch `wex-studio-staging-package` off `main` `69a106
 Phase 5's non-host checks re-run clean after clearing stray local `node_modules/@types/* 2` duplicate artifacts (pre-existing local cruft, not committed): `npm test` full green, `npm run docs:check` passes. No staging deploy, storage init, or host contact performed.
 
 **Phase 4 still blocked on capability gap 2** (no staging host/browser access in this environment). Branch held locally pending Owner's call on Phase 4's execution surface, per "push only at the final phase boundary" — unless Owner prefers an interim push now for early Reviewer visibility of Phases 1–3.
+
+
+## Reviewer verification — 12 October 2026 (pushed Phase 1–3)
+
+**Verdict: Proceed with safeguards.** Independently verified pushed `wex-studio-staging-package` at `6e866917b10f314927d848b9cfd948e351abc286`, two commits ahead of `main` `69a106b`. Candidate adds `studio-assets/manifest.json`, hashed WEX build resources, and Code Map metadata; Builder reports `npm test` and `npm run docs:check` green, not independently rerun here. No deployed/runtime proof.
+
+**Deployment hard gate:** current `.github/workflows/ci-deploy.yml` staging `rsync --delete` plugin include list omits `/studio-assets/***`, meaning copied WEX resources will not be deployed and the destination may be deleted. Builder must correct the allowlist for only the approved WEX static resources and prove deployment behavior against a disposable fixture before staging push. Keep unrelated persistent resource directories out of deletion scope; inspect stage target and any pre-existing data first. No novel deployment platform: existing GitHub Actions staging pipeline is the approved execution surface, with a capable credentialed runner/host administrator for runtime checks.
+
+**Builder bounded next step (same topic branch):** fix and test manifest/asset deployment in existing workflow; commit correction; run QSD checks; verify target exactly staging. Then continue staging-only rollout only if all capability, private-root protection, and non-destructive gates are satisfied. `QSD_STUDIO_PRIVATE_ROOT` requires host-admin verified outside-webroot configuration and HTTP-denial proof; no identity initialization. If unavailable, stop and report host-access blocker, without claiming staged success. Re-verify authenticated/anonymous routes, assets, responsive/sidebar/keyboard, and `/station/` unaffected. Final pushed SHA and coordination update to `AWAITING REVIEWER REVIEW`; stop. No production changes.
