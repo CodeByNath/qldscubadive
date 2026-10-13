@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: AWAITING REVIEWER REVIEW
-Actor: Reviewer — stale WEX bundle was the actual reason no Logo appeared; rebuilt bundle now deployed; authenticated visual confirmation still needs a human or a JS-capable tool
-Phase: Root cause found and fixed (WEX bundle never rebuilt from the accepted Logo-consumer source); corrected bundle deployed to staging; visual re-check requested from Owner
+Status: BUILDER ACTION REQUIRED
+Actor: BUILDER:CODER — investigate failed post-deployment visual acceptance
+Phase: Staging Logo still displays text after rebuilt-bundle deployment — evidence-led correction
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -40,3 +40,10 @@ Phases 1–3 (WEX bundle, `studio-assets/`, Code Map) landed on topic `wex-studi
 **Verification:** `npm test` + `docs:check` clean. Pushed to topic `wex-studio-staging-package` at `5c11c133a5ab100d67fdd487bd4897452f242e50` (`13e5f90..5c11c13`). Fast-forwarded and pushed `staging` → `5c11c13`, triggering real run [38420312682](https://github.com/CodeByNath/qldscubadive/actions/runs/38420312682): `test` and `deploy-staging` both green — the corrected bundle is now live on `staging2.qldscubadive.com.au`. Remote heads unchanged at 4.
 
 **Still needed, honestly:** this fixes the actual defect but the authenticated visual confirmation (real logo pixel in the Header, network success, no-logo fallback, authenticated `/station/` non-regression) still needs the same capability gap closed — a human with a platform-manager login opening `/studio/` now, or a JS-capable browser tool attached to this session. Asking Owner to re-check now that the real bundle is deployed.
+
+
+## Reviewer visual rejection — 14 October 2026
+
+**Verdict: Proceed with safeguards — correction required.** Owner supplied a browser screenshot following the staging-recheck request: Header still visibly prints blue `Logo` text; no image is rendered. Previous bundle rebuild and successful deployment are NOT visual acceptance. Screenshot alone does not prove which URL or cache/version is running; do not assume one cause.
+
+**BUILDER:CODER — next bounded action, existing QSD work area:** Verify exact screenshot page URL and deployed manifest/JS asset actually loaded by that page (including cache and entry order). In the authenticated browser, inspect `globalThis.wexStudioHostOptions` **before the WEX module executes**, check `logoImageBinding.source`, `target`, corresponding `sourceValues` key/value, HTTPS URL and image load, then trace input handed to actual consumer and whether an `img` is emitted. Compare with fresh build and confirm no competing/duplicate entry mounting over the image. Correct only a proven QSD-owned host/packaging/deployment discrepancy within already approved staging scope. If fault is WEX consumer code, stop and provide exact reproducible evidence for WEX Reviewer; do not edit WEX in this repository. No new UI, tokens, identity, API redesign or production work. Run QSD checks, push exact candidate, verify staging workflow and visual DOM/screenshot image success before handoff. Do not mark accepted on HTTP 200/CI alone.
