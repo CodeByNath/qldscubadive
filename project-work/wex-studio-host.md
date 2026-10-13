@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: ACCEPTED — Logo host-input source; staging proof pending separate authorisation
-Actor: REVIEWER complete — no QSD Builder correction pending; staging deployment separately gated
-Phase: Logo host-input source accepted; staging rollout/browser evidence outstanding
+Status: BUILDER ACTION REQUIRED — stage and verify real WEX Header Logo
+Actor: BUILDER:CODER (Claude) — staging-only Logo completion
+Phase: Promote accepted Logo handoff to QSD staging and verify real image rendering
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -45,3 +45,12 @@ Phases 1–3 (WEX bundle, `studio-assets/`, Code Map) landed on topic `wex-studi
 ## Independent Reviewer closeout — 2026-10-13
 
 **Verdict: Proceed with safeguards (source only).** Independently inspected pushed QSD compare `79d597c490fef3bd01a005e31d12c8c789d08114..13e5f90996f7fd2f07312cb5620d4176335c25dd`: one commit, four changed files. The existing `StudioAssetGateway` now supplies `globalThis.wexStudioHostOptions` through its already-gated config handle before the WEX entry dependency executes, using `AccountRepository::state()` and `AccountMedia::url()`; null when Logo unset. Existing Profile/logo producer and WEX `main` consumer reused. No new API, identity operation, QSD business-record changes, /station modification or visual values. Tests include stub and real default account resolver; Builder reports full `npm test` and docs checks passing, not independently rerun. **Accept QSD host-input source change for the bounded Logo phase; no Builder correction pending.** Topic commit is not yet promoted to QSD `staging`; no deployment, authenticated browser/network Logo image success, anonymous denial or /station non-regression is proved by this review. Owner-held staging deployment authorization/credentials remain the recorded execution gate; do not claim ready for Dashboard refinements. **NEXT OWNER: Owner for staging deployment authorization**, then assigned Git/deployment-capable QSD Builder executes promotion and staging runtime checks; Reviewer verifies results. Do not rebuild producer or WEX binding. This review does not authorize production or private identity initialization.
+
+
+## NEXT BUILDER INSTRUCTION — Owner direction, 2026-10-13
+
+**Owner wants the real Account Profile Logo visibly printed in the WEX Dashboard Header at `https://staging2.qldscubadive.com.au/studio/` now.** The dynamic QSD→WEX source handoff at topic `wex-studio-staging-package` commit `13e5f90996f7fd2f07312cb5620d4176335c25dd` was independently accepted. **Do not rebuild it, do not create another branch or unrelated system.**
+
+**BUILDER:CODER (Claude), execute one bounded staging-only completion batch:** (1) preflight current `staging`, topic, workflow/deployment authority, manifest and WEX bundle compatibility; (2) promote accepted QSD Logo host-input changes through the repository's authorised staging process without overwriting unrelated staging changes; (3) use the existing staging deployment workflow/authorised credentials if accessible; (4) inspect authenticated `/studio/` and confirm the *real* Account Profile Logo renders in the WEX Header, image request succeeds, and refreshed page picks up a Profile Logo change when safely testable; (5) verify no-logo fallback, anonymous access denial and `/station/` nonregression. Capture actual browser/screenshot/network evidence, deployment run, exact SHA and checks. Keep all actions staging-only: no production, identity init, storage migration, new component, or new API.
+
+**Execution capability rule:** If the Builder cannot access deployment credentials, the browser or authorised staging promotion operation, stop at the missing capability, do not pretend deployment/visual verification succeeded; report exactly what access is missing and the smallest Owner action needed. Do not silently wait or mark Logo complete. Update this SAME work file to `AWAITING REVIEWER REVIEW` only with completed, verifiable evidence, otherwise mark the explicit execution blocker. Reviewer will inspect independently. No further Owner design decision is required for this Logo task.
