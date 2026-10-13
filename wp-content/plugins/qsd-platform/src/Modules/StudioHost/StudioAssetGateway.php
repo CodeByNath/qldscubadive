@@ -3,6 +3,9 @@
 namespace QSD\Platform\Modules\StudioHost;
 
 use QSD\Platform\Core\PlatformAccess;
+use QSD\Platform\Modules\Account\Support\AccountMedia;
+use QSD\Platform\Modules\Account\Support\AccountRepository;
+use QSD\Platform\Modules\Account\Support\AccountSchema;
 
 /**
  * Versioned static delivery for WEX-supplied bundles.
@@ -31,6 +34,19 @@ class StudioAssetGateway
     private const SCRIPT_HANDLE = 'qsd-studio-host';
     private const STYLE_HANDLE  = 'qsd-studio-host';
     private const CONFIG_HANDLE = 'qsd-studio-config';
+
+    private \Closure $resolveLogoUrl;
+
+    /**
+     * @param callable(): ?string|null $resolveLogoUrl Test seam only; production
+     *     reads the real Account Brand projection via AccountRepository/AccountMedia.
+     */
+    public function __construct(?callable $resolveLogoUrl = null)
+    {
+        $this->resolveLogoUrl = $resolveLogoUrl === null
+            ? static fn(): ?string => self::currentLogoUrlFromAccount()
+            : \Closure::fromCallable($resolveLogoUrl);
+    }
 
     public function register(): void
     {
@@ -178,5 +194,37 @@ class StudioAssetGateway
         ]);
 
         wp_add_inline_script(self::CONFIG_HANDLE, 'window.QSDStudioConfig = ' . $config . ';');
+        $this->outputHostOptions();
+    }
+
+    /**
+     * `globalThis.wexStudioHostOptions` — the one-time, read-only data handoff
+     * WEX's accepted bundle reads at startup to bind the authorised Account
+     * Brand logo into its own Logo component. Attached to the same
+     * CONFIG_HANDLE inline script, so it is always written before the WEX
+     * entry script (SCRIPT_HANDLE depends on CONFIG_HANDLE) ever runs.
+     *
+     * Carries only the resolved logo URL — never the Brand name/code, a
+     * Platform ID, or any other Account/Profile field. Null when no logo is
+     * published; WEX's own component owns the missing/invalid-image fallback.
+     */
+    private function outputHostOptions(): void
+    {
+        $options = wp_json_encode([
+            'logoImageBinding' => ['source' => 'profile.logo', 'target' => 'imageUrl'],
+            'sourceValues'     => ['profile.logo' => ($this->resolveLogoUrl)()],
+        ]);
+
+        wp_add_inline_script(self::CONFIG_HANDLE, 'globalThis.wexStudioHostOptions = ' . $options . ';');
+    }
+
+    /** The authorised Account Brand logo URL, read the same way Account's own projection computes it. */
+    private static function currentLogoUrlFromAccount(): ?string
+    {
+        $state   = (new AccountRepository())->state();
+        $brand   = is_array($state['brand'] ?? null) ? $state['brand'] : AccountSchema::emptyBrand();
+        $mediaId = $brand['logo_media_id'] ?? null;
+
+        return !empty($mediaId) ? (new AccountMedia())->url((string) $mediaId) : null;
     }
 }
