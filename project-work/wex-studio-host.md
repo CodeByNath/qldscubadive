@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: AWAITING REVIEWER REVIEW
-Actor: Reviewer — QSD Logo host-input handoff pushed; staging deploy + browser proof stay pending, not a QSD acceptance condition
-Phase: `globalThis.wexStudioHostOptions` logo handoff implemented and tested; staging rollout/browser proof not executed this cycle
+Status: ACCEPTED — Logo host-input source; staging proof pending separate authorisation
+Actor: REVIEWER complete — no QSD Builder correction pending; staging deployment separately gated
+Phase: Logo host-input source accepted; staging rollout/browser evidence outstanding
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -40,3 +40,8 @@ Phases 1–3 (WEX bundle, `studio-assets/`, Code Map) landed on topic `wex-studi
 **Pushed:** `wp-content/plugins/qsd-platform/{src/Modules/StudioHost/StudioAssetGateway.php,src/Modules/StudioHost/CLAUDE.md,tests/studio-asset-gateway.php}` and `docs/code-map/studio-host.md`, to topic `wex-studio-staging-package` at `13e5f90996f7fd2f07312cb5620d4176335c25dd` (`79d597c..13e5f90`). Remote heads unchanged at 4.
 
 **Not done this cycle, honestly pending (no fabricated proof):** no push to `staging` and no `deploy-staging` run was triggered — this session has no separately-authorised host/Actions-secrets access, and the standing rule here is never to deploy without that explicit grant. Consequently there is **no real browser evidence** yet for: authenticated `/studio/` loading the actual logo image (network success), the missing/invalid-image fallback, unauthenticated denial, or `/station/` non-regression under this change. All of that requires the same staging promotion + browser-check capability the History above already marked DEFERRED, now including this handoff. Stopping here for Reviewer; next staging promotion/browser-proof step needs the same Owner-held Actions-secrets access as before.
+
+
+## Independent Reviewer closeout — 2026-10-13
+
+**Verdict: Proceed with safeguards (source only).** Independently inspected pushed QSD compare `79d597c490fef3bd01a005e31d12c8c789d08114..13e5f90996f7fd2f07312cb5620d4176335c25dd`: one commit, four changed files. The existing `StudioAssetGateway` now supplies `globalThis.wexStudioHostOptions` through its already-gated config handle before the WEX entry dependency executes, using `AccountRepository::state()` and `AccountMedia::url()`; null when Logo unset. Existing Profile/logo producer and WEX `main` consumer reused. No new API, identity operation, QSD business-record changes, /station modification or visual values. Tests include stub and real default account resolver; Builder reports full `npm test` and docs checks passing, not independently rerun. **Accept QSD host-input source change for the bounded Logo phase; no Builder correction pending.** Topic commit is not yet promoted to QSD `staging`; no deployment, authenticated browser/network Logo image success, anonymous denial or /station non-regression is proved by this review. Owner-held staging deployment authorization/credentials remain the recorded execution gate; do not claim ready for Dashboard refinements. **NEXT OWNER: Owner for staging deployment authorization**, then assigned Git/deployment-capable QSD Builder executes promotion and staging runtime checks; Reviewer verifies results. Do not rebuild producer or WEX binding. This review does not authorize production or private identity initialization.
