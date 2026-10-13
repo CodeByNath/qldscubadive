@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: AWAITING REVIEWER REVIEW
-Actor: Reviewer — QSD Profile-ID Logo data plug; WEX render/consumer side stays deferred, not a QSD acceptance condition
-Phase: Profile-ID → logo data boundary proven zero-change; pushed to topic `wex-studio-staging-package`
+Status: BUILDER ACTION REQUIRED — QSD Logo host integration
+Actor: BUILDER:CODER (Claude) — integrate accepted QSD Profile data with WEX host input; Reviewer follows
+Phase: Logo host input + staging verification (reuse existing topic branch)
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -46,3 +46,12 @@ Phases 1–3 (WEX bundle, `studio-assets/`, Code Map) landed on topic `wex-studi
 **What was actually missing: test proof, not code.** `fetchDetail` had zero direct test coverage anywhere in `tests/`, and no test paired `nodes.profile.platform_id` with `brand.logo_url` end-to-end. Added exactly that to `tests/account-brand.php` (Part 4): save+settle a `logo_media_id` through the real `saveProfile`/`settleProfile` routes, call `fetchDetail`, assert the platform ID is `QSDASTP`-prefixed and `brand.logo_url` resolves to the correct content-addressed media URL in that one response. All three new assertions pass; full suite `npm test` (27/27 JS contracts + all PHP test files) and `npm run docs:check` pass clean.
 
 **Pushed:** `wp-content/plugins/qsd-platform/tests/account-brand.php` only, to topic `wex-studio-staging-package` at `79d597c490fef3bd01a005e31d12c8c789d08114` (`2578e15..79d597c`), verified via `git ls-remote`. No production/runtime code changed; no new endpoint, storage, ID allocation, or WEX-side change. Remote heads unchanged at 4 (reused the existing topic rather than opening a fifth). Whether WEX can render this is unaddressed by design, per the Owner's correction above.
+
+
+## Reviewer closeout and NEXT BUILDER assignment — 2026-10-13
+
+**Producer acceptance:** Independently inspected pushed diff `2578e15..79d597c`: only `tests/account-brand.php` changed, with `fetchDetail` assertions pairing `nodes.profile.platform_id` and `brand.logo_url`; no new endpoint or domain implementation. Accept this QSD producer proof; test-suite success is Builder-reported, not Reviewer-rerun. The real QSD producer is ALREADY implemented and must not be rebuilt.
+
+**NEXT OWNER: BUILDER:CODER (Claude)** in QSD. Owner directed continuation to get the *real Logo visible in staging* so Dashboard refinement can begin. Use WEX accepted `main` SHA `e6fead7f776ad32c09fd10d0c1fb8224c04053c3` and its documented one-time `globalThis.wexStudioHostOptions` input: `{ logoImageBinding:{ source:'profile.logo',target:'imageUrl' },sourceValues:{'profile.logo': <authorised Profile brand.logo_url>} }`. This is a data handoff, **not** a new QSD API or WEX presentation implementation. Inspect QSD StudioHost asset enqueue/document source and Account projection/permissions first. Integrate minimal authorised Profile logo URL into the host input **before** WEX module execution, with correct script ordering, safe JSON encoding/escaping, authenticated capability gate, and no leaking credentials/profile records. Do not invent/mint identifiers; preserve the existing Profile-ID association. No hardcoded fixture URL or direct WEX DOM manipulation. Preserve existing CSS/layout, /station, fallback when media absent/invalid, and QSD's session rules. Prefer existing admin-authenticated data route/server projection; if an indispensable architecture/security conflict appears, stop and report it rather than inventing an unauthorised protocol.
+
+**Within existing branch capacity:** Remote QSD branches currently `main`, `staging`, `Project-work-instructions`, `wex-studio-staging-package`; reuse the existing topic, do not open a fifth. Complete with staged release of approved WEX assets via the EXISTING QSD staging pipeline only after necessary checks, preserving staged release boundaries. Do not deploy to production or initialise identity storage. Report tests (QSD npm/PHP/docs, asset manifest, access control), staged SHA/Actions and real browser evidence: authenticated /studio Header uses QSD logo image URL and loads actual image (network success); missing/invalid image stays safe; unauthenticated denied; /station unchanged. If browser/host credentials cannot be accessed, report that proof honestly as pending, not a successful live connection. Push candidate plus update this same work file to `AWAITING REVIEWER REVIEW` with exact SHA, evidence and limitations; stop for independent Reviewer acceptance. Keep deferred private-root/identity hardening separately deferred; do not certify it implicitly.
