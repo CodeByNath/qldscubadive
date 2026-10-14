@@ -19,6 +19,14 @@ For this repository, `run the cycle`, `continue the work`, `review the latest wo
 
 On those triggers, first fetch/read `origin/Project-work-instructions`, identify the single active work file and its Status/Phase, determine the current actor, and execute only the authorised next action. Validation is a phase step only when required.
 
+## Chat reporting
+
+The work file is the channel. All trace detail, evidence, history, and reasoning go there, never into chat.
+
+When a cycle action completes (commit, push, merge, promotion, handoff, or a stop-with-evidence), the chat reply is one line: who holds the next action, per the active work file's `Actor:` field, after that update is pushed. Nothing else — no summary of findings, no restated evidence, no narration of steps taken.
+
+**Exception:** report in chat immediately and in full when something blocks completing the push/merge/handoff itself — a failing test, a rejected or diverged push, a merge conflict, CI failure, or a missing capability that stops the authorised action from landing. That is actionable right now by whoever is reading chat, and must not wait silently in the work file alone.
+
 ## Executor capability preflight
 
 Role authority and executor capability are separate checks.
