@@ -37,6 +37,7 @@ function esc_url_raw(string $url): string { return $url; }
 function wp_json_encode(mixed $value): string|false { return json_encode($value); }
 
 require_once __DIR__ . '/../src/Core/PlatformAccess.php';
+require_once __DIR__ . '/../src/Modules/Account/Support/AccountMedia.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioHostModule.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioAssetGateway.php';
 
@@ -178,6 +179,42 @@ echo "\n4b) no published Brand logo yields a null sourceValue, never a fabricate
     check_studio_asset(
         is_array($hostOptions) && array_key_exists('profile.logo', $hostOptions['sourceValues'] ?? []) && $hostOptions['sourceValues']['profile.logo'] === null,
         'with no Brand logo configured, profile.logo resolves to null rather than being omitted or fabricated',
+        $hostOptions,
+    );
+}
+
+// ── 4c) A value wrapped in Markdown link syntax is rejected to null, not
+//      passed through — the exact malformed shape Reviewer found live in
+//      the browser (`[https://...](https://...webp "https://...webp")`),
+//      which a bare `filter_var(..., FILTER_VALIDATE_URL)` would miss ─────
+echo "\n4c) a Markdown-wrapped logo URL is rejected to null, never passed through to WEX\n";
+{
+    global $__inlineScripts, $__logoUrl;
+    $__inlineScripts = [];
+    $clean     = 'https://qsd-test.local/wp-content/uploads/qsd-account/' . str_repeat('a1', 32) . '.webp';
+    $__logoUrl = '[' . $clean . '](' . $clean . ' "' . $clean . '")';
+    $gateway->enqueue();
+
+    $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'], 'globalThis.wexStudioHostOptions = ');
+    check_studio_asset(
+        is_array($hostOptions) && array_key_exists('profile.logo', $hostOptions['sourceValues'] ?? []) && $hostOptions['sourceValues']['profile.logo'] === null,
+        'a value wrapped in Markdown link syntax resolves to null, not the malformed string, and not an exception',
+        $hostOptions,
+    );
+}
+
+// ── 4d) A clean, well-formed logo URL still passes through unchanged ─────
+echo "\n4d) a clean, well-formed logo URL still passes through unchanged\n";
+{
+    global $__inlineScripts, $__logoUrl;
+    $__inlineScripts = [];
+    $__logoUrl = 'https://qsd-test.local/wp-content/uploads/qsd-account/' . str_repeat('a1', 32) . '.webp';
+    $gateway->enqueue();
+
+    $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'], 'globalThis.wexStudioHostOptions = ');
+    check_studio_asset(
+        is_array($hostOptions) && ($hostOptions['sourceValues']['profile.logo'] ?? null) === $__logoUrl,
+        'a clean, well-formed https logo URL is handed to WEX unchanged',
         $hostOptions,
     );
 }

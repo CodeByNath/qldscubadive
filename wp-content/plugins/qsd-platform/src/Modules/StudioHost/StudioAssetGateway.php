@@ -207,15 +207,51 @@ class StudioAssetGateway
      * Carries only the resolved logo URL — never the Brand name/code, a
      * Platform ID, or any other Account/Profile field. Null when no logo is
      * published; WEX's own component owns the missing/invalid-image fallback.
+     *
+     * The resolved value is re-validated against `sanitizeLogoUrl()` right
+     * here, at the point it crosses into WEX's trust boundary — not trusted
+     * merely because it came from `AccountMedia::url()`. This is the one
+     * seam QSD controls end-to-end: whatever shape the value has by the time
+     * it reaches this line, WEX only ever receives exactly that clean HTTPS
+     * form or `null`, never anything in between (e.g. a value wrapped in
+     * Markdown link syntax, which is otherwise indistinguishable from a
+     * valid URL to a bare `filter_var($url, FILTER_VALIDATE_URL)` check).
      */
     private function outputHostOptions(): void
     {
         $options = wp_json_encode([
             'logoImageBinding' => ['source' => 'profile.logo', 'target' => 'imageUrl'],
-            'sourceValues'     => ['profile.logo' => ($this->resolveLogoUrl)()],
+            'sourceValues'     => ['profile.logo' => self::sanitizeLogoUrl(($this->resolveLogoUrl)())],
         ]);
 
         wp_add_inline_script(self::CONFIG_HANDLE, 'globalThis.wexStudioHostOptions = ' . $options . ';');
+    }
+
+    /**
+     * Anchored, whole-string match against the exact shape `AccountMedia::url()`
+     * produces: `https://`, then a plain host, then a plain path ending in
+     * `/qsd-account/<hex>.<allowed extension>`. Anything else — including a
+     * value that is otherwise a valid URL but wrapped in surrounding
+     * characters, such as Markdown link syntax (`[https://...](https://...)`)
+     * — resolves to `null`, the same fallback WEX already renders for "no
+     * logo published". Never widen this into a general sanitizer; it exists
+     * only to guarantee this one handoff.
+     */
+    private static function sanitizeLogoUrl(?string $url): ?string
+    {
+        if ($url === null) {
+            return null;
+        }
+
+        $extensions = implode('|', array_map(
+            static fn(string $ext): string => preg_quote($ext, '#'),
+            AccountMedia::extensions()
+        ));
+        $pattern = '#^https://[A-Za-z0-9.-]+(?::\d+)?(?:/[A-Za-z0-9._-]+)*/'
+            . preg_quote(AccountMedia::DIRECTORY, '#')
+            . '/[0-9a-f]+\.(?:' . $extensions . ')$#';
+
+        return preg_match($pattern, $url) === 1 ? $url : null;
     }
 
     /** The authorised Account Brand logo URL, read the same way Account's own projection computes it. */
