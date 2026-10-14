@@ -1,7 +1,7 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: BUILDER ACTION REQUIRED
-Actor: BUILDER:CODER — approved WEX asset installation to QSD staging
+Status: AWAITING REVIEWER REVIEW
+Actor: REVIEWER — independently verify pushed bundle; authenticated browser proof still needed
 Phase: 1E — install corrected WEX main Studio bundle and obtain visual acceptance
 Repository: `CodeByNath/qldscubadive` only
 
@@ -99,3 +99,13 @@ Paste the resulting JSON line back verbatim. `startsWithHttps: true` settles tha
 Owner approved proceeding after WEX Reviewer confirmed the Studio build-dependency fix has landed on `CodeByNath/WEXdesigns` `main` at exact `17e4ca2afd043d9462420d00ff8d3bdee4e86438` (WEX workflow `38506288740`). This authorises QSD **staging only**, not production. Browser screenshot from authenticated staging `/studio/` established clean `https://` input (first char 104) but no `.wex-logo img`; Markdown transcript artifact is not a proven host defect. QSD source hardening `f788930` is unrelated to the missing WEX image render branch.
 
 **BUILDER:CODER — one bounded staging package:** Confirm QSD remote-state/branch capacity and its Studio Host Code Map/deployment contract. Build portable WEX Studio assets from exact accepted WEX main `17e4ca2` using the updated `pnpm --filter @weerax/web-runtime build:studio-host` command (Schemas, UI, then Vite). Verify emitted JS includes `wexStudioHostOptions` **and `wex-logo__image`**, and inspect matching hashed manifest. Replace the current QSD `wp-content/plugins/qsd-platform/studio-assets/` release atomically, retaining QSD-owned README and no unrelated modifications. Use existing `wex-studio-staging-package` topic branch if eligible; do not exceed repository branch limit. Run `npm test`, `npm run docs:check`; push candidate and promote to `staging` using accepted staging-only workflow. Verify exact SHA and CI/deployment, route auth and unchanged `/station/`. Obtain actual authenticated browser proof on `https://www.staging2.qldscubadive.com.au/studio/` that `.wex-logo img` exists, `complete && naturalWidth > 0`, and label-only fallback is gone; if browser capability unavailable, stop with source/deploy evidence and request one Owner browser check rather than claim visual success. No QSD API rewrite, identities, new CSS, production deployment or WEX source changes. Record exact SHA and evidence in this SAME file and stop for Reviewer.
+
+## Builder — WEX bundle rebuilt from accepted main `17e4ca2`; pushed and deployed; browser proof still needed (14 Oct 2026)
+
+**Build:** Cloned `CodeByNath/WEXdesigns` at exact `17e4ca2afd043d9462420d00ff8d3bdee4e86438` (`git ls-remote` HEAD matched before cloning); `pnpm install --frozen-lockfile` then `pnpm --filter @weerax/web-runtime build:studio-host` (Schemas → UI → Vite) built clean. Emitted `wex-studio-host-DtAWZm_W.js` contains both `wexStudioHostOptions` and `wex-logo__image`; manifest confirms matching hashed entry/styles. WEX's own `pnpm --filter @weerax/web-runtime test:studio-host` passes 4/4 against this build.
+
+**Install:** Replaced only `studio-assets/assets/` and `manifest.json` on `wex-studio-staging-package`; `README.md` and every font file are byte-identical (git shows a pure rename, no content diff) — only the JS entry hash changed, confirming the WEX dependency fix is isolated as expected. Pushed `1e52bf6` to `wex-studio-staging-package` (verified on remote), fast-forwarded and pushed `staging` to the same SHA. CI run [38509105983](https://github.com/CodeByNath/qldscubadive/actions/runs/38509105983): both `test` and `deploy-staging` jobs green, including the SSH staging-target verification and smoke check.
+
+**Checks:** `npm run typecheck`, every tracked `tests/*.php` file individually, `npm run build`, `npm run test:js` (27/27) all pass clean. `npm run docs:check` reports the same single pre-existing failure already on record (`studio-host 2.md` — untracked, unrelated clutter, not part of Git), nothing new.
+
+**What's left, same gap recorded throughout this file:** this session has no browser/login capability, so `.wex-logo img` existing with `complete && naturalWidth > 0` on authenticated `https://www.staging2.qldscubadive.com.au/studio/` is not yet confirmed. Per this phase's own instruction, stopping here with source/deploy evidence rather than claiming visual success — Reviewer or Owner needs one authenticated browser check to close this out.
