@@ -1,7 +1,7 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: AWAITING REVIEWER REVIEW
-Actor: REVIEWER — independently verify pushed bundle; authenticated browser proof still needed
+Status: BLOCKED — authenticated visual acceptance required
+Actor: Owner/Reviewer — confirm live Studio Logo image after staging deployment
 Phase: 1E — install corrected WEX main Studio bundle and obtain visual acceptance
 Repository: `CodeByNath/qldscubadive` only
 
@@ -109,3 +109,7 @@ Owner approved proceeding after WEX Reviewer confirmed the Studio build-dependen
 **Checks:** `npm run typecheck`, every tracked `tests/*.php` file individually, `npm run build`, `npm run test:js` (27/27) all pass clean. `npm run docs:check` reports the same single pre-existing failure already on record (`studio-host 2.md` — untracked, unrelated clutter, not part of Git), nothing new.
 
 **What's left, same gap recorded throughout this file:** this session has no browser/login capability, so `.wex-logo img` existing with `complete && naturalWidth > 0` on authenticated `https://www.staging2.qldscubadive.com.au/studio/` is not yet confirmed. Per this phase's own instruction, stopping here with source/deploy evidence rather than claiming visual success — Reviewer or Owner needs one authenticated browser check to close this out.
+
+
+## Reviewer Phase 1E staged asset review — 14 Oct 2026
+**Verdict: Proceed with safeguards.** Independently compared QSD `f788930..1e52bf6`: only replacement of generated `studio-assets/assets/wex-studio-host-DEMn4k2O.js` by `wex-studio-host-DtAWZm_W.js` and matching `manifest.json` entry update. Current `staging` manifest points to the new asset. Builder reports WEX build from accepted `17e4ca2`, image-branch presence, local WEX tests 4/4, QSD tests, and staging workflow `38509105983` green. This accepts the **asset-package/deployment evidence only**, not live Logo rendering. Missing authenticated browser evidence remains an actual stop gate. Owner/Reviewer should open `https://www.staging2.qldscubadive.com.au/studio/` with a platform-manager session, hard-refresh, and verify a visible real Logo and `document.querySelector('.wex-logo img')?.complete === true` with `naturalWidth > 0`. If not visible, record screenshot and exact DOM/error results and return a bounded correction. Do not reopen WEX source, promote to production, or declare Logo complete without image proof.
