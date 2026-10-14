@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: AWAITING REVIEWER REVIEW
-Actor: Reviewer — independently inspect the pushed candidate; live-confirm the browser value and image load
-Phase: 1D — logo URL validated at the WEX handoff boundary; pushed and promoted to staging, CI green
+Status: BUILDER ACTION REQUIRED
+Actor: BUILDER:CODER — Phase 1D visual acceptance correction
+Phase: 1D — source safeguard deployed; real Logo still not proven visible
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -62,3 +62,9 @@ Rather than guess at an unconfirmed cause, hardened the one seam QSD controls en
 **Regression proof** (`tests/studio-asset-gateway.php`, cases 4c/4d): the exact bracket/link/title payload Reviewer found live → `null`; a clean HTTPS URL → unchanged passthrough; the pre-existing null case untouched. `npm test`'s PHP suite (every real test file, run individually — this working tree carries pre-existing, untracked, unrelated `" 2"`-suffixed duplicate files that break the blanket `tests/*.php` glob; not part of Git, not touched, confirmed pre-existing via `git stash`) and `npm run docs:check` (one pre-existing, unrelated failure from the same untracked clutter: `studio-host 2.md`) both pass clean on the real tracked files. Pushed `f788930` to `wex-studio-staging-package` (verified on remote), fast-forwarded and pushed `staging` to the same SHA, CI run [38498865106](https://github.com/CodeByNath/qldscubadive/actions/runs/38498865106) green — both `test` and `deploy-staging` jobs succeeded.
 
 **What Reviewer still needs to confirm live, which Builder cannot** (same browser/login gap recorded throughout this file): that `window.wexStudioHostOptions.sourceValues['profile.logo']` now starts with `https://` in the real browser, and that `.wex-logo img` loads. This fix only guarantees QSD never *hands WEX* a malformed value — if the live value is still malformed after this deploy, that is now conclusive proof the corruption happens strictly after `wp_add_inline_script()` prints it to the page, outside anything in `wp-content/plugins/qsd-platform/` — e.g. another active plugin/theme output filter on this WordPress install, not represented in this repository at all.
+
+
+## Reviewer assessment — 14 Oct 2026
+**Verdict: Proceed with safeguards — correction required before acceptance.** Independently inspected pushed `5c11c13..f788930`: changes `AccountMedia.php`, `StudioAssetGateway.php`, its local instructions and PHP tests. `sanitizeLogoUrl()` uses anchored raw HTTPS-path validation and returns **null** for the exact reported Markdown-wrapped URL. This preserves a safe fallback but **cannot make the Logo image display** when the upstream value is malformed. The Builder has not isolated what produced the browser's literal Markdown syntax, and supplied no authenticated DOM/image proof. Treat staging deployment and CI as source evidence only, not visual success.
+
+**BUILDER:CODER bounded next action:** Within this same phase, trace whether the full Markdown expression actually exists in the *JavaScript runtime string* (rather than console-copy formatting), by examining the staging HTML's emitted `globalThis.wexStudioHostOptions` assignment and live JS value; reproduce exact data through `AccountMedia::url()` → `currentLogoUrlFromAccount()` → `sanitizeLogoUrl()` → `wp_json_encode` → `wp_add_inline_script` and check for HTML/output interception or active WordPress plugin transformation. Determine why/where the raw URL is transformed; make the smallest source-owned correction only where proven. If malformed string is not emitted by QSD, stop with specific evidence of external runtime origin; do not treat a null fallback as a completed Logo. Verify actual WebP 200/load, runtime value raw HTTPS, `.wex-logo img` exists and image `complete && naturalWidth>0` using authenticated browser/Owner evidence. Re-run tests, stage via approved process, hand off exact SHA/CI/DOM proof. No WEX modifications, no invented rewriting, no production changes.
