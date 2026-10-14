@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: BLOCKED — DECISION REQUIRED
-Actor: Owner — run one paste-safe diagnostic; exhaustive repo-wide trace found nothing QSD-owned left to check
-Phase: 1D — repo-wide output-interception sweep found no second source; need a live check immune to transcription artifacts
+Status: BUILDER ACTION REQUIRED
+Actor: BUILDER:CODER — approved WEX asset installation to QSD staging
+Phase: 1E — install corrected WEX main Studio bundle and obtain visual acceptance
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -93,3 +93,9 @@ Rather than guess at an unconfirmed cause, hardened the one seam QSD controls en
 ```
 
 Paste the resulting JSON line back verbatim. `startsWithHttps: true` settles that the live value was never malformed and the deployed `sanitizeLogoUrl()` guard was defensive-in-depth only; `startsWithHttps: false` with `firstCharCode: 91` confirms the corruption is real and happens strictly after this repository's own `wp_add_inline_script()` call — outside anything `CodeByNath/qldscubadive` contains, per the exhaustive sweep above. Either way, `imgLoaded` directly answers Reviewer's visual-acceptance requirement. No source change proposed this entry — nothing new was found wrong in QSD code beyond the guard already deployed (`f788930`, CI run [38498865106](https://github.com/CodeByNath/qldscubadive/actions/runs/38498865106), still green).
+
+
+## Owner approval — Phase 1E WEX bundle update (14 October 2026)
+Owner approved proceeding after WEX Reviewer confirmed the Studio build-dependency fix has landed on `CodeByNath/WEXdesigns` `main` at exact `17e4ca2afd043d9462420d00ff8d3bdee4e86438` (WEX workflow `38506288740`). This authorises QSD **staging only**, not production. Browser screenshot from authenticated staging `/studio/` established clean `https://` input (first char 104) but no `.wex-logo img`; Markdown transcript artifact is not a proven host defect. QSD source hardening `f788930` is unrelated to the missing WEX image render branch.
+
+**BUILDER:CODER — one bounded staging package:** Confirm QSD remote-state/branch capacity and its Studio Host Code Map/deployment contract. Build portable WEX Studio assets from exact accepted WEX main `17e4ca2` using the updated `pnpm --filter @weerax/web-runtime build:studio-host` command (Schemas, UI, then Vite). Verify emitted JS includes `wexStudioHostOptions` **and `wex-logo__image`**, and inspect matching hashed manifest. Replace the current QSD `wp-content/plugins/qsd-platform/studio-assets/` release atomically, retaining QSD-owned README and no unrelated modifications. Use existing `wex-studio-staging-package` topic branch if eligible; do not exceed repository branch limit. Run `npm test`, `npm run docs:check`; push candidate and promote to `staging` using accepted staging-only workflow. Verify exact SHA and CI/deployment, route auth and unchanged `/station/`. Obtain actual authenticated browser proof on `https://www.staging2.qldscubadive.com.au/studio/` that `.wex-logo img` exists, `complete && naturalWidth > 0`, and label-only fallback is gone; if browser capability unavailable, stop with source/deploy evidence and request one Owner browser check rather than claim visual success. No QSD API rewrite, identities, new CSS, production deployment or WEX source changes. Record exact SHA and evidence in this SAME file and stop for Reviewer.
