@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: BLOCKED — DECISION REQUIRED
-Actor: Owner — one direct URL check needed; QSD's data handoff is now proven correct from this session's evidence
-Phase: Live DevTools value received and verified against schema/source: `sourceValues['profile.logo']` is non-null, HTTPS, and matches `AccountMedia::url()`'s exact shape — QSD-side defect ruled out. Only remaining unknown is whether the image file itself loads (broken/stale reference) or the page simply needs a reload against this data
+Status: BUILDER ACTION REQUIRED
+Actor: BUILDER:CODER — trace and correct malformed Logo URL
+Phase: 1C — exact browser value contradicts previous URL-shape conclusion
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -46,3 +46,9 @@ Owner supplied the live DevTools result (photographed console output): `JSON.str
 This means the earlier Reviewer-rejected screenshot (blue "Logo" text, no image) is **not explained by QSD-supplied data** — either it was taken before this URL was populated (an Account Brand logo may have been uploaded since), or the image file at that exact URL doesn't actually load (e.g. stale/broken reference), which is a question about the *file*, not the data handoff, and sits outside anything provable from this session (no browser capability, and the hash in the photographed URL isn't fully legible to reconstruct and fetch with confidence).
 
 **One remaining check, directly against data already in hand:** at `/studio/`, hard-refresh and look again — if the logo now renders, this closes out clean (the fix landed; the screenshot just predated the upload). If it still shows "Logo" text with this exact data present, open the URL from the console output directly in a new browser tab: a broken image icon or error means the *file* is missing/unreachable (a storage question, not this handoff), while a loading image with the shell still showing "Logo" text would point at a WEX-side rendering bug — outside QSD's scope per this repo's "no WEX UI/UX" boundary. No further QSD code change is proposed; the data contract is confirmed correct.
+
+
+## Reviewer — exact browser evidence supersedes earlier photo inference (14 Oct 2026)
+**Verdict: Proceed with safeguards.** Owner's live browser Console showed `window.wexStudioHostOptions.logoImageBinding = {source:"profile.logo",target:"imageUrl"}`, but `sourceValues["profile.logo"]` was a **literal Markdown link**, not a bare URL: `[https://.../11dece992294af39c5d853523742bc8b89946f928fd328b40a4d6ea13505420c.webp](https://.../11dece992294af39c5d853523742bc8b89946f928fd328b40a4d6ea13505420c.webp "https://...webp")`. Browser reported `document.querySelector(".wex-logo img")?.src === null`. `URL.canParse() === true` does **not** establish conformity to WEX's HTTPS-prefix schema; value begins `[` and is rejected. Prior Builder claim that the live value was a plain HTTPS URL is superseded.
+
+**BUILDER:CODER assignment — one bounded QSD package:** Read QSD Code Map, Account Brand/Media and StudioAssetGateway source on `main` and `staging`. Trace stored Account logo through projection, host PHP data preparation, JSON serialization and page preload into `window.wexStudioHostOptions`; identify exactly where Markdown markup is introduced. Correct the proven QSD-owned boundary to supply only the raw HTTPS WebP URL, preserving WordPress output escaping, capability guard, null fallback and input safety. Do not weaken WEX URL validation, introduce a Markdown-strip workaround in WEX, or change business records without approved migration. Add regression proof of the exact bracket/link/title payload, and raw-URL + null outcomes. Run `npm test`, `npm run docs:check`, stage through existing authorised pipeline only; require actual browser `sourceValues` to start with `https://` and `.wex-logo img` to exist with loaded image. No production, identity, WEX UI, CSS or other scope. Existing topic branch `wex-studio-staging-package` occupies the fourth remote slot; obey governance, do not create another. Push precise candidate and hand off for independent Reviewer, or stop with exact evidence if corruption originates outside QSD code.
