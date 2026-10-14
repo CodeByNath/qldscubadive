@@ -1,7 +1,7 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: BLOCKED — authenticated visual acceptance required
-Actor: Owner/Reviewer — confirm live Studio Logo image after staging deployment
+Status: ACCEPTED — Phase 1E Logo visible on authenticated staging screenshot
+Actor: REVIEWER — staging Logo visual gate closed; future Dashboard refinements separately scoped
 Phase: 1E — install corrected WEX main Studio bundle and obtain visual acceptance
 Repository: `CodeByNath/qldscubadive` only
 
@@ -113,3 +113,7 @@ Owner approved proceeding after WEX Reviewer confirmed the Studio build-dependen
 
 ## Reviewer Phase 1E staged asset review — 14 Oct 2026
 **Verdict: Proceed with safeguards.** Independently compared QSD `f788930..1e52bf6`: only replacement of generated `studio-assets/assets/wex-studio-host-DEMn4k2O.js` by `wex-studio-host-DtAWZm_W.js` and matching `manifest.json` entry update. Current `staging` manifest points to the new asset. Builder reports WEX build from accepted `17e4ca2`, image-branch presence, local WEX tests 4/4, QSD tests, and staging workflow `38509105983` green. This accepts the **asset-package/deployment evidence only**, not live Logo rendering. Missing authenticated browser evidence remains an actual stop gate. Owner/Reviewer should open `https://www.staging2.qldscubadive.com.au/studio/` with a platform-manager session, hard-refresh, and verify a visible real Logo and `document.querySelector('.wex-logo img')?.complete === true` with `naturalWidth > 0`. If not visible, record screenshot and exact DOM/error results and return a bounded correction. Do not reopen WEX source, promote to production, or declare Logo complete without image proof.
+
+
+## Reviewer visual acceptance — 14 Oct 2026
+**Verdict: Proceed.** Owner supplied a fresh authenticated Studio screenshot after deployment of QSD staging `1e52bf6`: actual Queensland Scuba Diving logo artwork is visibly rendered at top left in WEX Header instead of literal `Logo` fallback, with sidebar and empty body present. Together with independently reviewed new manifest `wex-studio-host-DtAWZm_W.js`, accept **Phase 1E staging Logo visual integration**. Browser DOM `img.complete`/`naturalWidth` were not separately measured in this screenshot; do not claim those numeric assertions or broader accessibility/regression certification from it. No production approval, QSD source changes, identity work or new Dashboard refinements included. Follow-up layout refinement, if requested, requires its own phase. Topic-branch housekeeping remains subject to normal repo governance.
