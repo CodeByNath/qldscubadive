@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: BUILDER ACTION REQUIRED
-Actor: BUILDER:CODER — Phase 1D visual acceptance correction
-Phase: 1D — source safeguard deployed; real Logo still not proven visible
+Status: BLOCKED — DECISION REQUIRED
+Actor: Owner — run one paste-safe diagnostic; exhaustive repo-wide trace found nothing QSD-owned left to check
+Phase: 1D — repo-wide output-interception sweep found no second source; need a live check immune to transcription artifacts
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -68,3 +68,28 @@ Rather than guess at an unconfirmed cause, hardened the one seam QSD controls en
 **Verdict: Proceed with safeguards — correction required before acceptance.** Independently inspected pushed `5c11c13..f788930`: changes `AccountMedia.php`, `StudioAssetGateway.php`, its local instructions and PHP tests. `sanitizeLogoUrl()` uses anchored raw HTTPS-path validation and returns **null** for the exact reported Markdown-wrapped URL. This preserves a safe fallback but **cannot make the Logo image display** when the upstream value is malformed. The Builder has not isolated what produced the browser's literal Markdown syntax, and supplied no authenticated DOM/image proof. Treat staging deployment and CI as source evidence only, not visual success.
 
 **BUILDER:CODER bounded next action:** Within this same phase, trace whether the full Markdown expression actually exists in the *JavaScript runtime string* (rather than console-copy formatting), by examining the staging HTML's emitted `globalThis.wexStudioHostOptions` assignment and live JS value; reproduce exact data through `AccountMedia::url()` → `currentLogoUrlFromAccount()` → `sanitizeLogoUrl()` → `wp_json_encode` → `wp_add_inline_script` and check for HTML/output interception or active WordPress plugin transformation. Determine why/where the raw URL is transformed; make the smallest source-owned correction only where proven. If malformed string is not emitted by QSD, stop with specific evidence of external runtime origin; do not treat a null fallback as a completed Logo. Verify actual WebP 200/load, runtime value raw HTTPS, `.wex-logo img` exists and image `complete && naturalWidth>0` using authenticated browser/Owner evidence. Re-run tests, stage via approved process, hand off exact SHA/CI/DOM proof. No WEX modifications, no invented rewriting, no production changes.
+
+## Builder — repo-wide interception sweep: no second QSD source found; one capability gap blocks the rest (2026-10-14)
+
+**Widened the trace to the whole repository, not just the assigned file chain.** Grepped `wp-content/plugins/qsd-platform/{src,app}` and `wp-content/themes/qsd-shell` for every mechanism that could rewrite an inline script's printed text between `wp_add_inline_script()` and the byte stream the browser parses: `ob_start`/`ob_get_clean` (two legitimate uses found — `StudioHostModule::renderTemplate()` and `AdminStationModule`'s equivalent — both only buffer a template's own HTML body, return it as a plain string, and neither is ever applied to `qsd-studio-config`'s inline script), `preg_replace`/`str_replace` touching `http`, `wptexturize`, `make_clickable`, `markdown`, `Parsedown`/`CommonMark`. Zero matches beyond the two accounted-for template buffers. The theme (`functions.php`) registers exactly one filter (`wp_robots`) and has no `wp_head`/`wp_footer`/`script_loader_tag` hook at all beyond the two plain `wp_head()`/`wp_footer()` calls in `index.php`. **There is no second place in this repository — plugin or theme — capable of touching the inline script's text after `StudioAssetGateway` writes it.**
+
+**This raises a live possibility the file hasn't considered yet:** every prior transfer of the "live" value from browser to this file went through a human copy/paste into a chat or document (the photographed console output, then the Reviewer's own written report of `sourceValues["profile.logo"]`). A plain URL pasted into many rich-text surfaces (chat composers, docs, some clipboard-aware tools) can be auto-converted into a Markdown-style link on the way through — producing exactly `[url](url "title")` **without the live JavaScript string ever containing a bracket**. Browser DevTools' own `console.log`/`JSON.stringify` output never adds that syntax on its own. Reviewer's own assignment names this possibility directly ("rather than console-copy formatting"); this entry is Builder's concrete next step toward resolving it, not a dismissal of Reviewer's finding.
+
+**Why this needs the Owner, and why no further Builder action is possible this phase:** distinguishing "genuinely malformed live value" from "clean value, mangled only in how it was relayed into this file" requires one live, authenticated read from `/studio/` — a capability this session has never had (recorded three times now in this file). Rather than ask for another raw copy-paste of the value (which would carry the exact same risk of being auto-linkified again, settling nothing), the request below is deliberately shaped so its output cannot contain a URL at all — only booleans, numbers, and character codes — so no clipboard or chat surface can alter it in transit:
+
+```js
+(() => {
+  const v = window.wexStudioHostOptions?.sourceValues?.['profile.logo'];
+  const img = document.querySelector('.wex-logo img');
+  return JSON.stringify({
+    isString: typeof v === 'string',
+    length: typeof v === 'string' ? v.length : null,
+    firstCharCode: typeof v === 'string' ? v.charCodeAt(0) : null,   // 104 = 'h' (clean), 91 = '[' (still malformed)
+    startsWithHttps: typeof v === 'string' ? v.startsWith('https://') : null,
+    imgExists: !!img,
+    imgLoaded: !!img && img.complete && img.naturalWidth > 0,
+  });
+})()
+```
+
+Paste the resulting JSON line back verbatim. `startsWithHttps: true` settles that the live value was never malformed and the deployed `sanitizeLogoUrl()` guard was defensive-in-depth only; `startsWithHttps: false` with `firstCharCode: 91` confirms the corruption is real and happens strictly after this repository's own `wp_add_inline_script()` call — outside anything `CodeByNath/qldscubadive` contains, per the exhaustive sweep above. Either way, `imgLoaded` directly answers Reviewer's visual-acceptance requirement. No source change proposed this entry — nothing new was found wrong in QSD code beyond the guard already deployed (`f788930`, CI run [38498865106](https://github.com/CodeByNath/qldscubadive/actions/runs/38498865106), still green).
