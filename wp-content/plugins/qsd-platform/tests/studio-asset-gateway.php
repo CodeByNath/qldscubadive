@@ -20,19 +20,24 @@ $__canManageQsd   = false;
 $__enqueuedStyles = [];
 $__enqueuedScripts = [];
 $__inlineScripts  = [];
+$__logoUrl        = null;
 
 function is_user_logged_in(): bool { global $__loggedIn; return $__loggedIn; }
 function current_user_can(string $cap): bool { global $__canManageQsd; return $__canManageQsd; }
 function wp_enqueue_style(string $handle, string $src, array $deps, string $ver): void { global $__enqueuedStyles; $__enqueuedStyles[$handle] = [$src, $ver]; }
 function wp_enqueue_script(string $handle, string $src = '', array $deps = [], mixed $ver = false, bool $footer = false): void { global $__enqueuedScripts; $__enqueuedScripts[$handle] = [$src, $ver]; }
 function wp_register_script(string $handle, mixed $src, array $deps, mixed $ver, bool $footer): void {}
-function wp_add_inline_script(string $handle, string $data): void { global $__inlineScripts; $__inlineScripts[$handle] = $data; }
+// Real wp_add_inline_script() appends per handle (default position 'after');
+// a bare overwrite here would silently drop the first of two calls on the
+// same handle, which is exactly what StudioAssetGateway now does.
+function wp_add_inline_script(string $handle, string $data): void { global $__inlineScripts; $__inlineScripts[$handle] = ($__inlineScripts[$handle] ?? '') . $data; }
 function rest_url(string $path): string { return 'https://qsd-test.local/wp-json/' . $path; }
 function wp_create_nonce(string $action): string { return 'nonce-' . $action; }
 function esc_url_raw(string $url): string { return $url; }
 function wp_json_encode(mixed $value): string|false { return json_encode($value); }
 
 require_once __DIR__ . '/../src/Core/PlatformAccess.php';
+require_once __DIR__ . '/../src/Modules/Account/Support/AccountMedia.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioHostModule.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioAssetGateway.php';
 
@@ -54,7 +59,13 @@ function check_studio_asset(bool $condition, string $label, mixed $detail = null
     echo '  FAIL — ' . $label . ($detail !== null ? ': ' . json_encode($detail) : '') . "\n";
 }
 
-$gateway = new StudioAssetGateway();
+// The real resolver reads Account's Brand projection (AccountRepository +
+// AccountMedia, needing a real $wpdb); this test exercises only the handoff
+// contract, so a stub resolver stands in, swapped via $__logoUrl per case.
+$gateway = new StudioAssetGateway(static function (): ?string {
+    global $__logoUrl;
+    return $__logoUrl;
+});
 
 // ── 1) Off the Studio route: nothing is ever enqueued, regardless of auth ─
 echo "1) nothing is enqueued off the /studio/ route\n";
@@ -97,10 +108,22 @@ echo "\n3) an authorized caller with no WEX manifest yet enqueues nothing — th
     check_studio_asset($__inlineScripts === [], 'the runtime config is not even written when there is nothing to boot');
 }
 
+/** Pulls one `<prefix> = { ... };` statement's JSON payload out of the concatenated inline script. */
+function extract_inline_json(string $script, string $prefix): mixed
+{
+    $start = strpos($script, $prefix);
+    if ($start === false) {
+        return null;
+    }
+    $jsonStart = $start + strlen($prefix);
+    $end = strpos($script, ';', $jsonStart);
+    return $end === false ? null : json_decode(substr($script, $jsonStart, $end - $jsonStart), true);
+}
+
 // ── 4) Authorized, with a real WEX-supplied manifest + bundle ─────────────
 echo "\n4) an authorized caller with a real manifest gets the bundle enqueued, scoped to /studio/\n";
 {
-    global $__fixtureRoot, $__enqueuedScripts, $__enqueuedStyles, $__inlineScripts;
+    global $__fixtureRoot, $__enqueuedScripts, $__enqueuedStyles, $__inlineScripts, $__logoUrl;
     file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode([
         'entry'   => 'studio.js',
         'styles'  => ['studio.css'],
@@ -109,6 +132,7 @@ echo "\n4) an authorized caller with a real manifest gets the bundle enqueued, s
     file_put_contents($__fixtureRoot . 'studio-assets/studio.js', '// wex bundle');
     file_put_contents($__fixtureRoot . 'studio-assets/studio.css', '/* wex styles */');
 
+    $__logoUrl = 'https://qsd-test.local/wp-content/uploads/qsd-account/abc123.png';
     $gateway->enqueue();
 
     check_studio_asset(isset($__enqueuedScripts['qsd-studio-host']), 'the WEX entry script is enqueued under its own handle, distinct from qsd-admin-station');
@@ -119,7 +143,7 @@ echo "\n4) an authorized caller with a real manifest gets the bundle enqueued, s
     );
     check_studio_asset(isset($__enqueuedStyles['qsd-studio-host-0']), 'the WEX stylesheet is enqueued');
     check_studio_asset(isset($__inlineScripts['qsd-studio-config']), 'the runtime config is written once a real bundle is enqueued');
-    $configJson = json_decode(substr($__inlineScripts['qsd-studio-config'], strlen('window.QSDStudioConfig = '), -1), true);
+    $configJson = extract_inline_json($__inlineScripts['qsd-studio-config'], 'window.QSDStudioConfig = ');
     check_studio_asset(
         is_array($configJson) && str_ends_with((string) $configJson['apiRoot'], '/qsd/v1/studio/'),
         'the runtime config is scoped to the Studio API root, not the full qsd/v1 business root',
@@ -128,6 +152,70 @@ echo "\n4) an authorized caller with a real manifest gets the bundle enqueued, s
     check_studio_asset(
         !str_contains($__inlineScripts['qsd-studio-config'], 'QSDConfig ='),
         'the Studio config is its own window global, never overwriting window.QSDConfig',
+    );
+
+    $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'], 'globalThis.wexStudioHostOptions = ');
+    check_studio_asset(
+        is_array($hostOptions) && ($hostOptions['logoImageBinding'] ?? null) === ['source' => 'profile.logo', 'target' => 'imageUrl'],
+        'the WEX host options declare the profile.logo -> imageUrl binding',
+        $hostOptions,
+    );
+    check_studio_asset(
+        is_array($hostOptions) && ($hostOptions['sourceValues']['profile.logo'] ?? null) === $__logoUrl,
+        "the WEX host options carry the authorised Account Brand logo URL, not a hardcoded fixture",
+        $hostOptions,
+    );
+}
+
+// ── 4b) No Brand logo published yet: the handoff carries null, not a guess ─
+echo "\n4b) no published Brand logo yields a null sourceValue, never a fabricated URL\n";
+{
+    global $__inlineScripts, $__logoUrl;
+    $__inlineScripts = [];
+    $__logoUrl = null;
+    $gateway->enqueue();
+
+    $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'], 'globalThis.wexStudioHostOptions = ');
+    check_studio_asset(
+        is_array($hostOptions) && array_key_exists('profile.logo', $hostOptions['sourceValues'] ?? []) && $hostOptions['sourceValues']['profile.logo'] === null,
+        'with no Brand logo configured, profile.logo resolves to null rather than being omitted or fabricated',
+        $hostOptions,
+    );
+}
+
+// ── 4c) A value wrapped in Markdown link syntax is rejected to null, not
+//      passed through — the exact malformed shape Reviewer found live in
+//      the browser (`[https://...](https://...webp "https://...webp")`),
+//      which a bare `filter_var(..., FILTER_VALIDATE_URL)` would miss ─────
+echo "\n4c) a Markdown-wrapped logo URL is rejected to null, never passed through to WEX\n";
+{
+    global $__inlineScripts, $__logoUrl;
+    $__inlineScripts = [];
+    $clean     = 'https://qsd-test.local/wp-content/uploads/qsd-account/' . str_repeat('a1', 32) . '.webp';
+    $__logoUrl = '[' . $clean . '](' . $clean . ' "' . $clean . '")';
+    $gateway->enqueue();
+
+    $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'], 'globalThis.wexStudioHostOptions = ');
+    check_studio_asset(
+        is_array($hostOptions) && array_key_exists('profile.logo', $hostOptions['sourceValues'] ?? []) && $hostOptions['sourceValues']['profile.logo'] === null,
+        'a value wrapped in Markdown link syntax resolves to null, not the malformed string, and not an exception',
+        $hostOptions,
+    );
+}
+
+// ── 4d) A clean, well-formed logo URL still passes through unchanged ─────
+echo "\n4d) a clean, well-formed logo URL still passes through unchanged\n";
+{
+    global $__inlineScripts, $__logoUrl;
+    $__inlineScripts = [];
+    $__logoUrl = 'https://qsd-test.local/wp-content/uploads/qsd-account/' . str_repeat('a1', 32) . '.webp';
+    $gateway->enqueue();
+
+    $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'], 'globalThis.wexStudioHostOptions = ');
+    check_studio_asset(
+        is_array($hostOptions) && ($hostOptions['sourceValues']['profile.logo'] ?? null) === $__logoUrl,
+        'a clean, well-formed https logo URL is handed to WEX unchanged',
+        $hostOptions,
     );
 }
 
@@ -212,6 +300,47 @@ echo "\n8) absolute, Windows-style, and percent-encoded manifest entries are all
     file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => 'studio.js']));
     $gateway->enqueue();
     check_studio_asset(isset($__enqueuedScripts['qsd-studio-host']), 'a plain, legitimate relative entry still enqueues correctly after the stricter validation');
+}
+
+// ── 9) The real, no-arg constructor reads the actual Account Brand logo URL,
+//      not just the test-seam resolver exercised above ───────────────────
+echo "\n9) the default resolver reads the real Account Brand projection (AccountRepository + AccountMedia)\n";
+{
+    global $__fixtureRoot, $__enqueuedScripts, $__inlineScripts;
+
+    function wp_upload_dir(): array
+    {
+        global $__fixtureRoot;
+        return ['baseurl' => 'https://qsd-test.local/wp-content/uploads', 'basedir' => $__fixtureRoot . 'uploads'];
+    }
+    function trailingslashit(string $path): string { return rtrim($path, '/') . '/'; }
+
+    require_once __DIR__ . '/support-account-repository.php';
+    require_once __DIR__ . '/../src/PlatformIdentifier/PlatformIdentifierPolicy.php';
+    require_once __DIR__ . '/../src/Modules/Account/Support/AccountSchema.php';
+    require_once __DIR__ . '/../src/Modules/Account/Support/AccountRepository.php';
+    require_once __DIR__ . '/../src/Modules/Account/Support/AccountMedia.php';
+
+    $table = new AccountOptionsTable();
+    $table->rows[\QSD\Platform\Modules\Account\Support\AccountSchema::OPTION_KEY] = json_encode([
+        'brand' => ['name' => 'Queensland Scuba Diving', 'code' => 'QSD', 'logo_media_id' => 'deadbeef.png', 'favicon_media_id' => null],
+    ]);
+    $GLOBALS['wpdb'] = new AccountWpdb($table);
+
+    $__enqueuedScripts = [];
+    $__inlineScripts   = [];
+    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => 'studio.js']));
+
+    $defaultGateway = new StudioAssetGateway();
+    $defaultGateway->enqueue();
+
+    $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'] ?? '', 'globalThis.wexStudioHostOptions = ');
+    check_studio_asset(
+        is_array($hostOptions)
+            && $hostOptions['sourceValues']['profile.logo'] === 'https://qsd-test.local/wp-content/uploads/qsd-account/deadbeef.png',
+        'the default (production) resolver reads the real Brand logo_media_id through AccountRepository/AccountMedia, not a fixture value',
+        $hostOptions,
+    );
 }
 
 if ($failures !== []) {

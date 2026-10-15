@@ -170,10 +170,11 @@ jobs:
           # --delete applies only inside the two destination folders below
           # (wp-content/plugins/qsd-platform/ and wp-content/themes/qsd-shell/);
           # nothing else on the server is written or removed.
-          # Runtime files only: PHP, templates, Atomic Engine CSS, built dist.
+          # Runtime files only: PHP, templates, Atomic Engine CSS, built dist,
+          # and the WEX static asset bundle.
           rsync -az --delete -e "$SSH_CMD" \
             --include='/qsd-platform.php' --include='/src/***' --include='/app/***' \
-            --include='/atomic-engine/***' --include='/dist/***' --exclude='*' \
+            --include='/atomic-engine/***' --include='/dist/***' --include='/studio-assets/***' --exclude='*' \
             wp-content/plugins/qsd-platform/ "$SSH_USER@$SSH_HOST:$WP_PATH/wp-content/plugins/qsd-platform/"
           rsync -az --delete -e "$SSH_CMD" \
             wp-content/themes/qsd-shell/ "$SSH_USER@$SSH_HOST:$WP_PATH/wp-content/themes/qsd-shell/"

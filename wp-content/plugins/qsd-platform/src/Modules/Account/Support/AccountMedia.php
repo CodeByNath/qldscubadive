@@ -93,6 +93,12 @@ final class AccountMedia
         return trailingslashit((string) $upload['baseurl']) . self::DIRECTORY . '/' . $mediaId;
     }
 
+    /** Stored-file extensions this class will ever produce — the single source of truth for any boundary validating a URL `url()` returns. */
+    public static function extensions(): array
+    {
+        return array_values(self::ALLOWED_TYPES);
+    }
+
     private function directory(): string
     {
         $upload = wp_upload_dir();

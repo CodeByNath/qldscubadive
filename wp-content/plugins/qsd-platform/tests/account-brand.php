@@ -125,6 +125,7 @@ use QSD\Platform\Modules\Account\Support\AccountBrand;
 use QSD\Platform\Modules\Account\Support\AccountMedia;
 use QSD\Platform\Modules\Account\Support\AccountSchema;
 use QSD\Platform\Modules\Admin\Support\StationLifecycle;
+use QSD\Platform\PlatformIdentifier\PlatformIdentifierPolicy;
 use QSD\Platform\PlatformIdentifier\PlatformIdentifierStation;
 
 function checkBrand(bool $condition, string $message): void
@@ -294,5 +295,25 @@ checkBrand(count($libraryResponse['media']) === 1, 'the library route reports th
 
 $badKind = $respond($controller->uploadBrandMedia(new WP_REST_Request(['kind' => 'banner'], ['file' => ['tmp_name' => $pngPath]])));
 checkBrand($badKind['success'] === false, 'an unrecognised media kind is rejected');
+
+// ─── Part 4: the existing GET /admin/account contract already pairs the ────
+// Profile platform ID with the resolved logo URL in one response — this is
+// the exact "Profile-ID Logo data plug" an external read-only consumer needs;
+// no new route or mapping is introduced.
+$withLogo = $respond($controller->saveProfile(new WP_REST_Request(['logo_media_id' => $uploadResponse['media']['media_id']])));
+checkBrand($withLogo['success'] === true, 'saving logo_media_id onto the draft succeeds through the real route');
+$respond($controller->settleProfile(new WP_REST_Request()));
+
+$detail = $respond($controller->fetchDetail(new WP_REST_Request()));
+checkBrand($detail['success'] === true, 'fetchDetail (GET /admin/account) succeeds once bootstrapped');
+checkBrand(
+    is_string($detail['account']['nodes']['profile']['platform_id'])
+        && str_starts_with($detail['account']['nodes']['profile']['platform_id'], PlatformIdentifierPolicy::prefixes()[PlatformIdentifierPolicy::ACCOUNT_PROFILE]),
+    'fetchDetail reports the bootstrapped Profile platform ID (QSDASTP-prefixed)'
+);
+checkBrand(
+    $detail['account']['brand']['logo_url'] === 'https://example.test/wp-content/uploads/qsd-account/' . $uploadResponse['media']['media_id'],
+    'the same response resolves the Profile logo to its authoritative media URL, with no separate lookup'
+);
 
 echo "Account Brand (Phase B): PASS\n";
