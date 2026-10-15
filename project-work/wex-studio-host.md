@@ -1,8 +1,8 @@
 # QSD /studio — WEX Dashboard staging integration
 
 Repository: `CodeByNath/qldscubadive`
-Status: BUILDER ACTION REQUIRED — Phase 1F corrected WEX Logo staging install
-Actor: **BUILDER:CODER (Claude)** — QSD staging installation and visual proof
+Status: AWAITING REVIEWER REVIEW — Phase 1F rebuild from newly approved SHA pushed/deployed; authenticated browser proof still outstanding
+Actor: **REVIEWER / OWNER** — authenticated browser verification of logo containment on QSD staging
 Phase: 1F — staging installation and authenticated browser proof
 
 ## Owner goal
@@ -62,3 +62,21 @@ Owner's actual authenticated QSD staging `/studio/` screenshot **fails** the Pha
 **Blocker:** this session's `pnpm` is unavailable locally; `npx pnpm@11.16.0 install --frozen-lockfile` against the cloned WEXdesigns checkout (with and without `--ignore-scripts`) is refused by this execution surface's own Auto Mode classifier, reason `[Code from External]`. No reasonable variant of the install command was permitted. This stops the Phase 1F rebuild/install step before any build, push, or deploy — nothing new was pushed to `wex-studio-staging-package` or `staging`.
 
 Per `project-work/AGENTS.md` Executor capability preflight: keeping ownership with **BUILDER:CODER (Claude)**; this is a missing execution capability on this surface, not a project/architecture decision. Required execution surface: a Claude Code session whose Auto Mode (or equivalent) permission settings allow installing dependencies for code cloned from `CodeByNath/WEXdesigns` (an approved internal repo), or an equivalent surface where that install can run. Reported in chat per the chat-reporting exception (blocks the authorised action from landing). Stopping here; Status remains `BUILDER ACTION REQUIRED` until this capability is available or the Owner directs an alternate execution path.
+
+## Builder — Phase 1F rebuilt from newly approved WEX main `3c9e136`; pushed, deployed, checks pass; browser proof still outstanding (16 October 2026)
+
+Owner lifted the Auto Mode restriction for the dependency install; the rebuild then proceeded without further capability blockers except WEX's own `test:studio-host` (still denied by the classifier with no reason given — not run; skipped, noted here, not required by this phase's QSD-side instructions).
+
+**Source check:** `git ls-remote` reconfirmed `CodeByNath/WEXdesigns` `main` HEAD is exactly `3c9e136e12be218b2bfac068594b92f4ddfc5865`; cloned at that SHA, commit subject `fix(wex): contain logo artwork within brand geometry`.
+
+**Build:** Reused existing topic branch `wex-studio-staging-package` (no new branch). `pnpm@11.16.0 install --frozen-lockfile` then `--filter @weerax/web-runtime build:studio-host`. New entry `wex-studio-host-DLO1CiFC.js` / `wex-studio-host-CWn2TEKX.css`.
+
+**Confirmed root cause and fix, by direct CSS comparison before install:** previously installed CSS capped only `.wex-logo__image` (`max-block-size/inline-size:100%`) against an **unbounded** `.wex-logo` container — nothing actually constrained the outer box, matching the Owner's observed overflow. New CSS adds `inline-size:min(100%, var(--wex-space-64)); block-size:min(100%, var(--wex-space-64))` directly on `.wex-logo` itself, genuinely capping the rendered logo box. JS bundle content is byte-identical to the prior build (100% rename similarity) — this is a CSS-only containment fix, consistent with the WEX commit subject.
+
+**Install:** Replaced only `studio-assets/manifest.json` and the two entry JS/CSS files; fonts and `README.md` byte-identical (confirmed via `git diff --stat`/`git diff --name-only`, no font files listed).
+
+**Checks:** `npm run typecheck` clean; `npm run build` clean; `npm run test:js` 27/27; all 25 tracked `tests/*.php` files pass individually (`npm run test:php`'s glob still also picks up the same pre-existing untracked `" 2"`-suffixed clutter, including `tests/studio-asset-gateway 2.php`, which fatals on the same unrelated missing class as last time — confirmed via `git ls-files` that this is not tracked and not part of this change; the real tracked `tests/studio-asset-gateway.php` passes standalone); `npm run docs:check` shows only the same single pre-existing, already-documented clutter-caused failure (`studio-host 2.md` unindexed), nothing new.
+
+**Push/deploy:** Committed `882c823` on `wex-studio-staging-package`, pushed, verified on remote. Fast-forwarded `staging` to `882c823`, pushed, verified on remote. CI run `38764010673`: `test` and `deploy-staging` jobs both green, including SSH login check, staging-target verification, and smoke check.
+
+**What's left:** no browser/login capability this session — step 4 (real Logo image within a max 64×64px rendered area, collapsed/hovered/expanded/compact sidebar states, no overlap, on authenticated `https://www.staging2.qldscubadive.com.au/studio/`) is not yet confirmed. The CSS-level evidence above is a strong structural reason to expect the Owner's overflow is fixed, but per this file's own repeated instruction, CI/deploy success is never "live" proof. Reviewer or Owner needs one authenticated browser check (screenshot + computed styles on `.wex-logo`/`.wex-logo__image`) to close this phase out.
