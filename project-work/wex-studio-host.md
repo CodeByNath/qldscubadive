@@ -1,8 +1,8 @@
 # QSD /studio — WEX Dashboard staging integration
 
 Repository: `CodeByNath/qldscubadive`
-Status: BLOCKED — OWNER VISUAL FAILURE; BUILDER INVESTIGATION REQUIRED
-Actor: **BUILDER** — bounded QSD integration diagnosis; no blind rebuild
+Status: BUILDER ACTION REQUIRED — Phase 1F corrected WEX Logo staging install
+Actor: **BUILDER:CODER (Claude)** — QSD staging installation and visual proof
 Phase: 1F — staging installation and authenticated browser proof
 
 ## Owner goal
@@ -10,7 +10,7 @@ Show the **latest approved WEX Dashboard refinements** in the actual QSD staging
 
 ## Authority and exact source
 - Read QSD `project-work/AGENTS.md`, `project-work/PROJECT-RULES.md`, relevant `main` host-source and deployment authority, and the accepted Phase 1E QSD integration/diff.
-- WEX approved source: `CodeByNath/WEXdesigns` `main` at **`943e7bea2e102e76475784114e311eac5ca37259`**; WEX CI `38673046456` passed.
+- Current WEX approved source: `CodeByNath/WEXdesigns` `main` at **`3c9e136e12be218b2bfac068594b92f4ddfc5865`** (Phase 2C Logo 64px containment). Earlier QSD deployed bundle was built from `943e7bea2e102e76475784114e311eac5ca37259` and lacks the approved correction.
 - QSD existing host mount + real Profile Logo data binding must remain unchanged. WEX owns presentation, QSD owns host data/route/deployment.
 
 ## ONE next Builder action — Claude in QSD
@@ -49,3 +49,8 @@ Phase 1E staging Logo visually accepted 14 Oct 2026. Evidence, prior staging SHA
 Owner's actual authenticated QSD staging `/studio/` screenshot **fails** the Phase 1F visual gate: real scuba logo is rendered at oversized intrinsic dimensions, extends beyond its intended header/logo compartment and overlays sidebar/menu and header ('Studio'). Phase 1F is NOT accepted. Successful CI/deploy only proves delivery, not UI functionality. Dynamic Profile logo data evidently arrives and image renders; avoid changing Account Profile/API/Platform IDs. Earlier accepted Logo state no longer demonstrates acceptable containment in newly built bundle.
 
 **One bounded QSD Builder investigation:** use current WEX-approved artifact SHA, exact QSD staging manifest JS/CSS filenames and staging DOM/computed styles to identify whether CSS asset failed to load, host document/style-order collision exists, or WEX bundle itself lacks containment for arbitrary real logos. Compare against WEX working browser build using same real image/aspect ratio. Verify the actual rendered image naturalWidth/Height versus computed width/height, containing element's box/overflow, and loaded rules/assets; capture source and network/DOM evidence. Fix only a demonstrated QSD host/package integration defect in QSD; **if source WEX logo/layout styling is defective, do not rewrite WEX UI inside QSD**—record exact defect and request WEX Builder correction, then repackage only the resulting approved fixed WEX artifact. Do not re-run a blind rebuild of unchanged approved SHA. Check cropped/non-square logos and desktop/mobile sidebar with screenshot before claiming pass. Deployment remains staging-only within existing authorised paths; no production deploy. Keep this SAME file and note final verified evidence / blocked reason.
+
+## Current handover — Owner clarification, 16 October 2026
+**QSD owns the actual scuba Logo image**, stored in QSD Profile and supplied by its host binding. WEX owns only the reusable Logo presentation/renderer, not image assets, QSD data or business rules. The Owner's authenticated screenshot shows QSD data binding succeeds but the rendered image overflows. No Profile/API/Logo image data changes are authorised.
+
+**Immediate BUILDER:CODER (Claude), QSD only:** First inspect the existing staging manifest and loaded JS/CSS to confirm whether the installed artifact predates WEX accepted `main` `3c9e136e12be218b2bfac068594b92f4ddfc5865`. If outdated, build and install the exact approved WEX Studio host distribution using the established Phase 1F process, with manifest/assets and no QSD UI/style recreation. Push/deploy to QSD **staging only**, run existing checks, and verify the real QSD Profile image remains within a maximum 64×64px rendered area in collapsed, hovered, expanded and compact sidebar states, without overlap. Record QSD SHA, manifest asset hashes, CI/deployment and authenticated browser DOM/screenshot evidence. If updated CSS is loaded and the issue remains, stop and record computed DOM/cascade evidence; route a demonstrated WEX presentation defect to WEX Builder, not local QSD CSS. Mark this same work file AWAITING REVIEWER REVIEW only with real evidence. No production deployment or unrelated work. WEX topic-branch housekeeping is separate and is not a blocker for this QSD install of the already accepted WEX main SHA.
