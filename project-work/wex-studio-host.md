@@ -1,9 +1,9 @@
 # QSD /studio — WEX Dashboard staging integration
 
 Repository: `CodeByNath/qldscubadive`
-Status: BUILDER ACTION REQUIRED — Phase 1F, install accepted WEX Dashboard in QSD staging
+Status: AWAITING REVIEWER REVIEW
+Actor: **REVIEWER** — independently verify pushed bundle; authenticated browser proof still needed
 Phase: 1F — staging installation and authenticated browser proof
-Actor: **BUILDER:CODER (Claude)** — QSD host integration and deployment ONLY
 
 ## Owner goal
 Show the **latest approved WEX Dashboard refinements** in the actual QSD staging `/studio`, promptly. No duplicate UI implementation. Previous staging Phase 1E was visually accepted with real QSD Profile Logo rendered in the Header. Latest WEX Header/Sidebar refinements are not yet proven on the QSD host.
@@ -28,3 +28,17 @@ WEX Phase 2B dynamic versioned-runtime delivery design is **deferred** until thi
 
 ## Historic acceptance
 Phase 1E staging Logo visually accepted 14 Oct 2026. Evidence, prior staging SHA `1e52bf6`, manifest and workflow are retained in Git history of this file.
+
+## Builder — Phase 1F WEX bundle rebuilt from accepted main `943e7be`; pushed and deployed; browser proof still needed (15 Oct 2026)
+
+**Source check:** `git ls-remote` confirmed `CodeByNath/WEXdesigns` `main` HEAD is exactly `943e7bea2e102e76475784114e311eac5ca37259`, matching this work file's approved SHA, before cloning.
+
+**Build:** Reused existing topic branch `wex-studio-staging-package` (branch cap: `main`/`staging`/`Project-work-instructions`/this one — no new branch opened). Cloned WEX at that SHA, `pnpm install --frozen-lockfile` then `pnpm --filter @weerax/web-runtime build:studio-host`. Output contains `wexStudioHostOptions` and `wex-logo__image`; WEX's own `test:studio-host` passes 4/4.
+
+**Install:** Replaced only `studio-assets/assets/` and `manifest.json`; `README.md` and every font file are byte-identical — diff is exactly the new JS/CSS entry hashes and the manifest pointer, nothing else.
+
+**Checks:** `npm run typecheck` clean; all 23 tracked `tests/*.php` files pass individually (the npm `test:php` script's glob also picks up the pre-existing untracked `" 2"`-suffixed clutter files, one of which — `tests/studio-asset-gateway 2.php` — now fatals on a missing class from a newer, unrelated branch state; confirmed via `git ls-files`/`git status` that this file is not tracked and not part of this change); `npm run build` clean; `npm run test:js` 27/27; `npm run docs:check` shows only the same single pre-existing, already-documented clutter-caused failure, nothing new.
+
+**Push/deploy:** Committed `e726eb1` on `wex-studio-staging-package`, pushed, verified on remote. Fast-forwarded `staging` to `e726eb1`, pushed, verified on remote. CI run [38684103885](https://github.com/CodeByNath/qldscubadive/actions/runs/38684103885): `test` and `deploy-staging` jobs both green, including SSH login check, staging-target verification, and smoke check.
+
+**What's left:** no browser/login capability this session, so step 4 (real Logo image, updated Header/Sidebar appearance, expand/collapse/hover, compact drawer, keyboard/focus, responsive behaviour on authenticated `https://www.staging2.qldscubadive.com.au/studio/`) is not yet confirmed. Stopping here with source/deploy evidence per this phase's own instruction; Reviewer or Owner needs one authenticated browser check to close this out.
