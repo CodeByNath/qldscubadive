@@ -1,8 +1,8 @@
 # QSD /studio — WEX Dashboard staging integration
 
 Repository: `CodeByNath/qldscubadive`
-Status: AWAITING REVIEWER REVIEW
-Actor: **REVIEWER** — independently verify pushed bundle; authenticated browser proof still needed
+Status: BLOCKED — OWNER VISUAL FAILURE; BUILDER INVESTIGATION REQUIRED
+Actor: **BUILDER** — bounded QSD integration diagnosis; no blind rebuild
 Phase: 1F — staging installation and authenticated browser proof
 
 ## Owner goal
@@ -42,3 +42,10 @@ Phase 1E staging Logo visually accepted 14 Oct 2026. Evidence, prior staging SHA
 **Push/deploy:** Committed `e726eb1` on `wex-studio-staging-package`, pushed, verified on remote. Fast-forwarded `staging` to `e726eb1`, pushed, verified on remote. CI run [38684103885](https://github.com/CodeByNath/qldscubadive/actions/runs/38684103885): `test` and `deploy-staging` jobs both green, including SSH login check, staging-target verification, and smoke check.
 
 **What's left:** no browser/login capability this session, so step 4 (real Logo image, updated Header/Sidebar appearance, expand/collapse/hover, compact drawer, keyboard/focus, responsive behaviour on authenticated `https://www.staging2.qldscubadive.com.au/studio/`) is not yet confirmed. Stopping here with source/deploy evidence per this phase's own instruction; Reviewer or Owner needs one authenticated browser check to close this out.
+
+
+## Owner visual rejection — 2026-10-16 (CURRENT)
+
+Owner's actual authenticated QSD staging `/studio/` screenshot **fails** the Phase 1F visual gate: real scuba logo is rendered at oversized intrinsic dimensions, extends beyond its intended header/logo compartment and overlays sidebar/menu and header ('Studio'). Phase 1F is NOT accepted. Successful CI/deploy only proves delivery, not UI functionality. Dynamic Profile logo data evidently arrives and image renders; avoid changing Account Profile/API/Platform IDs. Earlier accepted Logo state no longer demonstrates acceptable containment in newly built bundle.
+
+**One bounded QSD Builder investigation:** use current WEX-approved artifact SHA, exact QSD staging manifest JS/CSS filenames and staging DOM/computed styles to identify whether CSS asset failed to load, host document/style-order collision exists, or WEX bundle itself lacks containment for arbitrary real logos. Compare against WEX working browser build using same real image/aspect ratio. Verify the actual rendered image naturalWidth/Height versus computed width/height, containing element's box/overflow, and loaded rules/assets; capture source and network/DOM evidence. Fix only a demonstrated QSD host/package integration defect in QSD; **if source WEX logo/layout styling is defective, do not rewrite WEX UI inside QSD**—record exact defect and request WEX Builder correction, then repackage only the resulting approved fixed WEX artifact. Do not re-run a blind rebuild of unchanged approved SHA. Check cropped/non-square logos and desktop/mobile sidebar with screenshot before claiming pass. Deployment remains staging-only within existing authorised paths; no production deploy. Keep this SAME file and note final verified evidence / blocked reason.
