@@ -1,8 +1,8 @@
 # WEX /studio QSD staging — consolidated work package
 
-Status: ACCEPTED — Phase 1E Logo visible on authenticated staging screenshot
-Actor: REVIEWER — staging Logo visual gate closed; future Dashboard refinements separately scoped
-Phase: 1E — install corrected WEX main Studio bundle and obtain visual acceptance
+Status: BUILDER ACTION REQUIRED — Phase 1F QSD staging Dashboard update
+Actor: BUILDER:DESIGNER — install approved WEX bundle on QSD staging
+Phase: 1F — stage approved Dashboard UI refinements and verify deployed browser
 Repository: `CodeByNath/qldscubadive` only
 
 ## Accepted baseline
@@ -117,3 +117,13 @@ Owner approved proceeding after WEX Reviewer confirmed the Studio build-dependen
 
 ## Reviewer visual acceptance — 14 Oct 2026
 **Verdict: Proceed.** Owner supplied a fresh authenticated Studio screenshot after deployment of QSD staging `1e52bf6`: actual Queensland Scuba Diving logo artwork is visibly rendered at top left in WEX Header instead of literal `Logo` fallback, with sidebar and empty body present. Together with independently reviewed new manifest `wex-studio-host-DtAWZm_W.js`, accept **Phase 1E staging Logo visual integration**. Browser DOM `img.complete`/`naturalWidth` were not separately measured in this screenshot; do not claim those numeric assertions or broader accessibility/regression certification from it. No production approval, QSD source changes, identity work or new Dashboard refinements included. Follow-up layout refinement, if requested, requires its own phase. Topic-branch housekeeping remains subject to normal repo governance.
+
+
+## Phase 1F — deliver accepted WEX Dashboard refinements to live QSD staging (Owner request 15 Oct 2026)
+Status: BUILDER ACTION REQUIRED — staging install and browser verification
+Actor: BUILDER:DESIGNER (Codex) — QSD staging host-package integration; Reviewer independently accepts
+Owner explicitly wants to **see the accepted WEX Dashboard changes live at QSD /studio now**, not another WEX-only handoff. Accepted upstream WEX source is `CodeByNath/WEXdesigns` `main` SHA `943e7bea2e102e76475784114e311eac5ca37259` (WEX CI `38673046456` passed). This authorises **QSD staging only**; no QSD production, host API, identity/profile, database, unrelated source or presentation redesign.
+
+Builder: read QSD host authority and the previously accepted Phase 1E asset packaging/deploy method; use approved WEX `main` SHA and existing integration to rebuild/export the updated WEX Studio bundle, retain the real QSD Profile logo binding, install only the generated package/manifest in the existing QSD staging host. Respect the one-topic-branch cap: reuse existing `wex-studio-staging-package` only if safe and allowed by repository rules; otherwise stop and report the exact branch gate, do not delete other work. Run WEX/QSD applicable deterministic checks and verify source SHA, asset manifest, pushed QSD SHA and staging workflow. Then **verify authenticated deployed browser at** `https://www.staging2.qldscubadive.com.au/studio/`: real Profile Logo image visible, revised Header/Sidebar geometry and toggle/hover/compact drawer, focus/keyboard behaviour and responsive layouts. Capture screenshot/DOM details or clearly mark any browser/session limitation instead of claiming visual completion. Push/update this SAME file with evidence and set `AWAITING REVIEWER REVIEW`. Reviewer checks pushed diff/workflow and browser evidence before acceptance.
+
+For future approved WEX Dashboard refinement batches, follow source acceptance with an explicit **QSD staging installation + browser proof** handoff within this same integration work area; never mistake WEX Pages for live QSD /studio. Do not auto-deploy to production.
