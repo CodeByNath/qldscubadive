@@ -8,50 +8,47 @@ use QSD\Platform\Modules\Account\Support\AccountRepository;
 use QSD\Platform\Modules\Account\Support\AccountSchema;
 
 /**
- * Versioned static delivery for WEX-supplied bundles.
+ * Versioned delivery for the WEX-supplied Studio bundle.
  *
- * `studio-assets/` is a public, directly fetchable plugin-local directory —
- * the same trust model the existing Admin Station bundle already relies on:
- * the bundle itself carries no secret and no business data. It is only ever
- * enqueued on the authorized /studio/ route, for a signed-in platform
- * manager, and it imports no QSD visual code and depends on no GitHub Pages
- * path. Until WEX supplies `studio-assets/manifest.json` and its build, the
- * host route still renders its own mount point with nothing enqueued — the
- * host does not depend on WEX's bundle existing yet.
- *
- * Every manifest-supplied path is rejected outright if it is not a plain,
- * URL-safe relative form (see `isUrlSafeRelativePath()`) before any
- * filesystem check, and is further required to resolve, by real path, inside
- * `studio-assets/` (see `assetPath()`). The identical validated string is
- * used both to resolve the real file and to build the URL handed to the
- * browser, so there is never a gap between what was checked and what is
- * actually requested.
+ * The bundle is never copied into this repository. `StudioReleaseLock`
+ * fetches and verifies exactly one QSD-approved, immutable WEX release over
+ * HTTPS; this class enqueues only what that lock already confirmed, with a
+ * Subresource Integrity digest on every `<script>`/`<link>` tag it adds. It
+ * is only ever enqueued on the authorized /studio/ route, for a signed-in
+ * platform manager. Until the lock can verify a release, the host route
+ * still renders its own mount point with nothing enqueued — the host does
+ * not depend on WEX's bundle being reachable.
  */
 class StudioAssetGateway
 {
-    public const DIR_NAME = 'studio-assets';
-
     private const SCRIPT_HANDLE = 'qsd-studio-host';
     private const STYLE_HANDLE  = 'qsd-studio-host';
     private const CONFIG_HANDLE = 'qsd-studio-config';
 
     private \Closure $resolveLogoUrl;
+    private StudioReleaseLock $releaseLock;
+
+    /** @var array<string, string> Handle => SRI digest, populated by enqueue() for the output filters below. */
+    private array $integrityByHandle = [];
 
     /**
      * @param callable(): ?string|null $resolveLogoUrl Test seam only; production
      *     reads the real Account Brand projection via AccountRepository/AccountMedia.
+     * @param StudioReleaseLock|null $releaseLock Test seam only; production uses the real QSD-approved pin.
      */
-    public function __construct(?callable $resolveLogoUrl = null)
+    public function __construct(?callable $resolveLogoUrl = null, ?StudioReleaseLock $releaseLock = null)
     {
         $this->resolveLogoUrl = $resolveLogoUrl === null
             ? static fn(): ?string => self::currentLogoUrlFromAccount()
             : \Closure::fromCallable($resolveLogoUrl);
+        $this->releaseLock = $releaseLock ?? new StudioReleaseLock();
     }
 
     public function register(): void
     {
         add_action('wp_enqueue_scripts', [$this, 'enqueue']);
-        add_filter('script_loader_tag', [$this, 'setModuleType'], 10, 2);
+        add_filter('script_loader_tag', [$this, 'setScriptAttributes'], 10, 2);
+        add_filter('style_loader_tag', [$this, 'setStyleAttributes'], 10, 2);
     }
 
     public function enqueue(): void
@@ -63,123 +60,52 @@ class StudioAssetGateway
             return;
         }
 
-        $manifest = $this->readManifest();
-        if ($manifest === null) {
+        $release = $this->releaseLock->verifiedRelease();
+        if ($release === null) {
             return;
         }
 
         $this->outputRuntimeConfig();
 
-        $styles = is_array($manifest['styles'] ?? null) ? $manifest['styles'] : [];
-        foreach ($styles as $i => $file) {
-            $path = $this->assetPath((string) $file);
-            if ($path !== null) {
-                wp_enqueue_style(self::STYLE_HANDLE . '-' . $i, $this->assetUrl((string) $file), [], (string) filemtime($path));
-            }
+        foreach ($release['styles'] as $i => $file) {
+            $handle = self::STYLE_HANDLE . '-' . $i;
+            wp_enqueue_style($handle, $this->releaseLock->assetUrl($file), [], $release['releaseId']);
+            $this->integrityByHandle[$handle] = $release['files'][$file];
         }
 
-        $entry = isset($manifest['entry']) ? (string) $manifest['entry'] : '';
-        $path  = $entry !== '' ? $this->assetPath($entry) : null;
-        if ($path !== null) {
-            wp_enqueue_script(self::SCRIPT_HANDLE, $this->assetUrl($entry), [self::CONFIG_HANDLE], (string) filemtime($path), true);
-        }
+        $entry = $release['entry'];
+        wp_enqueue_script(self::SCRIPT_HANDLE, $this->releaseLock->assetUrl($entry), [self::CONFIG_HANDLE], $release['releaseId'], true);
+        $this->integrityByHandle[self::SCRIPT_HANDLE] = $release['files'][$entry];
     }
 
-    public function setModuleType(string $tag, string $handle): string
+    public function setScriptAttributes(string $tag, string $handle): string
     {
         if ($handle === self::SCRIPT_HANDLE) {
-            return str_replace('<script ', '<script type="module" ', $tag);
+            $tag = str_replace('<script ', '<script type="module" ', $tag);
+            $tag = $this->withIntegrity($tag, $handle);
         }
         return $tag;
     }
 
-    /** @return array{entry?: string, styles?: string[], version?: string}|null */
-    private function readManifest(): ?array
+    public function setStyleAttributes(string $tag, string $handle): string
     {
-        $path = $this->assetPath('manifest.json');
-        if ($path === null) {
-            return null;
-        }
-        $decoded = json_decode((string) file_get_contents($path), true);
-        return is_array($decoded) ? $decoded : null;
+        return $this->withIntegrity($tag, $handle);
     }
 
     /**
-     * Null when the string fails the URL-safety check below, is missing, or
-     * resolves (via `realpath()`) outside the asset root — defence in depth
-     * only: every filename here comes from WEX's own manifest file, never
-     * from a request. `realpath()` on `$relative` also resolves a symlink to
-     * its real target, so a symlink planted inside `studio-assets/` that
-     * points outside it is rejected by the same containment check as a
-     * plain `../` traversal.
-     *
-     * The containment check requires an exact match or a boundary at a
-     * directory separator — a bare `str_starts_with($real, $root)` would
-     * wrongly accept a sibling directory whose name merely starts with the
-     * same characters (e.g. a sibling `studio-assets-evil/` next to
-     * `studio-assets/`), since the string "studio-assets" is itself a
-     * prefix of "studio-assets-evil".
-     *
-     * `isUrlSafeRelativePath()` runs first, before any filesystem call: the
-     * exact same `$relative` string that passes here is also what
-     * `assetUrl()` sends to the browser, so rejecting an unsafe form here
-     * guarantees it is never enqueued as a URL either — not merely blocked
-     * from being read server-side while still reaching the client.
+     * Adds `integrity`/`crossorigin` to the one tag this release's digest
+     * inventory already verified — never to a handle this gateway did not
+     * itself enqueue from `$release['files']`, and never a value not
+     * already confirmed by `StudioReleaseLock`.
      */
-    private function assetPath(string $relative): ?string
+    private function withIntegrity(string $tag, string $handle): string
     {
-        if (!$this->isUrlSafeRelativePath($relative)) {
-            return null;
+        $digest = $this->integrityByHandle[$handle] ?? null;
+        if ($digest === null) {
+            return $tag;
         }
-        $root = realpath($this->rootPath());
-        if ($root === false) {
-            return null;
-        }
-        $real = realpath($root . '/' . $relative);
-        if ($real === false) {
-            return null;
-        }
-        if ($real !== $root && !str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
-            return null;
-        }
-        return is_file($real) ? $real : null;
-    }
-
-    /**
-     * A plain, forward-slash relative path only: no `..`/`.` segment, no
-     * leading slash or backslash, no Windows drive letter, and no `%`
-     * (rejected outright rather than decoded — a manifest value is never a
-     * URL that should carry percent-encoding in the first place). This is
-     * an explicit input-validation layer independent of the `realpath()`
-     * containment check in `assetPath()`, not a replacement for it.
-     */
-    private function isUrlSafeRelativePath(string $relative): bool
-    {
-        if ($relative === '' || str_contains($relative, "\0") || str_contains($relative, '%')) {
-            return false;
-        }
-        if (str_starts_with($relative, '/') || str_starts_with($relative, '\\') || str_contains($relative, '\\')) {
-            return false;
-        }
-        if (preg_match('/^[A-Za-z]:/', $relative) === 1) {
-            return false;
-        }
-        foreach (explode('/', $relative) as $segment) {
-            if ($segment === '.' || $segment === '..') {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private function assetUrl(string $relative): string
-    {
-        return QSD_PLUGIN_URL . self::DIR_NAME . '/' . $relative;
-    }
-
-    private function rootPath(): string
-    {
-        return rtrim(QSD_PLUGIN_PATH, '/') . '/' . self::DIR_NAME;
+        $attrs = ' integrity="' . esc_attr($digest) . '" crossorigin="anonymous"';
+        return preg_replace('/^(<(?:script|link)\b)/', '$1' . $attrs, $tag, 1) ?? $tag;
     }
 
     /** Scoped to only the Studio routes — never the full qsd/v1 business API root. */

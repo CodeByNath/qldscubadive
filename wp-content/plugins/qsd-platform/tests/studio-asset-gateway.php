@@ -2,25 +2,21 @@
 
 declare(strict_types=1);
 
-// StudioAssetGateway: the versioned WEX-only asset delivery seam. Exercises
-// the real class against a real fixture `studio-assets/` directory (QSD_PLUGIN_PATH
-// points at a temp fixture root for this process only, never the real plugin
-// tree), proving route/capability gating and that the host works with no
-// manifest supplied yet, without touching any real QSD bundle path.
+// StudioAssetGateway: the versioned WEX asset delivery seam. Exercises the
+// real class with a real StudioReleaseLock behind a stub transport (never a
+// mock, never the network) — proving route/capability gating, the end-to-end
+// enqueue of a release the lock already verified (with its SRI digest on the
+// resulting tag), and that the host works with nothing enqueued until a
+// release can be verified, exactly like the old missing-manifest state.
 
-$__fixtureRoot = sys_get_temp_dir() . '/qsd-studio-asset-test-' . bin2hex(random_bytes(6)) . '/';
-mkdir($__fixtureRoot . 'studio-assets', 0755, true);
-
-define('QSD_PLUGIN_PATH', $__fixtureRoot);
-define('QSD_PLUGIN_URL', 'https://qsd-test.local/wp-content/plugins/qsd-platform/');
-
-$__isStudioRoute  = false;
-$__loggedIn       = false;
-$__canManageQsd   = false;
-$__enqueuedStyles = [];
+$__isStudioRoute   = false;
+$__loggedIn        = false;
+$__canManageQsd    = false;
+$__enqueuedStyles  = [];
 $__enqueuedScripts = [];
-$__inlineScripts  = [];
-$__logoUrl        = null;
+$__inlineScripts   = [];
+$__logoUrl         = null;
+$__transients      = [];
 
 function is_user_logged_in(): bool { global $__loggedIn; return $__loggedIn; }
 function current_user_can(string $cap): bool { global $__canManageQsd; return $__canManageQsd; }
@@ -34,11 +30,16 @@ function wp_add_inline_script(string $handle, string $data): void { global $__in
 function rest_url(string $path): string { return 'https://qsd-test.local/wp-json/' . $path; }
 function wp_create_nonce(string $action): string { return 'nonce-' . $action; }
 function esc_url_raw(string $url): string { return $url; }
+function esc_attr(string $text): string { return htmlspecialchars($text, ENT_QUOTES); }
 function wp_json_encode(mixed $value): string|false { return json_encode($value); }
+function get_transient(string $key): mixed { global $__transients; return $__transients[$key] ?? false; }
+function set_transient(string $key, mixed $value, int $ttl): bool { global $__transients; $__transients[$key] = $value; return true; }
 
 require_once __DIR__ . '/../src/Core/PlatformAccess.php';
 require_once __DIR__ . '/../src/Modules/Account/Support/AccountMedia.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioHostModule.php';
+require_once __DIR__ . '/../src/Modules/StudioHost/StudioAssetPath.php';
+require_once __DIR__ . '/../src/Modules/StudioHost/StudioReleaseLock.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioAssetGateway.php';
 
 // isStudioRequest() is gated internally on get_query_var(); stub it here
@@ -46,6 +47,7 @@ require_once __DIR__ . '/../src/Modules/StudioHost/StudioAssetGateway.php';
 function get_query_var(string $name): string { global $__isStudioRoute; return $__isStudioRoute ? '1' : ''; }
 
 use QSD\Platform\Modules\StudioHost\StudioAssetGateway;
+use QSD\Platform\Modules\StudioHost\StudioReleaseLock;
 
 $failures = [];
 function check_studio_asset(bool $condition, string $label, mixed $detail = null): void
@@ -59,53 +61,45 @@ function check_studio_asset(bool $condition, string $label, mixed $detail = null
     echo '  FAIL — ' . $label . ($detail !== null ? ': ' . json_encode($detail) : '') . "\n";
 }
 
-// The real resolver reads Account's Brand projection (AccountRepository +
-// AccountMedia, needing a real $wpdb); this test exercises only the handoff
-// contract, so a stub resolver stands in, swapped via $__logoUrl per case.
-$gateway = new StudioAssetGateway(static function (): ?string {
-    global $__logoUrl;
-    return $__logoUrl;
-});
-
-// ── 1) Off the Studio route: nothing is ever enqueued, regardless of auth ─
-echo "1) nothing is enqueued off the /studio/ route\n";
+/**
+ * A real StudioReleaseLock, pinned at a fixture release and wired to a stub
+ * transport returning a fixture manifest body whose digest the pin expects
+ * — the same shape WEX's real closeout manifest has (contract, entry,
+ * styles, releaseId, files inventory of sha384 digests).
+ *
+ * @param array<string, mixed> $manifestOverrides
+ * @return array{lock: StudioReleaseLock, pin: array<string, string>, calls: array<int, string>}
+ */
+function make_fixture_lock(array $manifestOverrides = [], ?int $httpStatus = 200): array
 {
-    global $__isStudioRoute, $__loggedIn, $__canManageQsd, $__enqueuedScripts, $__enqueuedStyles;
-    $__isStudioRoute = false;
-    $__loggedIn      = true;
-    $__canManageQsd  = true;
-    $gateway->enqueue();
-    check_studio_asset($__enqueuedScripts === [], 'no script enqueued when the request is not the Studio route');
-    check_studio_asset($__enqueuedStyles === [], 'no style enqueued when the request is not the Studio route');
-}
+    $manifest = array_merge([
+        'contract'  => 'wex-studio-host@1',
+        'entry'     => 'assets/studio.js',
+        'styles'    => ['assets/studio.css'],
+        'version'   => 'fixture-release-1',
+        'releaseId' => 'fixture-release-1',
+        'sourceSha' => 'deadbeef',
+        'files'     => [
+            'assets/studio.js'  => 'sha384-' . base64_encode(hash('sha384', 'script bytes', true)),
+            'assets/studio.css' => 'sha384-' . base64_encode(hash('sha384', 'style bytes', true)),
+        ],
+    ], $manifestOverrides);
+    $body = (string) json_encode($manifest);
 
-// ── 2) On the route, unauthenticated/unauthorized: still nothing ──────────
-echo "\n2) on the route, an unauthorized caller still gets nothing\n";
-{
-    global $__isStudioRoute, $__loggedIn, $__canManageQsd, $__enqueuedScripts;
-    $__isStudioRoute = true;
-    $__loggedIn      = false;
-    $__canManageQsd  = false;
-    $gateway->enqueue();
-    check_studio_asset($__enqueuedScripts === [], 'logged-out on the Studio route still enqueues nothing');
+    $pin = [
+        'releaseId'              => 'fixture-release-1',
+        'manifestUrl'            => 'https://wex-fixture.test/releases/fixture-release-1/manifest.json',
+        'expectedManifestDigest' => 'sha384-' . base64_encode(hash('sha384', $body, true)),
+        'expectedContract'       => 'wex-studio-host@1',
+    ];
 
-    $__loggedIn     = true;
-    $__canManageQsd = false; // signed in, but lacks manage_qsd
-    $gateway->enqueue();
-    check_studio_asset($__enqueuedScripts === [], 'signed in without the platform capability still enqueues nothing');
-}
+    $calls = [];
+    $transport = function (string $url) use (&$calls, $body, $httpStatus): array {
+        $calls[] = $url;
+        return ['status' => $httpStatus, 'body' => $httpStatus === 200 ? $body : null];
+    };
 
-// ── 3) Authorized, but WEX has not supplied a manifest yet: host still works ─
-echo "\n3) an authorized caller with no WEX manifest yet enqueues nothing — the host does not depend on WEX's bundle existing\n";
-{
-    global $__isStudioRoute, $__loggedIn, $__canManageQsd, $__enqueuedScripts, $__enqueuedStyles, $__inlineScripts;
-    $__isStudioRoute = true;
-    $__loggedIn      = true;
-    $__canManageQsd  = true;
-    $gateway->enqueue();
-    check_studio_asset($__enqueuedScripts === [], 'no script enqueued when manifest.json is absent');
-    check_studio_asset($__enqueuedStyles === [], 'no style enqueued when manifest.json is absent');
-    check_studio_asset($__inlineScripts === [], 'the runtime config is not even written when there is nothing to boot');
+    return ['lock' => new StudioReleaseLock($pin, $transport), 'pin' => $pin, 'calls' => &$calls];
 }
 
 /** Pulls one `<prefix> = { ... };` statement's JSON payload out of the concatenated inline script. */
@@ -120,29 +114,108 @@ function extract_inline_json(string $script, string $prefix): mixed
     return $end === false ? null : json_decode(substr($script, $jsonStart, $end - $jsonStart), true);
 }
 
-// ── 4) Authorized, with a real WEX-supplied manifest + bundle ─────────────
-echo "\n4) an authorized caller with a real manifest gets the bundle enqueued, scoped to /studio/\n";
+// ── 1) Off the Studio route: nothing is ever enqueued, regardless of auth,
+//      and the release lock is never even consulted ───────────────────────
+echo "1) nothing is enqueued off the /studio/ route\n";
 {
-    global $__fixtureRoot, $__enqueuedScripts, $__enqueuedStyles, $__inlineScripts, $__logoUrl;
-    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode([
-        'entry'   => 'studio.js',
-        'styles'  => ['studio.css'],
-        'version' => '1.0.0',
-    ]));
-    file_put_contents($__fixtureRoot . 'studio-assets/studio.js', '// wex bundle');
-    file_put_contents($__fixtureRoot . 'studio-assets/studio.css', '/* wex styles */');
+    global $__isStudioRoute, $__loggedIn, $__canManageQsd, $__enqueuedScripts, $__enqueuedStyles, $__logoUrl;
+    $__isStudioRoute = false;
+    $__loggedIn      = true;
+    $__canManageQsd  = true;
+    $__logoUrl       = null;
+    $fixture = make_fixture_lock();
+    $gateway = new StudioAssetGateway(static fn(): ?string => $GLOBALS['__logoUrl'], $fixture['lock']);
+    $gateway->enqueue();
+    check_studio_asset($__enqueuedScripts === [], 'no script enqueued when the request is not the Studio route');
+    check_studio_asset($__enqueuedStyles === [], 'no style enqueued when the request is not the Studio route');
+    check_studio_asset($fixture['calls'] === [], 'the release lock is never consulted off the Studio route');
+}
 
-    $__logoUrl = 'https://qsd-test.local/wp-content/uploads/qsd-account/abc123.png';
+// ── 2) On the route, unauthenticated/unauthorized: still nothing, and the
+//      release lock is still never consulted ──────────────────────────────
+echo "\n2) on the route, an unauthorized caller still gets nothing\n";
+{
+    global $__isStudioRoute, $__loggedIn, $__canManageQsd, $__enqueuedScripts;
+    $fixture = make_fixture_lock();
+    $gateway = new StudioAssetGateway(static fn(): ?string => null, $fixture['lock']);
+
+    $__isStudioRoute = true;
+    $__loggedIn      = false;
+    $__canManageQsd  = false;
+    $gateway->enqueue();
+    check_studio_asset($__enqueuedScripts === [], 'logged-out on the Studio route still enqueues nothing');
+
+    $__loggedIn     = true;
+    $__canManageQsd = false; // signed in, but lacks manage_qsd
+    $gateway->enqueue();
+    check_studio_asset($__enqueuedScripts === [], 'signed in without the platform capability still enqueues nothing');
+    check_studio_asset($fixture['calls'] === [], 'the release lock is never consulted for an unauthorized caller');
+}
+
+// ── 3) Authorized, but the release lock cannot verify anything yet: host
+//      still works, exactly like the old missing-local-manifest state ─────
+echo "\n3) an authorized caller gets nothing enqueued while no release can be verified — the host does not depend on WEX's bundle existing\n";
+{
+    global $__isStudioRoute, $__loggedIn, $__canManageQsd, $__enqueuedScripts, $__enqueuedStyles, $__inlineScripts;
+    $__isStudioRoute = true;
+    $__loggedIn      = true;
+    $__canManageQsd  = true;
+    $__enqueuedScripts = [];
+    $__enqueuedStyles  = [];
+    $__inlineScripts   = [];
+
+    $fixture = make_fixture_lock([], httpStatus: 503); // upstream unreachable/erroring
+    $gateway = new StudioAssetGateway(static fn(): ?string => null, $fixture['lock']);
+    $gateway->enqueue();
+    check_studio_asset($__enqueuedScripts === [], 'no script enqueued when the release cannot be verified');
+    check_studio_asset($__enqueuedStyles === [], 'no style enqueued when the release cannot be verified');
+    check_studio_asset($__inlineScripts === [], 'the runtime config is not even written when there is nothing to boot');
+}
+
+// ── 4) Authorized, with a release the lock has fully verified ─────────────
+echo "\n4) an authorized caller with a verified release gets the bundle enqueued with its SRI digest, scoped to /studio/\n";
+{
+    global $__enqueuedScripts, $__enqueuedStyles, $__inlineScripts, $__logoUrl;
+    $__enqueuedScripts = [];
+    $__enqueuedStyles  = [];
+    $__inlineScripts   = [];
+    $__logoUrl         = 'https://qsd-test.local/wp-content/uploads/qsd-account/abc123.png';
+
+    $fixture = make_fixture_lock();
+    $gateway = new StudioAssetGateway(static fn(): ?string => $GLOBALS['__logoUrl'], $fixture['lock']);
     $gateway->enqueue();
 
     check_studio_asset(isset($__enqueuedScripts['qsd-studio-host']), 'the WEX entry script is enqueued under its own handle, distinct from qsd-admin-station');
     check_studio_asset(
-        $__enqueuedScripts['qsd-studio-host'][0] === 'https://qsd-test.local/wp-content/plugins/qsd-platform/studio-assets/studio.js',
-        'the enqueued script URL points at studio-assets/, not dist/',
-        $__enqueuedScripts['qsd-studio-host'],
+        $__enqueuedScripts['qsd-studio-host'][0] === 'https://wex-fixture.test/releases/fixture-release-1/assets/studio.js',
+        'the enqueued script URL is built from the verified release, not a plugin-local path',
+        $__enqueuedScripts,
     );
+    check_studio_asset($__enqueuedScripts['qsd-studio-host'][1] === 'fixture-release-1', 'the script version is the immutable release id, not a filemtime');
     check_studio_asset(isset($__enqueuedStyles['qsd-studio-host-0']), 'the WEX stylesheet is enqueued');
-    check_studio_asset(isset($__inlineScripts['qsd-studio-config']), 'the runtime config is written once a real bundle is enqueued');
+
+    // setScriptAttributes/setStyleAttributes read per-instance state populated by enqueue(); exercise the SAME instance.
+    $scriptTag = $gateway->setScriptAttributes('<script src="x"></script>', 'qsd-studio-host');
+    check_studio_asset(str_contains($scriptTag, 'type="module"'), 'the WEX entry script tag is marked type="module"');
+    check_studio_asset(
+        str_contains($scriptTag, 'integrity="sha384-' . base64_encode(hash('sha384', 'script bytes', true)) . '"'),
+        'the WEX entry script tag carries the exact SRI digest the release lock verified',
+        $scriptTag,
+    );
+    check_studio_asset(str_contains($scriptTag, 'crossorigin="anonymous"'), 'the WEX entry script tag is crossorigin for its external origin');
+
+    $styleTag = $gateway->setStyleAttributes('<link rel="stylesheet" href="x">', 'qsd-studio-host-0');
+    check_studio_asset(
+        str_contains($styleTag, 'integrity="sha384-' . base64_encode(hash('sha384', 'style bytes', true)) . '"') && str_contains($styleTag, 'crossorigin="anonymous"'),
+        'the WEX stylesheet tag carries its own verified SRI digest and crossorigin',
+        $styleTag,
+    );
+    check_studio_asset(
+        $gateway->setScriptAttributes('<script src="x"></script>', 'some-other-handle') === '<script src="x"></script>',
+        'a handle this gateway did not enqueue from the verified release is never given an integrity attribute',
+    );
+
+    check_studio_asset(isset($__inlineScripts['qsd-studio-config']), 'the runtime config is written once a verified release is enqueued');
     $configJson = extract_inline_json($__inlineScripts['qsd-studio-config'], 'window.QSDStudioConfig = ');
     check_studio_asset(
         is_array($configJson) && str_ends_with((string) $configJson['apiRoot'], '/qsd/v1/studio/'),
@@ -165,6 +238,7 @@ echo "\n4) an authorized caller with a real manifest gets the bundle enqueued, s
         "the WEX host options carry the authorised Account Brand logo URL, not a hardcoded fixture",
         $hostOptions,
     );
+    check_studio_asset(count($fixture['calls']) === 1, 'the release lock is consulted exactly once for this request');
 }
 
 // ── 4b) No Brand logo published yet: the handoff carries null, not a guess ─
@@ -173,6 +247,8 @@ echo "\n4b) no published Brand logo yields a null sourceValue, never a fabricate
     global $__inlineScripts, $__logoUrl;
     $__inlineScripts = [];
     $__logoUrl = null;
+    $fixture = make_fixture_lock();
+    $gateway = new StudioAssetGateway(static fn(): ?string => $GLOBALS['__logoUrl'], $fixture['lock']);
     $gateway->enqueue();
 
     $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'], 'globalThis.wexStudioHostOptions = ');
@@ -193,6 +269,8 @@ echo "\n4c) a Markdown-wrapped logo URL is rejected to null, never passed throug
     $__inlineScripts = [];
     $clean     = 'https://qsd-test.local/wp-content/uploads/qsd-account/' . str_repeat('a1', 32) . '.webp';
     $__logoUrl = '[' . $clean . '](' . $clean . ' "' . $clean . '")';
+    $fixture = make_fixture_lock();
+    $gateway = new StudioAssetGateway(static fn(): ?string => $GLOBALS['__logoUrl'], $fixture['lock']);
     $gateway->enqueue();
 
     $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'], 'globalThis.wexStudioHostOptions = ');
@@ -209,6 +287,8 @@ echo "\n4d) a clean, well-formed logo URL still passes through unchanged\n";
     global $__inlineScripts, $__logoUrl;
     $__inlineScripts = [];
     $__logoUrl = 'https://qsd-test.local/wp-content/uploads/qsd-account/' . str_repeat('a1', 32) . '.webp';
+    $fixture = make_fixture_lock();
+    $gateway = new StudioAssetGateway(static fn(): ?string => $GLOBALS['__logoUrl'], $fixture['lock']);
     $gateway->enqueue();
 
     $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'], 'globalThis.wexStudioHostOptions = ');
@@ -219,99 +299,16 @@ echo "\n4d) a clean, well-formed logo URL still passes through unchanged\n";
     );
 }
 
-// ── 5) A manifest entry that tries to escape studio-assets/ is refused ────
-echo "\n5) a manifest entry path cannot escape the studio-assets/ root\n";
+// ── 5) The real, no-arg constructor reads the actual Account Brand logo URL,
+//      not just the test-seam resolver exercised above (release lock is
+//      still a fixture — this case is about the logo resolver default only) ─
+echo "\n5) the default resolver reads the real Account Brand projection (AccountRepository + AccountMedia)\n";
 {
-    global $__fixtureRoot, $__enqueuedScripts;
-    $__enqueuedScripts = [];
-    mkdir($__fixtureRoot . 'secret', 0755, true);
-    file_put_contents($__fixtureRoot . 'secret/outside.js', '// should never be reachable');
-    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => '../secret/outside.js']));
-
-    $gateway->enqueue();
-    check_studio_asset(!isset($__enqueuedScripts['qsd-studio-host']), 'an entry path resolving outside studio-assets/ is never enqueued as the WEX bundle', $__enqueuedScripts);
-}
-
-// ── 6) A sibling directory whose name merely starts with "studio-assets"
-//      must not pass containment by string prefix alone ──────────────────
-echo "\n6) a sibling directory like studio-assets-evil/ cannot pass as contained by a bare string prefix match\n";
-{
-    global $__fixtureRoot, $__enqueuedScripts;
-    $__enqueuedScripts = [];
-    mkdir($__fixtureRoot . 'studio-assets-evil', 0755, true);
-    file_put_contents($__fixtureRoot . 'studio-assets-evil/secret2.js', '// should never be reachable either');
-    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => '../studio-assets-evil/secret2.js']));
-
-    $gateway->enqueue();
-    check_studio_asset(
-        !isset($__enqueuedScripts['qsd-studio-host']),
-        'an entry resolving into a sibling "studio-assets-evil/" directory is rejected, not accepted by a bare prefix match',
-        $__enqueuedScripts,
-    );
-}
-
-// ── 7) A symlink planted inside studio-assets/ pointing outside it ────────
-echo "\n7) a symlink inside studio-assets/ that points outside it is refused, not followed\n";
-{
-    global $__fixtureRoot, $__enqueuedScripts;
-    $__enqueuedScripts = [];
-    file_put_contents($__fixtureRoot . 'outside-secret.js', '// should never be reachable via a symlink either');
-    @unlink($__fixtureRoot . 'studio-assets/escape-link.js');
-    $linked = @symlink($__fixtureRoot . 'outside-secret.js', $__fixtureRoot . 'studio-assets/escape-link.js');
-    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => 'escape-link.js']));
-
-    if (!$linked) {
-        echo "  skip — this filesystem/environment does not support creating symlinks\n";
-    } else {
-        $gateway->enqueue();
-        check_studio_asset(
-            !isset($__enqueuedScripts['qsd-studio-host']),
-            'a symlink resolving outside studio-assets/ is rejected, never enqueued as the WEX bundle',
-            $__enqueuedScripts,
-        );
-    }
-}
-
-// ── 8) URL-unsafe manifest entry forms are rejected before any filesystem
-//      check — an absolute path, a Windows-style path, and a percent-encoded
-//      form must never reach either the real-path check or the browser URL ─
-echo "\n8) absolute, Windows-style, and percent-encoded manifest entries are all rejected\n";
-{
-    global $__fixtureRoot, $__enqueuedScripts;
-
-    $unsafeEntries = [
-        'an absolute path'        => '/etc/passwd',
-        'a Windows drive path'    => 'C:\\Windows\\System32\\config.sys',
-        'a bare backslash form'   => 'studio-assets\\..\\secret.js',
-        'a percent-encoded form'  => '%2e%2e%2fsecret.js',
-        'a literal dot segment'   => './studio.js/../../secret.js',
-    ];
-
-    foreach ($unsafeEntries as $label => $entry) {
-        $__enqueuedScripts = [];
-        file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => $entry]));
-        $gateway->enqueue();
-        check_studio_asset(!isset($__enqueuedScripts['qsd-studio-host']), "{$label} ('{$entry}') is rejected outright, never enqueued", $__enqueuedScripts);
-    }
-
-    // A safe entry still works after all those rejections — the validator
-    // does not over-reject plain, legitimate relative paths.
-    $__enqueuedScripts = [];
-    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => 'studio.js']));
-    $gateway->enqueue();
-    check_studio_asset(isset($__enqueuedScripts['qsd-studio-host']), 'a plain, legitimate relative entry still enqueues correctly after the stricter validation');
-}
-
-// ── 9) The real, no-arg constructor reads the actual Account Brand logo URL,
-//      not just the test-seam resolver exercised above ───────────────────
-echo "\n9) the default resolver reads the real Account Brand projection (AccountRepository + AccountMedia)\n";
-{
-    global $__fixtureRoot, $__enqueuedScripts, $__inlineScripts;
+    global $__inlineScripts;
 
     function wp_upload_dir(): array
     {
-        global $__fixtureRoot;
-        return ['baseurl' => 'https://qsd-test.local/wp-content/uploads', 'basedir' => $__fixtureRoot . 'uploads'];
+        return ['baseurl' => 'https://qsd-test.local/wp-content/uploads', 'basedir' => sys_get_temp_dir() . '/qsd-studio-asset-uploads'];
     }
     function trailingslashit(string $path): string { return rtrim($path, '/') . '/'; }
 
@@ -319,7 +316,6 @@ echo "\n9) the default resolver reads the real Account Brand projection (Account
     require_once __DIR__ . '/../src/PlatformIdentifier/PlatformIdentifierPolicy.php';
     require_once __DIR__ . '/../src/Modules/Account/Support/AccountSchema.php';
     require_once __DIR__ . '/../src/Modules/Account/Support/AccountRepository.php';
-    require_once __DIR__ . '/../src/Modules/Account/Support/AccountMedia.php';
 
     $table = new AccountOptionsTable();
     $table->rows[\QSD\Platform\Modules\Account\Support\AccountSchema::OPTION_KEY] = json_encode([
@@ -327,11 +323,9 @@ echo "\n9) the default resolver reads the real Account Brand projection (Account
     ]);
     $GLOBALS['wpdb'] = new AccountWpdb($table);
 
-    $__enqueuedScripts = [];
-    $__inlineScripts   = [];
-    file_put_contents($__fixtureRoot . 'studio-assets/manifest.json', json_encode(['entry' => 'studio.js']));
-
-    $defaultGateway = new StudioAssetGateway();
+    $__inlineScripts = [];
+    $fixture = make_fixture_lock();
+    $defaultGateway = new StudioAssetGateway(null, $fixture['lock']);
     $defaultGateway->enqueue();
 
     $hostOptions = extract_inline_json($__inlineScripts['qsd-studio-config'] ?? '', 'globalThis.wexStudioHostOptions = ');
