@@ -1,8 +1,8 @@
 # QSD Studio — versioned WEX consumer
 
-Status: AWAITING REVIEWER REVIEW — Phase 1H package pushed/deployed; browser proof unverified this session
+Status: AWAITING OWNER BROWSER VERIFICATION — Phase 1H staging deployed, runtime acceptance pending
 Phase: 1H — consume approved WEX version on staging
-Actor: REVIEWER / OWNER — authenticated browser verification of Logo containment on QSD staging
+Actor: OWNER / REVIEWER — authenticated staging browser validation
 
 ## Upstream dependency resolved — 16 October 2026
 
@@ -42,3 +42,9 @@ WEX WEXdesigns actor is Codex; QSD actor is Claude. Repositories and branches re
 **Deliberately deferred — CSP:** the work package asked for CSP "where proven." This repo has no existing CSP mechanism, and the existing `wexStudioHostOptions`/`QSDStudioConfig` inline `<script>` the gateway already writes has no nonce path — adding a `script-src` CSP header without `'unsafe-inline'` would likely break that existing inline hand-off, and I have no browser to verify either way this session. Shipped the verified-SRI-origin-pin-fail-closed mechanism (the core ask) without a CSP header; flagging this as a bounded, explainable omission rather than guessing at a header that could silently break the authenticated dashboard.
 
 **What's left:** no browser/login capability this session — step 4's authenticated `/studio/` check (Logo wrapper exactly 64×64, proportional image, no overlap, keyboard/focus/fallback intact across collapsed/expanded/hover/compact states) is **unverified**, per this phase's own instruction, not claimed as passing. Pushed `c706f69` on `wex-studio-staging-package`, fast-forwarded `staging` to the same SHA, both verified on remote. CI run `38867863037`: `test` and `deploy-staging` jobs both green. Reviewer or Owner needs the one authenticated browser check to close out Phase 1H.
+
+
+## Independent Reviewer verdict — 16 October 2026
+**Proceed with safeguards.** Independently inspected pushed `wex-studio-staging-package` at `c706f69a92a2f53a439e38aab3998dac1bd39ae8`: exactly one commit ahead of `main` (`c0fd50323cf06053fa18b7fc051e4c89044494f0`), no divergence, and identical to `staging` (0 ahead/behind). Actual diff contains QSD-only gateway, release lock, path validation, tests and documentation; no WEX CSS, QSD Profile, or business-data changes. Verified release lock pins exact HTTPS manifest, digest and contract; gateway uses existing access guard/Logo handoff and adds SRI to its own enqueued module/styles. Focused tests and staging workflow `38867863037` are Builder-reported as passing; Reviewer did not reproduce authenticated staging browser behaviour. CSP was not added: existing inline config script lacks nonce; do not claim CSP hardening.
+
+**Phase acceptance is conditional on authenticated browser proof**, not another implementation round. Owner/Reviewer: open the deployed QSD staging `/studio/`, verify real Profile Logo, exact 64×64 Logo wrapper in collapsed/expanded/hover/compact states, no overlap, proper image proportions, working keyboard/focus and no console/module/CORS/SRI errors. Confirm WEX release assets load from pinned Pages origin. If PASS, record evidence here, close Phase 1H as ACCEPTED, then authorised Git-capable Builder may safely remove only the topic branch proven identical to staging; no production/main promotion implied. If FAIL, record specific observed regression and return one bounded correction to QSD or WEX owner as appropriate. Do not fabricate browser proof or prematurely close.
