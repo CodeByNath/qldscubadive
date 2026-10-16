@@ -1,9 +1,9 @@
 # QSD /studio — WEX Dashboard staging integration
 
 Repository: `CodeByNath/qldscubadive`
-Status: DEFERRED — Owner closed QSD Logo integration work; authenticated visual acceptance not claimed
-Actor: **NONE — QSD Logo work closed by Owner**
-Phase: 1F — staging installation and authenticated browser proof
+Status: BUILDER ACTION REQUIRED — Phase 1G install WEX fixed 64px Logo
+Actor: **BUILDER:CODER (Claude)** — QSD staging-only host bundle refresh
+Phase: 1G — install accepted WEX fixed-size Logo version in QSD staging
 
 ## Owner goal
 Show the **latest approved WEX Dashboard refinements** in the actual QSD staging `/studio`, promptly. No duplicate UI implementation. Previous staging Phase 1E was visually accepted with real QSD Profile Logo rendered in the Header. Latest WEX Header/Sidebar refinements are not yet proven on the QSD host.
@@ -85,3 +85,10 @@ Owner lifted the Auto Mode restriction for the dependency install; the rebuild t
 ## Owner close-out — 16 October 2026
 
 **Verdict: Proceed with safeguards.** Owner directed closure of QSD Logo work and transferred the remaining fixed-size presentation requirement to WEX Codex. QSD `staging` was pushed to `882c823` with deployment workflow `38764010673` reported green; authenticated browser geometry was not independently verified, so the QSD Phase 1F visual gate is explicitly **DEFERRED, not ACCEPTED**. No further QSD Logo Builder work is assigned. Leave QSD Profile image, bindings, assets and APIs unchanged. WEX owns the follow-up fixed 64×64px Logo presentation correction; any future QSD package update requires separate authorisation. Do not claim production deployment or that the visual defect was resolved.
+
+
+## Owner reopened staging update — Phase 1G (16 October 2026)
+
+Owner explicitly authorised immediate QSD update to start inspecting the Logo. WEX `main` was independently verified **identical** to accepted fixed 64px Logo SHA `ec445a73dc98b94f1781096e94ccc34e48bff32c` (0 ahead/behind). This replaces earlier outdated references to `3c9e136` for the new update; Phase 1F remains historically deferred, not retroactively accepted.
+
+**BUILDER:CODER (Claude), QSD only:** Reuse the existing `wex-studio-staging-package` integration topic if still valid; confirm the current branch and QSD staging states before touching files. Build the WEX Studio host bundle from EXACT `ec445a73dc98b94f1781096e94ccc34e48bff32c` with the already proven QSD process; update only QSD's existing `studio-assets` generated JS/CSS/manifest references needed to consume the version. Preserve QSD Profile Logo image, binding, host API and authentication; do not recreate WEX UI, add QSD CSS, modify platform identity/data, or start permanent delivery redesign. Run required checks, push topic and fast-forward/deploy to **QSD staging only** via existing authorised path (no production/main promotion), verify CI/workflow and asset hash. Inspect authenticated `/studio/` where capable: Logo container exactly 64×64px under expanded/collapsed/hover/compact states, no overlap, image proportional, preserved real Profile source, keyboard/focus. Record separately any missing authenticated-browser access (never call CI visual proof). Update SAME work file to `AWAITING REVIEWER REVIEW` with QSD SHA, manifest assets, tests, deployment and browser evidence/limits. Stop for independent review. If build/install capability missing, stop and document concrete limitation; do not substitute unrelated work.
