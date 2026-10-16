@@ -1,8 +1,8 @@
 # QSD Studio — versioned WEX consumer
 
-Status: BUILDER ACTION REQUIRED — WEX release verified; begin QSD consumer package
+Status: AWAITING REVIEWER REVIEW — Phase 1H package pushed/deployed; browser proof unverified this session
 Phase: 1H — consume approved WEX version on staging
-Actor: BUILDER:CODER (Claude) — execute authorised Phase 1H package.
+Actor: REVIEWER / OWNER — authenticated browser verification of Logo containment on QSD staging
 
 ## Upstream dependency resolved — 16 October 2026
 
@@ -28,3 +28,17 @@ Replace repeated manual WEX bundle-copy / QSD asset commits with an approved ver
 No production deployment, no automatic adoption of WEX `main`/`latest`, no WEX presentation/CSS in QSD, no Profile/Account media/data/identity changes, no replacement of QSD host framework, no secrets exposed. Stop only for concrete unsafe/unavailable dependency or genuine architecture/security decision outside approved contract. Do not claim new delivery mechanism works until WEX artifact and QSD runtime evidence exist.
 
 WEX WEXdesigns actor is Codex; QSD actor is Claude. Repositories and branches remain independent. Historical QSD Phase 1F/1G evidence is in this file's Git history.
+
+## Builder — Phase 1H package pushed/deployed; browser proof unverified this session (16 October 2026)
+
+**Pin + verification (`StudioReleaseLock.php`, new):** confirmed (`curl`) the accepted release manifest's raw-byte SHA-384 digest is exactly `sha384-TGJL9R8YXT5xSlCTXoBG8NtbtuBnbXUKEZiqzlU5MBnGuoIgoREBquPzbO7Cob7W` as this file states, and that every entry/style/font file in its `files` inventory matches its listed digest and is served with `access-control-allow-origin: *`. Pinned release id `wex-studio-v1-7d1dd544fb92f5d019e5034cd15ede94857b671d`, manifest URL, digest, and `contract: wex-studio-host@1` are QSD-committed constants. `verifiedRelease()` fetches that one URL over HTTPS and fails closed (returns `null`) on a non-200/network response, a manifest digest mismatch, an unexpected `contract`/`releaseId`, a missing/malformed `files` inventory, or an `entry`/`styles` path absent from it; every inventory key is run through the existing `isUrlSafeRelativePath()` check (now shared via new `StudioAssetPath.php`) before being appended to the pinned base URL. A verified result is transient-cached only after full verification.
+
+**Gateway (`StudioAssetGateway.php`, rewritten):** enqueues only what the lock verified — no manifest/JS/CSS/font is read from or copied into this repository for this path anymore. Adds `integrity`/`crossorigin="anonymous"` to each `<script>`/`<link>` tag via `script_loader_tag`/`style_loader_tag`, keyed strictly to a handle this same instance enqueued from the verified release. `studio-assets/` (old manual-copy bundle) is untouched on disk, retained only as this mechanism's git-history rollback reference — the gateway no longer reads it, and never falls back to it on a verification failure. Pre-existing `wexStudioHostOptions`/logo-handoff/permission-gating behaviour is unchanged.
+
+**Tests:** new `tests/studio-release-lock.php` (27 checks: digest mismatch, wrong contract/releaseId, missing/empty/malformed inventory, entry/style absent from inventory, unsafe inventory path forms, non-https pin, network/non-200 failure, caching, and switching the pin between two different releases — including a simulated rollback — all with no asset copy). `tests/studio-asset-gateway.php` rewritten for the new release-lock-driven enqueue (route/capability gating, end-to-end verified-release enqueue with SRI attributes, logo handoff cases unchanged). `npm run typecheck`/`build`/`test:js` (27/27) clean; all 25 tracked `tests/*.php` pass individually — `npm run test:php`'s glob still also fatals on the same pre-existing untracked `" 2"`-suffixed clutter (now failing one line earlier, on the new `StudioReleaseLock` dependency, same root cause as previously documented); `npm run docs:check` clean except the same single pre-existing clutter-indexing failure (`studio-host 2.md`).
+
+**Docs:** `docs/code-map/studio-host.md` and this module's local `CLAUDE.md` updated for the new ownership (trimmed to stay under the 600-word Code Map cap); `studio-assets/README.md` marked retired/history-only.
+
+**Deliberately deferred — CSP:** the work package asked for CSP "where proven." This repo has no existing CSP mechanism, and the existing `wexStudioHostOptions`/`QSDStudioConfig` inline `<script>` the gateway already writes has no nonce path — adding a `script-src` CSP header without `'unsafe-inline'` would likely break that existing inline hand-off, and I have no browser to verify either way this session. Shipped the verified-SRI-origin-pin-fail-closed mechanism (the core ask) without a CSP header; flagging this as a bounded, explainable omission rather than guessing at a header that could silently break the authenticated dashboard.
+
+**What's left:** no browser/login capability this session — step 4's authenticated `/studio/` check (Logo wrapper exactly 64×64, proportional image, no overlap, keyboard/focus/fallback intact across collapsed/expanded/hover/compact states) is **unverified**, per this phase's own instruction, not claimed as passing. Pushed `c706f69` on `wex-studio-staging-package`, fast-forwarded `staging` to the same SHA, both verified on remote. CI run `38867863037`: `test` and `deploy-staging` jobs both green. Reviewer or Owner needs the one authenticated browser check to close out Phase 1H.
