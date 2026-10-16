@@ -1,8 +1,8 @@
 # QSD /studio — WEX Dashboard staging integration
 
 Repository: `CodeByNath/qldscubadive`
-Status: AWAITING REVIEWER REVIEW — Phase 1F rebuild from newly approved SHA pushed/deployed; authenticated browser proof still outstanding
-Actor: **REVIEWER / OWNER** — authenticated browser verification of logo containment on QSD staging
+Status: DEFERRED — Owner closed QSD Logo integration work; authenticated visual acceptance not claimed
+Actor: **NONE — QSD Logo work closed by Owner**
 Phase: 1F — staging installation and authenticated browser proof
 
 ## Owner goal
@@ -80,3 +80,8 @@ Owner lifted the Auto Mode restriction for the dependency install; the rebuild t
 **Push/deploy:** Committed `882c823` on `wex-studio-staging-package`, pushed, verified on remote. Fast-forwarded `staging` to `882c823`, pushed, verified on remote. CI run `38764010673`: `test` and `deploy-staging` jobs both green, including SSH login check, staging-target verification, and smoke check.
 
 **What's left:** no browser/login capability this session — step 4 (real Logo image within a max 64×64px rendered area, collapsed/hovered/expanded/compact sidebar states, no overlap, on authenticated `https://www.staging2.qldscubadive.com.au/studio/`) is not yet confirmed. The CSS-level evidence above is a strong structural reason to expect the Owner's overflow is fixed, but per this file's own repeated instruction, CI/deploy success is never "live" proof. Reviewer or Owner needs one authenticated browser check (screenshot + computed styles on `.wex-logo`/`.wex-logo__image`) to close this phase out.
+
+
+## Owner close-out — 16 October 2026
+
+**Verdict: Proceed with safeguards.** Owner directed closure of QSD Logo work and transferred the remaining fixed-size presentation requirement to WEX Codex. QSD `staging` was pushed to `882c823` with deployment workflow `38764010673` reported green; authenticated browser geometry was not independently verified, so the QSD Phase 1F visual gate is explicitly **DEFERRED, not ACCEPTED**. No further QSD Logo Builder work is assigned. Leave QSD Profile image, bindings, assets and APIs unchanged. WEX owns the follow-up fixed 64×64px Logo presentation correction; any future QSD package update requires separate authorisation. Do not claim production deployment or that the visual defect was resolved.
