@@ -1,9 +1,13 @@
 # QSD /studio — WEX Dashboard staging integration
 
 Repository: `CodeByNath/qldscubadive`
-Status: BUILDER ACTION REQUIRED — Phase 1G install WEX fixed 64px Logo
-Actor: **BUILDER:CODER (Claude)** — QSD staging-only host bundle refresh
-Phase: 1G — install accepted WEX fixed-size Logo version in QSD staging
+Status: DEFERRED — Phase 1G manual bundle refresh superseded by Owner's delivery-system priority
+Actor: **NONE** — awaiting separately approved WEX delivery contract
+Phase: 1G — deferred; WEX distribution work takes priority
+
+## Owner correction — 16 October 2026
+
+Owner explicitly rejected repeating the Claude manual-build/install cycle and directed fixing the **WEX-to-QSD delivery mechanism first**, beginning with Logo. Cancel the Phase 1G manual refresh instruction below; it is historical and **must not be executed**. QSD Builder has no new action until WEX defines/approves a compatible versioned delivery contract and QSD integration scope is assigned separately. Preserve existing staging runtime and host Profile/Logo binding. Do not infer WEX source promotion means QSD has the new version. No QSD changes, deployment, or browser claim from this coordination update.
 
 ## Owner goal
 Show the **latest approved WEX Dashboard refinements** in the actual QSD staging `/studio`, promptly. No duplicate UI implementation. Previous staging Phase 1E was visually accepted with real QSD Profile Logo rendered in the Header. Latest WEX Header/Sidebar refinements are not yet proven on the QSD host.
