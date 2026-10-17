@@ -21,6 +21,14 @@ namespace QSD\Platform\Modules\StudioHost;
  * enqueue yet" state `StudioAssetGateway` already handles for a missing
  * local manifest. Nothing here ever enqueues an asset whose digest was not
  * itself confirmed against the pinned, signed-off manifest.
+ *
+ * When no explicit `$pin` is given (production), the active pin is resolved
+ * once, at construction, through `StudioStagingPointer`: on the staging
+ * environment only, that collaborator may follow WEX's published staging
+ * pointer to a newer (or previously retained) approved release with no code
+ * change; everywhere else, and on any pointer failure with nothing durable
+ * recorded yet, it returns the four constants below unchanged. An explicit
+ * `$pin` (test seam) always bypasses the pointer entirely.
  */
 final class StudioReleaseLock
 {
@@ -46,16 +54,24 @@ final class StudioReleaseLock
      * @param array{releaseId: string, manifestUrl: string, expectedManifestDigest: string, expectedContract: string}|null $pin
      *     Test seam only, and the mechanism by which switching the active
      *     release (forward or back to a retained approved one) is proven to
-     *     need no asset copy — production always resolves to the one pin
-     *     above.
+     *     need no asset copy. When omitted (production), the active pin
+     *     comes from `$pointer` instead of the fixed constants directly.
      * @param (\Closure(string): array{status: ?int, body: ?string})|null $transport Test seam only.
+     * @param StudioStagingPointer|null $pointer Test seam only; ignored whenever `$pin` is given explicitly.
      */
-    public function __construct(?array $pin = null, ?\Closure $transport = null)
+    public function __construct(?array $pin = null, ?\Closure $transport = null, ?StudioStagingPointer $pointer = null)
     {
-        $this->releaseId              = $pin['releaseId'] ?? self::RELEASE_ID;
-        $this->manifestUrl            = $pin['manifestUrl'] ?? self::MANIFEST_URL;
-        $this->expectedManifestDigest = $pin['expectedManifestDigest'] ?? self::EXPECTED_MANIFEST_DIGEST;
-        $this->expectedContract       = $pin['expectedContract'] ?? self::EXPECTED_CONTRACT;
+        $resolved = $pin ?? ($pointer ?? new StudioStagingPointer())->resolvePin([
+            'releaseId'              => self::RELEASE_ID,
+            'manifestUrl'            => self::MANIFEST_URL,
+            'expectedManifestDigest' => self::EXPECTED_MANIFEST_DIGEST,
+            'expectedContract'       => self::EXPECTED_CONTRACT,
+        ]);
+
+        $this->releaseId              = $resolved['releaseId'];
+        $this->manifestUrl            = $resolved['manifestUrl'];
+        $this->expectedManifestDigest = $resolved['expectedManifestDigest'];
+        $this->expectedContract       = $resolved['expectedContract'];
 
         $this->transport = $transport ?? static function (string $url): array {
             $response = wp_remote_get($url, ['timeout' => self::TIMEOUT]);

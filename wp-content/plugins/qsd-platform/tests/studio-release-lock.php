@@ -14,10 +14,20 @@ $__transients = [];
 function get_transient(string $key): mixed { global $__transients; return $__transients[$key] ?? false; }
 function set_transient(string $key, mixed $value, int $ttl): bool { global $__transients; $__transients[$key] = $value; return true; }
 
+// Only exercised by section 11 below, which constructs a real
+// StudioStagingPointer collaborator with `env: 'staging'`; every other
+// section here passes an explicit pin, so StudioStagingPointer (and these
+// two functions) are never touched.
+$__options = [];
+function get_option(string $key, mixed $default = false): mixed { global $__options; return array_key_exists($key, $__options) ? $__options[$key] : $default; }
+function update_option(string $key, mixed $value, string|bool|null $autoload = null): bool { global $__options; $__options[$key] = $value; return true; }
+
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioAssetPath.php';
+require_once __DIR__ . '/../src/Modules/StudioHost/StudioStagingPointer.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioReleaseLock.php';
 
 use QSD\Platform\Modules\StudioHost\StudioReleaseLock;
+use QSD\Platform\Modules\StudioHost\StudioStagingPointer;
 
 $failures = [];
 function check_release_lock(bool $condition, string $label, mixed $detail = null): void
@@ -243,6 +253,61 @@ echo "\n10) switching the pin (release promotion or rollback) needs no asset cop
     $rollback = build_lock(['releaseId' => 'release-a', 'version' => 'release-a'], ['releaseId' => 'release-a', 'manifestUrl' => 'https://wex-fixture.test/releases/release-a/manifest.json']);
     $verifiedRollback = $rollback['lock']->verifiedRelease();
     check_release_lock($verifiedRollback !== null && $verifiedRollback['releaseId'] === 'release-a', 'rolling back to a previously retained release id verifies identically, with no asset copy involved');
+}
+
+// ── 11) Constructor wiring: with no explicit pin, the lock resolves its pin
+//       through StudioStagingPointer; an explicit pin still bypasses it ───
+echo "\n11) with no explicit pin, verifiedRelease() resolves through StudioStagingPointer end to end\n";
+{
+    $manifest = [
+        'contract' => 'wex-studio-host@1', 'entry' => 'assets/studio.js', 'styles' => [],
+        'releaseId' => 'wex-studio-v1-cccccccccccccccccccccccccccccccccccccccc',
+        'files' => ['assets/studio.js' => 'sha384-' . base64_encode(hash('sha384', 'script bytes', true))],
+    ];
+    $manifestBody = (string) json_encode($manifest);
+    $pointerBody = (string) json_encode([
+        'schema' => 'wex-studio-staging-pointer@1', 'contract' => 'wex-studio-host@1',
+        'sequence' => 1, 'change' => 'advance',
+        'releaseId' => 'wex-studio-v1-cccccccccccccccccccccccccccccccccccccccc',
+        'manifestPath' => 'wex-studio-v1-cccccccccccccccccccccccccccccccccccccccc/manifest.json',
+        'manifestDigest' => 'sha384-' . base64_encode(hash('sha384', $manifestBody, true)),
+        'previous' => null,
+    ]);
+
+    $GLOBALS['__options'] = [];
+    // The pointer and the manifest are two distinct URLs; one stub transport
+    // routes each to its own fixture body, reused for both the pointer
+    // collaborator's own fetch and StudioReleaseLock's subsequent manifest fetch.
+    $routedTransport = static function (string $url) use ($pointerBody, $manifestBody): array {
+        return str_contains($url, 'staging-pointer.json')
+            ? ['status' => 200, 'body' => $pointerBody]
+            : ['status' => 200, 'body' => $manifestBody];
+    };
+    $pointer = new StudioStagingPointer($routedTransport, static fn(): string => 'staging');
+
+    $lockWithPointer = new StudioReleaseLock(null, $routedTransport, $pointer);
+    $release = $lockWithPointer->verifiedRelease();
+    check_release_lock(
+        ($release['releaseId'] ?? null) === 'wex-studio-v1-cccccccccccccccccccccccccccccccccccccccc',
+        'with no explicit pin, the constructor resolves through StudioStagingPointer and still verifies the resulting manifest in full',
+    );
+
+    // An explicit pin always bypasses the pointer entirely — proven by a
+    // pointer collaborator whose transport would throw if ever consulted.
+    $neverCalled = new StudioStagingPointer(
+        static function (string $url): array { throw new \RuntimeException('pointer must not be consulted when an explicit pin is given'); },
+        static fn(): string => 'staging',
+    );
+    $explicitPinFixture = build_lock();
+    $lockWithExplicitPin = new StudioReleaseLock(
+        $explicitPinFixture['pin'],
+        static fn(string $url): array => ['status' => 200, 'body' => $explicitPinFixture['body']],
+        $neverCalled,
+    );
+    check_release_lock(
+        $lockWithExplicitPin->verifiedRelease() !== null,
+        'an explicit pin verifies normally even when a pointer collaborator is also supplied',
+    );
 }
 
 if ($failures !== []) {
