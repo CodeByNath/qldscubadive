@@ -239,3 +239,26 @@ jobs:
             echo "$OUTPUT"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # Phase 1K: a strictly read-only companion to the diagnostic above —
+      # calls neither resolvePin() nor StudioStagingDiagnostic::report(), so
+      # it cannot advance, replay-protect-touch or otherwise write the
+      # durable pointer record. Reads the same option twice in one process
+      # and reports whether the reads matched, as direct evidence (not
+      # merely an assertion) that this step itself wrote nothing.
+      - name: Studio staging pointer state (read-only)
+        working-directory: .
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || vars.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER || vars.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH || vars.STAGING_WP_PATH }}
+        run: |
+          set -euo pipefail
+          OUTPUT="$($SSH_CMD "$SSH_USER@$SSH_HOST" php "$WP_PATH/wp-content/plugins/qsd-platform/app/cli/studio-staging-pointer-state.php")"
+          echo "$OUTPUT"
+          {
+            echo '### Studio staging pointer state (read-only)'
+            echo '```json'
+            echo "$OUTPUT"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

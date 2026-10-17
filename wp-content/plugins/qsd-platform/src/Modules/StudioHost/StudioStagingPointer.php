@@ -243,6 +243,33 @@ final class StudioStagingPointer
         return $status === 'valid' ? $stored['sequence'] : null;
     }
 
+    /**
+     * A genuinely non-mutating read of the durable record alone: calls
+     * `readState()` (one `get_option()`, nothing else) and returns a
+     * sanitized view of it — no outbound pointer fetch, no manifest
+     * verification, and no `update_option()` call on any path, unlike
+     * `resolvePin()`. Built for the Phase 1K read-only CLI diagnostic,
+     * which must inspect current state without being able to advance,
+     * replay-protect-touch, or otherwise write it.
+     *
+     * @return array{state: 'absent'|'valid'|'corrupt', sequence: ?int, releaseId: ?string, manifestDigest: ?string, contract: ?string, checkedAt: ?int}
+     */
+    public function inspectStoredState(): array
+    {
+        [$status, $stored] = $this->readState();
+        if ($status !== 'valid') {
+            return ['state' => $status, 'sequence' => null, 'releaseId' => null, 'manifestDigest' => null, 'contract' => null, 'checkedAt' => null];
+        }
+        return [
+            'state'          => 'valid',
+            'sequence'       => $stored['sequence'],
+            'releaseId'      => $stored['releaseId'],
+            'manifestDigest' => $stored['manifestDigest'],
+            'contract'       => $stored['contract'],
+            'checkedAt'      => $stored['checkedAt'],
+        ];
+    }
+
     /** Never inferred from a browser URL/Host header or any request input — see class docblock. */
     private function isStagingGateActive(): bool
     {

@@ -18,6 +18,7 @@ declare(strict_types=1);
 // (a fresh instance sharing only the durable option store).
 
 $__options = [];
+$__update_option_calls = 0;
 function get_option(string $key, mixed $default = false): mixed
 {
     global $__options;
@@ -25,7 +26,8 @@ function get_option(string $key, mixed $default = false): mixed
 }
 function update_option(string $key, mixed $value, string|bool|null $autoload = null): bool
 {
-    global $__options;
+    global $__options, $__update_option_calls;
+    $__update_option_calls++;
     $__options[$key] = $value;
     return true;
 }
@@ -512,6 +514,67 @@ echo "\n15) describeGate() and storedSequence() report accurately\n";
     $withState = make_pointer_routed($byUrl);
     $withState->resolvePin(STATIC_FALLBACK);
     check_pointer($withState->storedSequence() === 1, 'storedSequence() reports the durably accepted sequence after a successful adoption');
+}
+
+// ── 16) inspectStoredState(): a genuinely non-mutating read of the durable
+//       record alone, for the Phase 1K read-only CLI diagnostic — no
+//       transport call, no update_option() on any path ──────────────────
+echo "\n16) inspectStoredState() reads the durable record without any transport call or update_option()\n";
+{
+    $refusesTransport = static function (string $url): array {
+        throw new \RuntimeException('inspectStoredState() must never call the transport: ' . $url);
+    };
+
+    $GLOBALS['__options'] = [];
+    $GLOBALS['__update_option_calls'] = 0;
+    $absent = new StudioStagingPointer($refusesTransport);
+    $before = $absent->inspectStoredState();
+    $after = $absent->inspectStoredState();
+    check_pointer(
+        $before === ['state' => 'absent', 'sequence' => null, 'releaseId' => null, 'manifestDigest' => null, 'contract' => null, 'checkedAt' => null],
+        'absent durable state is reported honestly, not as a zero/empty valid record',
+        $before
+    );
+    check_pointer($before === $after, 'calling inspectStoredState() twice in a row returns byte-identical results');
+    check_pointer($GLOBALS['__update_option_calls'] === 0, 'inspectStoredState() never calls update_option() on the absent-state path');
+
+    $validChecked = 1_700_000_000;
+    $GLOBALS['__options'] = ['qsd_studio_pointer_state' => [
+        'sequence'       => 4,
+        'releaseId'      => R5,
+        'manifestUrl'    => RELEASES_BASE . R5 . '/manifest.json',
+        'manifestDigest' => good_manifest(R5)['digest'],
+        'contract'       => 'wex-studio-host@1',
+        'checkedAt'      => $validChecked,
+    ]];
+    $GLOBALS['__update_option_calls'] = 0;
+    $valid = new StudioStagingPointer($refusesTransport);
+    $validState = $valid->inspectStoredState();
+    check_pointer(
+        $validState === [
+            'state'          => 'valid',
+            'sequence'       => 4,
+            'releaseId'      => R5,
+            'manifestDigest' => good_manifest(R5)['digest'],
+            'contract'       => 'wex-studio-host@1',
+            'checkedAt'      => $validChecked,
+        ],
+        'a well-formed durable record is reported accurately and read-only',
+        $validState
+    );
+    check_pointer($GLOBALS['__update_option_calls'] === 0, 'inspectStoredState() never calls update_option() on the valid-state path');
+
+    $GLOBALS['__options'] = ['qsd_studio_pointer_state' => ['not' => 'a valid record']];
+    $GLOBALS['__update_option_calls'] = 0;
+    $corrupt = new StudioStagingPointer($refusesTransport);
+    $corruptState = $corrupt->inspectStoredState();
+    check_pointer(
+        $corruptState === ['state' => 'corrupt', 'sequence' => null, 'releaseId' => null, 'manifestDigest' => null, 'contract' => null, 'checkedAt' => null],
+        'a structurally-tampered durable record is reported as corrupt, not silently treated as absent or valid',
+        $corruptState
+    );
+    check_pointer($GLOBALS['__options']['qsd_studio_pointer_state'] === ['not' => 'a valid record'], 'the corrupted record itself is left untouched');
+    check_pointer($GLOBALS['__update_option_calls'] === 0, 'inspectStoredState() never calls update_option() on the corrupt-state path');
 }
 
 if ($failures !== []) {
