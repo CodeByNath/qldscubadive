@@ -23,6 +23,7 @@ function get_option(string $key, mixed $default = false): mixed { global $__opti
 function update_option(string $key, mixed $value, string|bool|null $autoload = null): bool { global $__options; $__options[$key] = $value; return true; }
 
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioAssetPath.php';
+require_once __DIR__ . '/../src/Modules/StudioHost/StudioManifestVerifier.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioStagingPointer.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioReleaseLock.php';
 

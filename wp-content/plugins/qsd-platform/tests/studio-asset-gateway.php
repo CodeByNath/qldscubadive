@@ -39,6 +39,7 @@ require_once __DIR__ . '/../src/Core/PlatformAccess.php';
 require_once __DIR__ . '/../src/Modules/Account/Support/AccountMedia.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioHostModule.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioAssetPath.php';
+require_once __DIR__ . '/../src/Modules/StudioHost/StudioManifestVerifier.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioReleaseLock.php';
 require_once __DIR__ . '/../src/Modules/StudioHost/StudioAssetGateway.php';
 

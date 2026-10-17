@@ -14,13 +14,17 @@ namespace QSD\Platform\Modules\StudioHost;
  * approved one, is a one-line constant edit and redeploy; it never requires
  * cloning WEX, building, or copying any asset into this repository.
  *
- * Verification is fail-closed at every step. A network error, a non-200
- * response, a manifest digest mismatch, an unexpected contract or release
- * id, a malformed or empty digest inventory, or an entry/style path not
- * present in that inventory all resolve to `null` — the one "nothing to
- * enqueue yet" state `StudioAssetGateway` already handles for a missing
- * local manifest. Nothing here ever enqueues an asset whose digest was not
- * itself confirmed against the pinned, signed-off manifest.
+ * Verification itself is `StudioManifestVerifier::verify()` — the one
+ * fetch-and-verify routine shared with `StudioStagingPointer`, so a
+ * pointer-driven candidate is held to exactly the same checks as this fixed
+ * pin before either persists or enqueues anything from it. A network
+ * error, a non-200 response, a manifest digest mismatch, an unexpected
+ * contract or release id, a malformed or empty digest inventory, or an
+ * entry/style path not present in that inventory all resolve to `null` —
+ * the one "nothing to enqueue yet" state `StudioAssetGateway` already
+ * handles for a missing local manifest. Nothing here ever enqueues an
+ * asset whose digest was not itself confirmed against the pinned,
+ * signed-off manifest.
  *
  * When no explicit `$pin` is given (production), the active pin is resolved
  * once, at construction, through `StudioStagingPointer`: on the staging
@@ -121,95 +125,12 @@ final class StudioReleaseLock
     /** @return array{releaseId: string, entry: string, styles: string[], files: array<string, string>}|null */
     private function fetchAndVerify(): ?array
     {
-        if (!$this->isApprovedManifestUrl($this->manifestUrl)) {
-            return null;
-        }
-
-        $response = ($this->transport)($this->manifestUrl);
-        if ($response['status'] !== 200 || $response['body'] === null || $response['body'] === '') {
-            return null;
-        }
-
-        $actualDigest = 'sha384-' . base64_encode(hash('sha384', $response['body'], true));
-        if (!hash_equals($this->expectedManifestDigest, $actualDigest)) {
-            return null;
-        }
-
-        $manifest = json_decode($response['body'], true);
-        if (!is_array($manifest)) {
-            return null;
-        }
-        if (($manifest['contract'] ?? null) !== $this->expectedContract) {
-            return null;
-        }
-        if (($manifest['releaseId'] ?? null) !== $this->releaseId) {
-            return null;
-        }
-
-        $files = is_array($manifest['files'] ?? null) ? $manifest['files'] : null;
-        if ($files === null || !$this->isValidDigestInventory($files)) {
-            return null;
-        }
-
-        $entry  = isset($manifest['entry']) ? (string) $manifest['entry'] : '';
-        $styles = is_array($manifest['styles'] ?? null) ? $manifest['styles'] : [];
-
-        if ($entry === '' || !array_key_exists($entry, $files)) {
-            return null;
-        }
-        foreach ($styles as $style) {
-            if (!is_string($style) || !array_key_exists($style, $files)) {
-                return null;
-            }
-        }
-
-        return [
-            'releaseId' => $this->releaseId,
-            'entry'     => $entry,
-            'styles'    => array_values($styles),
-            'files'     => $files,
-        ];
-    }
-
-    /**
-     * https, and exactly the pinned host + path — never a different origin,
-     * a mutable `main`/`latest` alias, or a value built from anything other
-     * than this lock's own constructor-fixed pin.
-     */
-    private function isApprovedManifestUrl(string $url): bool
-    {
-        return $url === $this->manifestUrl
-            && parse_url($url, PHP_URL_SCHEME) === 'https'
-            && is_string(parse_url($url, PHP_URL_HOST));
-    }
-
-    /**
-     * Every inventory key must pass the same URL-safety check
-     * `StudioAssetGateway` already requires of a manifest path — no
-     * `..`/`.` segment, no leading slash, no Windows drive letter, no `%` —
-     * since each key is concatenated onto this lock's fixed, verified base
-     * URL to build a browser-facing asset URL; an unsafe key could
-     * otherwise walk that URL's path out of the pinned release directory
-     * while staying on the same approved origin. Every value must be a
-     * well-formed `sha384-<base64>` SRI digest string, exactly the form the
-     * browser's own `integrity` attribute expects, so a value that passes
-     * here is already usable verbatim.
-     *
-     * @param array<mixed, mixed> $files
-     */
-    private function isValidDigestInventory(array $files): bool
-    {
-        if ($files === []) {
-            return false;
-        }
-        foreach ($files as $path => $digest) {
-            if (!is_string($path) || !StudioAssetPath::isUrlSafeRelativePath($path)) {
-                return false;
-            }
-            if (!is_string($digest) || preg_match('/^sha384-[A-Za-z0-9+\/]{64}=*$/', $digest) !== 1) {
-                return false;
-            }
-        }
-        return true;
+        return StudioManifestVerifier::verify(
+            $this->transport,
+            $this->manifestUrl,
+            $this->expectedManifestDigest,
+            $this->expectedContract,
+            $this->releaseId
+        );
     }
 }

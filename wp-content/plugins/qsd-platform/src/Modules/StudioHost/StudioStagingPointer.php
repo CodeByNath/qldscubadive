@@ -17,7 +17,13 @@ namespace QSD\Platform\Modules\StudioHost;
  * (`get_option`) record of the highest accepted pointer `sequence` and the
  * release it named, so a stale or replayed pointer can never walk the
  * active release backwards — including across a cache expiry or a process
- * restart, where a WP transient alone would not be durable enough.
+ * restart, where a WP transient alone would not be durable enough. A
+ * candidate pointer is never persisted on shape validity alone: its named
+ * manifest must also pass `StudioManifestVerifier::verify()` — the same
+ * digest/contract/releaseId/inventory checks `StudioReleaseLock` itself
+ * applies — before the new sequence/release is accepted as the durable
+ * baseline; a shape-valid but unverifiable candidate (outage or tamper)
+ * leaves the retained last-known-good release untouched.
  */
 final class StudioStagingPointer
 {
@@ -27,6 +33,8 @@ final class StudioStagingPointer
     private const CONTRACT = 'wex-studio-host@1';
     private const ALLOWED_CHANGE = ['advance', 'rollback'];
     private const ALLOWED_KEYS = ['schema', 'contract', 'sequence', 'change', 'releaseId', 'manifestPath', 'manifestDigest', 'previous'];
+    private const PREVIOUS_KEYS = ['sequence', 'releaseId', 'manifestDigest'];
+    private const STATE_KEYS = ['sequence', 'releaseId', 'manifestUrl', 'manifestDigest', 'contract', 'checkedAt'];
     private const RELEASE_ID_PATTERN = '/^wex-studio-v[0-9]+-[0-9a-f]{40}$/';
     private const DIGEST_PATTERN = '/^sha384-[A-Za-z0-9+\/]{64}=*$/';
     private const OPTION_KEY = 'qsd_studio_pointer_state';
@@ -107,10 +115,31 @@ final class StudioStagingPointer
             return $this->pinFromState($stored);
         }
 
+        $candidateManifestUrl = self::RELEASES_BASE . $pointer['manifestPath'];
+        $verified = StudioManifestVerifier::verify(
+            $this->transport,
+            $candidateManifestUrl,
+            $pointer['manifestDigest'],
+            $pointer['contract'],
+            $pointer['releaseId']
+        );
+
+        if ($verified === null) {
+            // The pointer was shape-valid but its named manifest could not
+            // be verified (outage or tamper) — never strand the active
+            // release on an unverified candidate; retain whatever was last
+            // independently verified, if anything.
+            if ($status === 'valid') {
+                $this->touchRecheckedAt($stored);
+                return $this->pinFromState($stored);
+            }
+            return $staticFallback;
+        }
+
         $newState = [
             'sequence'       => $pointer['sequence'],
             'releaseId'      => $pointer['releaseId'],
-            'manifestUrl'    => self::RELEASES_BASE . $pointer['manifestPath'],
+            'manifestUrl'    => $candidateManifestUrl,
             'manifestDigest' => $pointer['manifestDigest'],
             'contract'       => $pointer['contract'],
             'checkedAt'      => time(),
@@ -127,10 +156,12 @@ final class StudioStagingPointer
      * published naming shape, a `manifestPath` that is both URL-safe and
      * exactly the path *derived* from that same `releaseId` (never an
      * independently supplied path), a well-formed SRI `manifestDigest`, and
-     * a `previous` that is either `null` or itself a well-formed release id.
-     * `previous` is validated for shape only, never required to chain to the
-     * durably stored release — a legitimately skipped intermediate sequence
-     * means `previous` will not always match what this instance last saw.
+     * — per WEX ADR 0025 — a `previous` that is `null` only at
+     * `sequence === 1` and otherwise an object with exactly `sequence`
+     * (int), `releaseId` (well-formed) and `manifestDigest` (well-formed).
+     * `previous` is validated for shape only, never required to chain to
+     * the durably stored release — a legitimately skipped intermediate
+     * sequence means it will not always match what this instance last saw.
      *
      * @return array{sequence: int, releaseId: string, manifestPath: string, manifestDigest: string, contract: string}|null
      */
@@ -180,7 +211,11 @@ final class StudioStagingPointer
         }
 
         $previous = $decoded['previous'] ?? null;
-        if ($previous !== null && (!is_string($previous) || preg_match(self::RELEASE_ID_PATTERN, $previous) !== 1)) {
+        if ($decoded['sequence'] === 1) {
+            if ($previous !== null) {
+                return null;
+            }
+        } elseif (!$this->isWellFormedPrevious($previous)) {
             return null;
         }
 
@@ -193,6 +228,28 @@ final class StudioStagingPointer
         ];
     }
 
+    /** Exactly `{sequence: int>=1, releaseId: well-formed, manifestDigest: well-formed}`, no other keys. */
+    private function isWellFormedPrevious(mixed $previous): bool
+    {
+        if (!is_array($previous)) {
+            return false;
+        }
+        $keys = array_keys($previous);
+        if (array_diff(self::PREVIOUS_KEYS, $keys) !== [] || array_diff($keys, self::PREVIOUS_KEYS) !== []) {
+            return false;
+        }
+        if (!is_int($previous['sequence']) || $previous['sequence'] < 1) {
+            return false;
+        }
+        if (!is_string($previous['releaseId']) || preg_match(self::RELEASE_ID_PATTERN, $previous['releaseId']) !== 1) {
+            return false;
+        }
+        if (!is_string($previous['manifestDigest']) || preg_match(self::DIGEST_PATTERN, $previous['manifestDigest']) !== 1) {
+            return false;
+        }
+        return true;
+    }
+
     /**
      * @return array{0: 'absent'|'valid'|'corrupt', 1: array{sequence:int,releaseId:string,manifestUrl:string,manifestDigest:string,contract:string,checkedAt:int}|null}
      */
@@ -202,18 +259,48 @@ final class StudioStagingPointer
         if ($raw === false) {
             return ['absent', null];
         }
-        if (
-            is_array($raw)
-            && is_int($raw['sequence'] ?? null)
-            && is_string($raw['releaseId'] ?? null)
-            && is_string($raw['manifestUrl'] ?? null)
-            && is_string($raw['manifestDigest'] ?? null)
-            && is_string($raw['contract'] ?? null)
-            && is_int($raw['checkedAt'] ?? null)
-        ) {
+        if (is_array($raw) && $this->isWellFormedState($raw)) {
             return ['valid', $raw];
         }
         return ['corrupt', null];
+    }
+
+    /**
+     * A durable record is trusted only when it is fully well-formed, not
+     * merely well-typed: an exact key set, a `releaseId`/`manifestDigest`
+     * matching the same published shapes a fresh pointer must match, the
+     * one allowed `contract`, and — critically — a `manifestUrl` that is
+     * exactly the *derived* releases-base + `releaseId` + `/manifest.json`
+     * path, never an arbitrary stored URL trusted at face value. Anything
+     * else is treated as tampered, not merely absent.
+     *
+     * @param array<mixed, mixed> $raw
+     */
+    private function isWellFormedState(array $raw): bool
+    {
+        $keys = array_keys($raw);
+        if (array_diff(self::STATE_KEYS, $keys) !== [] || array_diff($keys, self::STATE_KEYS) !== []) {
+            return false;
+        }
+        if (!is_int($raw['sequence']) || $raw['sequence'] < 1) {
+            return false;
+        }
+        if (!is_string($raw['releaseId']) || preg_match(self::RELEASE_ID_PATTERN, $raw['releaseId']) !== 1) {
+            return false;
+        }
+        if (!is_string($raw['manifestDigest']) || preg_match(self::DIGEST_PATTERN, $raw['manifestDigest']) !== 1) {
+            return false;
+        }
+        if (($raw['contract'] ?? null) !== self::CONTRACT) {
+            return false;
+        }
+        if (!is_int($raw['checkedAt']) || $raw['checkedAt'] < 0) {
+            return false;
+        }
+        if (!is_string($raw['manifestUrl']) || $raw['manifestUrl'] !== self::RELEASES_BASE . $raw['releaseId'] . '/manifest.json') {
+            return false;
+        }
+        return true;
     }
 
     /** @param array{checkedAt:int} $state */
