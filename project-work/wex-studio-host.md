@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: BUILDER ACTION REQUIRED — read-only current staging release diagnostic
+Status: BLOCKED — DECISION REQUIRED — no non-mutating, non-deployment server execution surface exists for this Builder
 Phase: 1K — cross-repository recovery evidence only (no implementation)
-Actor: BUILDER:CODER (QSD only) — obtain current staging evidence; stop at handoff
+Actor: OWNER — decide how (or whether) this evidence can be obtained under the stated constraints
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -140,3 +140,23 @@ Reviewer rechecked QSD `staging` `8e970dadc42d2f465b37b6bff6a6b9134d43ba30` and 
 **QSD Builder task (this repository only):** invoke existing `app/cli/studio-staging-diagnostic.php` against the currently running staging installation through authorised existing server access, **read-only**, without making a deployment, GitHub workflow rerun, source modification or release-state mutation. Return the exact diagnostic JSON (`environmentType`, `deploymentProven`, `gateActive`, `storedSequence`, `pinSource`, `releaseId`, `manifestVerified`, `fallbackReason`) and execution timestamp; separately, if an already available read-only means exists, report stored `manifestDigest` without disclosing sensitive values. IMPORTANT: existing diagnostic `report()` calls `resolvePin()`, which may fetch and update the durable option, so **it is NOT strictly read-only**. Do not invoke it as a supposedly read-only check without verifying that constraint. Instead inspect available runtime capabilities for a genuine non-mutating state inspection (for example, direct read of the existing option via an authorised safe CLI), and make no changes; if unavailable, report the exact capability blocker rather than inventing output or building a new endpoint.
 
 No WEX repository access, production access, wp-admin work for Owner, pointer reset, cache/sequence bypass, new UI or QSD deploy. On completion report verified current state with redacted non-secret-only evidence in THIS work file, set status `AWAITING REVIEWER REVIEW`, and stop. This is a bounded evidence-gathering task, not reopening accepted Phase 1I/1J implementation.
+
+## Builder — Phase 1K capability blocker (18 October 2026, no implementation)
+
+**No WEX repository access this session; no source change, no commit, no push, no deployment and no workflow trigger of any kind were made.**
+
+**The execution surface this task requires does not exist for this Builder, under the constraints the task itself sets:**
+
+1. This Builder holds no SSH key, WP-CLI session, browser/wp-admin session, or any other credential to the real staging server. Every prior session's server-side evidence (Phase 1I/1J) was obtained exclusively by pushing a commit to `staging`, which triggers the single `deploy-staging` job in `.github/workflows/ci-deploy.yml` — the SSH capability lives entirely inside that job, gated by repository secrets this Builder cannot read or use independently.
+2. Triggering that job at all — by pushing a commit, or by a manual `workflow_dispatch` run of the same workflow — necessarily performs the rsync "Copy plugin and theme" step before anything else runs. That is a deployment by definition, and `workflow_dispatch` is explicitly a "GitHub workflow rerun." Both are excluded by this task's own instruction. There is no separate, already-existing workflow or job that only reads state without also deploying.
+3. The existing `app/cli/studio-staging-diagnostic.php` is confirmed — by this same task's own caveat, and verified again by re-reading the source — to be genuinely **not** read-only: `StudioStagingDiagnostic::report()` calls `StudioStagingPointer::resolvePin()`, which calls `update_option()` in virtually every branch once a durable record already exists (at minimum `touchRecheckedAt()` on the retain-paths, not only on a genuine advance). Invoking it, even if a trigger mechanism existed, would be a release-state mutation — explicitly excluded.
+4. Writing a new, genuinely non-mutating read-only script (a direct `get_option('qsd_studio_pointer_state')` dump with no `resolvePin()` call) is itself source modification, and deploying it would itself be a deployment — both explicitly excluded by this same task.
+
+**Conclusion:** every execution path this Builder has ever had to the real staging server is foreclosed by this task's own constraints, and no alternative, non-deployment, non-workflow, non-source-modifying path exists in the current architecture. This is not a missing feature to build now (building one is explicitly excluded) — it is a genuine absence of a safe read-only execution surface, to be decided by Owner, not invented by Builder.
+
+**Owner/Reviewer decision needed — options, not a recommendation of one:**
+- Authorise one explicitly-scoped exception: a genuinely non-mutating CLI script (no `resolvePin()` call, no durable-state write) added and deployed once, read once, understanding that adding/deploying it is itself a small, explicit source-modification/deployment exception to this task's general rule — or
+- Provide a human with direct read-only SSH/WP-CLI access to run a single `wp option get qsd_studio_pointer_state --format=json` (or equivalent) themselves and relay the result — or
+- Rely solely on WEX-side evidence for the recovery decision (Reviewer's own independent WEX pointer history access), treating QSD's last known diagnostic (`storedSequence:4`, release `wex-studio-v1-dbfda088830bbb14ad38996e6d16960b0585f9b1`, run `39039413643` at 2026-10-17 14:08 UTC) as stale but not something this Builder can safely refresh under the current constraints.
+
+No `manifestDigest` or other evidence is reported here, since no execution occurred.
