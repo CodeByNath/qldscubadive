@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 // StudioStagingPointer: the one allowlisted fetch that lets StudioReleaseLock
 // follow WEX's published staging pointer, on staging only, with no QSD code
-// commit. A candidate pointer is accepted only after BOTH its own shape (per
-// WEX ADR 0025, including the `previous` object required after sequence 1)
-// AND its named manifest (via the shared StudioManifestVerifier, the same
-// check StudioReleaseLock itself applies) pass in full — never on shape
-// alone. A durable (get_option) record of the highest accepted sequence,
-// itself re-validated on every read (not just type-checked), makes a
-// replayed, downgraded, or tampered pointer provably unable to move the
-// active release backwards, including across a simulated process restart
+// commit. A candidate above the stored sequence is adopted only when ALL
+// THREE hold: its own shape is valid (per WEX ADR 0025, including the
+// `previous` object required after sequence 1), its `previous` exactly
+// names the currently stored sequence/releaseId/manifestDigest (an unbroken
+// approval chain — a gap this instance cannot independently verify from a
+// single current-state fetch fails closed instead of being silently
+// bridged), and its named manifest independently verifies in full (via the
+// shared StudioManifestVerifier). A durable (get_option) record of the
+// highest accepted sequence, itself re-validated on every read, makes a
+// replayed, downgraded, unchained, or tampered pointer provably unable to
+// move the active release, including across a simulated process restart
 // (a fresh instance sharing only the durable option store).
 
 $__options = [];
@@ -73,13 +76,19 @@ function good_manifest(string $releaseId): array
     return ['body' => $body, 'digest' => 'sha384-' . base64_encode(hash('sha384', $body, true))];
 }
 
+/** The exact `previous` object naming `$releaseId` at `$sequence`, chained from its own real manifest digest. */
+function previous_for(int $sequence, string $releaseId): array
+{
+    return ['sequence' => $sequence, 'releaseId' => $releaseId, 'manifestDigest' => good_manifest($releaseId)['digest']];
+}
+
 /**
  * A pointer JSON body naming `$releaseId`, whose `manifestDigest` matches a
  * real, independently verifiable manifest fixture registered into `$byUrl`
- * (the URL-routed transport map) — unless `$manifestOverride` says the
- * manifest itself should fail verification (outage, tamper) or be omitted
- * entirely, to exercise the "shape-valid pointer, unverifiable manifest"
- * path distinctly from a shape-invalid pointer.
+ * (the URL-routed transport map) — unless `$manifestOutcome` says the
+ * manifest itself should fail verification (outage, tamper), to exercise
+ * the "shape+chain-valid pointer, unverifiable manifest" path distinctly
+ * from a shape- or chain-invalid pointer.
  */
 function register_candidate(array &$byUrl, string $releaseId, int $sequence, array $overrides = [], ?array $previous = null, string $manifestOutcome = 'good'): string
 {
@@ -101,7 +110,7 @@ function register_candidate(array &$byUrl, string $releaseId, int $sequence, arr
         'schema'         => 'wex-studio-staging-pointer@1',
         'contract'       => 'wex-studio-host@1',
         'sequence'       => $sequence,
-        'change'         => $sequence === 1 ? 'advance' : 'advance',
+        'change'         => 'advance',
         'releaseId'      => $releaseId,
         'manifestPath'   => $releaseId . '/manifest.json',
         'manifestDigest' => $manifestDigest,
@@ -159,10 +168,8 @@ echo "\n2) a valid, manifest-verified pointer on first run (no durable state) is
     check_pointer($pin['expectedManifestDigest'] === good_manifest(R1)['digest'], 'manifestDigest is the real, independently verified manifest digest');
 }
 
-// ── 3) Successful approved advance to sequence 2, with a correct ADR 0025
-//      `previous` object — same code, new transport responses, simulating
-//      two separate requests sharing only the durable option store ────────
-echo "\n3) a real sequence-2 advance (correct ADR 0025 `previous` object) adopts the new release with no code change\n";
+// ── 3) A real consecutive advance, correctly chained ──────────────────────
+echo "\n3) a real sequence-2 advance, whose `previous` exactly chains from the stored release, adopts the new release with no code change\n";
 {
     $GLOBALS['__options'] = [];
     $byUrl1 = [];
@@ -173,31 +180,69 @@ echo "\n3) a real sequence-2 advance (correct ADR 0025 `previous` object) adopts
     force_recheck_due();
 
     $byUrl2 = [];
-    register_candidate($byUrl2, R2, 2, previous: ['sequence' => 1, 'releaseId' => R1, 'manifestDigest' => good_manifest(R1)['digest']]);
+    register_candidate($byUrl2, R2, 2, previous: previous_for(1, R1));
     $pinSecond = make_pointer_routed($byUrl2)->resolvePin(STATIC_FALLBACK);
-    check_pointer($pinSecond['releaseId'] === R2, 'a fresh instance advances to the higher-sequence release purely from durable state + a new, manifest-verified pointer response');
+    check_pointer($pinSecond['releaseId'] === R2, 'a fresh instance advances to the higher-sequence release purely from durable state + a new, chain- and manifest-verified pointer response');
 }
 
-// ── 4) Rollback: a higher sequence may legitimately re-name an earlier
-//      release id — only the sequence must move forward ──────────────────
-echo "\n4) rollback (higher sequence, earlier release id, correct `previous` object) is accepted\n";
+// ── 4) A legitimate skipped sequence whose `previous` still exactly
+//      chains from the stored release is accepted — the arithmetic gap
+//      alone proves nothing either way; only the chain linkage matters ───
+echo "\n4) a skipped (non-consecutive) sequence whose `previous` still exactly names the stored release is accepted\n";
 {
     $GLOBALS['__options'] = [];
-    $r4 = 'wex-studio-v1-4444444444444444444444444444444444444444';
     $byUrl1 = [];
-    register_candidate($byUrl1, R5, 5, previous: ['sequence' => 4, 'releaseId' => $r4, 'manifestDigest' => good_manifest($r4)['digest']]);
+    register_candidate($byUrl1, R1, 1);
     make_pointer_routed($byUrl1)->resolvePin(STATIC_FALLBACK);
     force_recheck_due();
 
     $byUrl2 = [];
-    register_candidate($byUrl2, R1, 6, ['change' => 'rollback'], previous: ['sequence' => 5, 'releaseId' => R5, 'manifestDigest' => good_manifest(R5)['digest']]);
+    register_candidate($byUrl2, R2, 5, previous: previous_for(1, R1)); // sequence jumps 1 -> 5
     $pin = make_pointer_routed($byUrl2)->resolvePin(STATIC_FALLBACK);
-    check_pointer($pin['releaseId'] === R1, 'a forward-moving sequence may roll the named release back to a previously retained one');
+    check_pointer($pin['releaseId'] === R2, 'a skipped sequence with a `previous` that exactly chains from the stored release is adopted');
 }
 
-// ── 5) Cache/restart: within the recheck window, a fresh instance serves
+// ── 5) A higher sequence whose `previous` does NOT name the stored
+//      release — forged, stale, or from an unrelated lineage — is never
+//      adopted, even though its own manifest would independently verify ──
+echo "\n5) a higher sequence whose `previous` does not chain from the stored release fails closed, even with a manifest that would otherwise verify\n";
+{
+    $GLOBALS['__options'] = [];
+    $byUrl1 = [];
+    register_candidate($byUrl1, R1, 1);
+    make_pointer_routed($byUrl1)->resolvePin(STATIC_FALLBACK);
+    force_recheck_due();
+
+    $unrelated = 'wex-studio-v1-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    $byUrl2 = [];
+    // sequence 5 > stored sequence 1, and R2's own manifest is perfectly
+    // valid — but `previous` cites an unrelated release, not R1/sequence 1,
+    // so no provable chain exists from what is actually stored.
+    register_candidate($byUrl2, R2, 5, previous: previous_for(3, $unrelated));
+    $pin = make_pointer_routed($byUrl2)->resolvePin(STATIC_FALLBACK);
+    check_pointer($pin['releaseId'] === R1, 'an unchained higher-sequence candidate is rejected; the retained release is kept');
+}
+
+// ── 6) Rollback: a higher sequence may legitimately re-name an earlier
+//      release id, proven by the same exact-chain requirement ───────────
+echo "\n6) rollback (higher sequence, earlier release id, correctly chained `previous`) is accepted\n";
+{
+    $GLOBALS['__options'] = [];
+    $r4 = 'wex-studio-v1-4444444444444444444444444444444444444444';
+    $byUrl1 = [];
+    register_candidate($byUrl1, R5, 5, previous: previous_for(4, $r4));
+    make_pointer_routed($byUrl1)->resolvePin(STATIC_FALLBACK);
+    force_recheck_due();
+
+    $byUrl2 = [];
+    register_candidate($byUrl2, R1, 6, ['change' => 'rollback'], previous: previous_for(5, R5));
+    $pin = make_pointer_routed($byUrl2)->resolvePin(STATIC_FALLBACK);
+    check_pointer($pin['releaseId'] === R1, 'a forward-moving sequence, correctly chained, may roll the named release back to a previously retained one');
+}
+
+// ── 7) Cache/restart: within the recheck window, a fresh instance serves
 //      the durable record without calling the transport again ────────────
-echo "\n5) within the recheck window, a fresh instance never re-fetches the pointer or any manifest\n";
+echo "\n7) within the recheck window, a fresh instance never re-fetches the pointer or any manifest\n";
 {
     $GLOBALS['__options'] = [];
     $byUrl = [];
@@ -214,11 +259,11 @@ echo "\n5) within the recheck window, a fresh instance never re-fetches the poin
     check_pointer($pin['releaseId'] === R1, 'the durable release from the earlier request is still served');
 }
 
-// ── 6) Invalid schema/contract/keys/shape — including the ADR 0025
+// ── 8) Invalid schema/contract/keys/shape — including the ADR 0025
 //      `previous` object — all fail closed, never partially trusted ───────
-echo "\n6) schema, contract, key-set, and field-shape violations (including a forged/malformed `previous`) are all rejected\n";
+echo "\n8) schema, contract, key-set, and field-shape violations (including a forged/malformed `previous`) are all rejected\n";
 {
-    $validPreviousForSeq2 = ['sequence' => 1, 'releaseId' => R1, 'manifestDigest' => good_manifest(R1)['digest']];
+    $validPreviousForSeq2 = previous_for(1, R1);
 
     $base = function (array $overrides) use ($validPreviousForSeq2): array {
         return array_merge([
@@ -271,36 +316,48 @@ echo "\n6) schema, contract, key-set, and field-shape violations (including a fo
     check_pointer(make_pointer_routed($byUrl)->resolvePin(STATIC_FALLBACK) === STATIC_FALLBACK, 'JSON but not an object is rejected; static fallback is served with no durable state yet');
 }
 
-// ── 7) Replay/downgrade: an equal or lower sequence never moves the active
-//      release, even when it names a different release id ────────────────
-echo "\n7) a replayed or downgraded sequence is ignored, keeping the retained release\n";
+// ── 9) Unchanged-sequence identity and downgrade: an equal sequence must
+//      name exactly the stored release (idempotent) — a different release
+//      at the same sequence is an integrity violation, not an adoption;
+//      a lower sequence is a plain downgrade. All three keep the retained
+//      release. ───────────────────────────────────────────────────────────
+echo "\n9) unchanged-sequence identity and downgrade: only the stored release is ever served\n";
 {
     $GLOBALS['__options'] = [];
     $r9 = 'wex-studio-v1-0909090909090909090909090909090909090909';
     $r10 = 'wex-studio-v1-1010101010101010101010101010101010101010';
     $byUrl = [];
-    register_candidate($byUrl, $r10, 10, previous: ['sequence' => 9, 'releaseId' => $r9, 'manifestDigest' => good_manifest($r9)['digest']]);
+    register_candidate($byUrl, $r10, 10, previous: previous_for(9, $r9));
     make_pointer_routed($byUrl)->resolvePin(STATIC_FALLBACK);
     force_recheck_due();
 
-    $r9999 = 'wex-studio-v1-9999999999999999999999999999999999999999';
-    $byUrlEqual = [];
-    register_candidate($byUrlEqual, $r9999, 10, previous: ['sequence' => 9, 'releaseId' => $r10, 'manifestDigest' => good_manifest($r10)['digest']]);
-    $pinEqual = make_pointer_routed($byUrlEqual)->resolvePin(STATIC_FALLBACK);
-    check_pointer($pinEqual['releaseId'] === $r10, 'an equal (replayed) sequence with a different release id is ignored');
+    // 9a) Same sequence, same release/digest — idempotent re-serve.
+    $byUrlSame = [];
+    register_candidate($byUrlSame, $r10, 10, previous: previous_for(9, $r9));
+    $pinSame = make_pointer_routed($byUrlSame)->resolvePin(STATIC_FALLBACK);
+    check_pointer($pinSame['releaseId'] === $r10, 'an unchanged sequence naming the same already-stored release is served as-is');
     force_recheck_due();
 
+    // 9b) Same sequence, a DIFFERENT release — integrity violation.
+    $r9999 = 'wex-studio-v1-9999999999999999999999999999999999999999';
+    $byUrlEqual = [];
+    register_candidate($byUrlEqual, $r9999, 10, previous: previous_for(9, $r10));
+    $pinEqual = make_pointer_routed($byUrlEqual)->resolvePin(STATIC_FALLBACK);
+    check_pointer($pinEqual['releaseId'] === $r10, 'a different release claiming the same already-stored sequence number is rejected, keeping the original');
+    force_recheck_due();
+
+    // 9c) Lower sequence — plain downgrade.
     $r3 = 'wex-studio-v1-0303030303030303030303030303030303030303';
     $r2b = 'wex-studio-v1-0202020202020202020202020202020202020202';
     $byUrlLower = [];
-    register_candidate($byUrlLower, $r3, 3, previous: ['sequence' => 2, 'releaseId' => $r2b, 'manifestDigest' => good_manifest($r2b)['digest']]);
+    register_candidate($byUrlLower, $r3, 3, previous: previous_for(2, $r2b));
     $pinLower = make_pointer_routed($byUrlLower)->resolvePin(STATIC_FALLBACK);
     check_pointer($pinLower['releaseId'] === $r10, 'a lower (downgrade) sequence is rejected, keeping the higher one already retained');
 }
 
-// ── 8) Redirect / non-200 response and a transport-level network error on
-//      the pointer fetch itself both fail closed ──────────────────────────
-echo "\n8) a redirect response, a non-200 response, and a network error on the pointer fetch all fail closed\n";
+// ── 10) Redirect / non-200 response and a transport-level network error on
+//       the pointer fetch itself both fail closed ─────────────────────────
+echo "\n10) a redirect response, a non-200 response, and a network error on the pointer fetch all fail closed\n";
 {
     $GLOBALS['__options'] = [];
     $redirect = make_pointer_routed([POINTER_URL => ['status' => 301, 'body' => null]]);
@@ -310,11 +367,11 @@ echo "\n8) a redirect response, a non-200 response, and a network error on the p
     check_pointer($networkError->resolvePin(STATIC_FALLBACK) === STATIC_FALLBACK, 'a transport-level network error is rejected; static fallback served with no durable state');
 }
 
-// ── 9) Manifest outage/tamper AFTER a shape-valid pointer advance never
-//      persists the candidate and never strands on it ────────────────────
-echo "\n9) a shape-valid pointer whose own manifest cannot be verified (outage or tamper) is never persisted\n";
+// ── 11) Manifest outage/tamper AFTER a shape- and chain-valid pointer
+//       advance never persists the candidate and never strands on it ─────
+echo "\n11) a shape- and chain-valid pointer whose own manifest cannot be verified (outage or tamper) is never persisted\n";
 {
-    // 9a) True first run: the pointer shape is fine but its manifest is
+    // 11a) True first run: the pointer shape is fine but its manifest is
     // unreachable — nothing durable exists yet, so the static fallback
     // (never an unverified candidate) is served.
     $GLOBALS['__options'] = [];
@@ -323,10 +380,10 @@ echo "\n9) a shape-valid pointer whose own manifest cannot be verified (outage o
     $pinOutage = make_pointer_routed($byUrlOutage)->resolvePin(STATIC_FALLBACK);
     check_pointer($pinOutage === STATIC_FALLBACK, 'first-run manifest outage after a shape-valid pointer serves the static fallback, never an unverified candidate');
 
-    // 9b) Already-adopted release 1; a later pointer advances to release 2
-    // but release 2's manifest is tampered (digest does not match any real
-    // body) — the advance must be rejected and release 1 retained, not
-    // stranded on the unverified candidate.
+    // 11b) Already-adopted release 1; a later, correctly-chained pointer
+    // advances to release 2 but release 2's manifest is tampered (digest
+    // does not match any real body) — the advance must be rejected and
+    // release 1 retained, not stranded on the unverified candidate.
     $GLOBALS['__options'] = [];
     $byUrl1 = [];
     register_candidate($byUrl1, R1, 1);
@@ -334,12 +391,12 @@ echo "\n9) a shape-valid pointer whose own manifest cannot be verified (outage o
     force_recheck_due();
 
     $byUrl2 = [];
-    register_candidate($byUrl2, R2, 2, previous: ['sequence' => 1, 'releaseId' => R1, 'manifestDigest' => good_manifest(R1)['digest']], manifestOutcome: 'tampered');
+    register_candidate($byUrl2, R2, 2, previous: previous_for(1, R1), manifestOutcome: 'tampered');
     $pinAfterTamper = make_pointer_routed($byUrl2)->resolvePin(STATIC_FALLBACK);
     check_pointer($pinAfterTamper['releaseId'] === R1, 'a tampered-manifest advance is rejected; the last independently verified release is retained, not the unverified candidate');
 
-    // 9c) Same, but the sequence-2 manifest is merely unreachable (outage),
-    // not tampered — same outcome: retain release 1.
+    // 11c) Same, but the sequence-2 manifest is merely unreachable
+    // (outage), not tampered — same outcome: retain release 1.
     $GLOBALS['__options'] = [];
     $byUrl1b = [];
     register_candidate($byUrl1b, R1, 1);
@@ -347,14 +404,14 @@ echo "\n9) a shape-valid pointer whose own manifest cannot be verified (outage o
     force_recheck_due();
 
     $byUrl2b = [];
-    register_candidate($byUrl2b, R2, 2, previous: ['sequence' => 1, 'releaseId' => R1, 'manifestDigest' => good_manifest(R1)['digest']], manifestOutcome: 'outage');
+    register_candidate($byUrl2b, R2, 2, previous: previous_for(1, R1), manifestOutcome: 'outage');
     $pinAfterOutage = make_pointer_routed($byUrl2b)->resolvePin(STATIC_FALLBACK);
     check_pointer($pinAfterOutage['releaseId'] === R1, 'a manifest outage on an advance is rejected; the last independently verified release is retained');
 }
 
-// ── 10) Outage on the pointer fetch itself (not the manifest) after a
+// ── 12) Outage on the pointer fetch itself (not the manifest) after a
 //       prior successful adoption still serves the last known good ───────
-echo "\n10) an outage on the pointer fetch itself after a successful adoption serves the last independently verified release\n";
+echo "\n12) an outage on the pointer fetch itself after a successful adoption serves the last independently verified release\n";
 {
     $GLOBALS['__options'] = [];
     $byUrl = [];
@@ -369,9 +426,9 @@ echo "\n10) an outage on the pointer fetch itself after a successful adoption se
     check_pointer($pin !== STATIC_FALLBACK, 'the served pin is the retained release, distinct from the static fallback');
 }
 
-// ── 11) A corrupted/unreadable/tampered durable record never lets a
+// ── 13) A corrupted/unreadable/tampered durable record never lets a
 //       pointer reset the anti-replay baseline; it fails closed ──────────
-echo "\n11) a corrupted or structurally-tampered durable record fails closed to the static pin and is left untouched\n";
+echo "\n13) a corrupted or structurally-tampered durable record fails closed to the static pin and is left untouched\n";
 {
     $GLOBALS['__options'] = ['qsd_studio_pointer_state' => ['not' => 'a valid record']];
     $byUrl = [];

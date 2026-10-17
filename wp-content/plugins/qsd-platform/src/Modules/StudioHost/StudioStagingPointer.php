@@ -23,7 +23,13 @@ namespace QSD\Platform\Modules\StudioHost;
  * digest/contract/releaseId/inventory checks `StudioReleaseLock` itself
  * applies — before the new sequence/release is accepted as the durable
  * baseline; a shape-valid but unverifiable candidate (outage or tamper)
- * leaves the retained last-known-good release untouched.
+ * leaves the retained last-known-good release untouched. A candidate's own
+ * manifest integrity never substitutes for proof of its *approval chain*:
+ * a sequence strictly above the stored one is only ever adopted when its
+ * `previous` exactly names the currently stored sequence/releaseId/
+ * manifestDigest — a gap this instance cannot independently verify (there
+ * is no accessible history of past pointer states) is never silently
+ * bridged, and fails closed to the retained release instead.
  */
 final class StudioStagingPointer
 {
@@ -108,9 +114,30 @@ final class StudioStagingPointer
             return $staticFallback;
         }
 
-        if ($status === 'valid' && $pointer['sequence'] <= $stored['sequence']) {
-            // Replay or downgrade attempt (or an unchanged pointer already
-            // adopted) — ignore it and keep serving the retained release.
+        if ($status === 'valid' && $pointer['sequence'] < $stored['sequence']) {
+            // Downgrade attempt — ignore it and keep serving the retained release.
+            $this->touchRecheckedAt($stored);
+            return $this->pinFromState($stored);
+        }
+
+        if ($status === 'valid' && $pointer['sequence'] === $stored['sequence']) {
+            // An unchanged sequence must name the exact release/digest we
+            // already hold; a different release claiming our own sequence
+            // number is an integrity violation, never silently adopted —
+            // either way there is nothing newer to move to.
+            $this->touchRecheckedAt($stored);
+            return $this->pinFromState($stored);
+        }
+
+        if ($status === 'valid' && !$this->chainsFromStored($pointer, $stored)) {
+            // A higher sequence proves nothing on its own: only a `previous`
+            // that exactly names our currently stored sequence/releaseId/
+            // manifestDigest proves this candidate is a genuine, unbroken
+            // continuation of what we already verified. A gap (whether a
+            // legitimate multi-step skip or a forged pointer) can never be
+            // independently verified from a single current-state fetch, so
+            // it fails closed to the retained release rather than silently
+            // bridging it.
             $this->touchRecheckedAt($stored);
             return $this->pinFromState($stored);
         }
@@ -159,11 +186,11 @@ final class StudioStagingPointer
      * — per WEX ADR 0025 — a `previous` that is `null` only at
      * `sequence === 1` and otherwise an object with exactly `sequence`
      * (int), `releaseId` (well-formed) and `manifestDigest` (well-formed).
-     * `previous` is validated for shape only, never required to chain to
-     * the durably stored release — a legitimately skipped intermediate
-     * sequence means it will not always match what this instance last saw.
+     * Shape validation alone never proves `previous` actually chains to the
+     * durably stored release — `resolvePin()` enforces that separately via
+     * `chainsFromStored()` once a durable record exists.
      *
-     * @return array{sequence: int, releaseId: string, manifestPath: string, manifestDigest: string, contract: string}|null
+     * @return array{sequence: int, releaseId: string, manifestPath: string, manifestDigest: string, contract: string, previous: array{sequence:int,releaseId:string,manifestDigest:string}|null}|null
      */
     private function fetchAndValidatePointer(): ?array
     {
@@ -225,7 +252,30 @@ final class StudioStagingPointer
             'manifestPath'   => $manifestPath,
             'manifestDigest' => $manifestDigest,
             'contract'       => $decoded['contract'],
+            'previous'       => $previous,
         ];
+    }
+
+    /**
+     * A candidate above the stored sequence is adopted only when its own
+     * `previous` exactly names the currently stored sequence/releaseId/
+     * manifestDigest — proof this candidate is a verified continuation of
+     * what this instance already holds, not merely a higher number with a
+     * manifest that happens to verify. `$pointer['previous']` is always a
+     * well-formed object here: `$pointer['sequence'] > $stored['sequence']
+     * >= 1` forces `$pointer['sequence'] > 1`, which `fetchAndValidatePointer()`
+     * already required to carry an object, never `null`.
+     *
+     * @param array{previous: array{sequence:int,releaseId:string,manifestDigest:string}} $pointer
+     * @param array{sequence:int,releaseId:string,manifestDigest:string} $stored
+     */
+    private function chainsFromStored(array $pointer, array $stored): bool
+    {
+        $previous = $pointer['previous'];
+        return is_array($previous)
+            && $previous['sequence'] === $stored['sequence']
+            && $previous['releaseId'] === $stored['releaseId']
+            && $previous['manifestDigest'] === $stored['manifestDigest'];
     }
 
     /** Exactly `{sequence: int>=1, releaseId: well-formed, manifestDigest: well-formed}`, no other keys. */
