@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: AWAITING REVIEWER REVIEW — Phase 1J zero-second recheck pushed/deployed; diagnostic content for this exact SHA unreadable this session (same GitHub-authentication gap as Phase 1I's closeout)
-Phase: 1J — zero-second pointer recheck on each staging Studio request
-Actor: REVIEWER / OWNER — independently audit the correction, and read this run's real-server diagnostic (GitHub sign-in required; this Builder could not)
+Status: ACCEPTED — Phase 1J zero-second pointer cache delivered and closed
+Phase: 1J — zero-second pointer recheck (CLOSED)
+Actor: none — no Builder or Reviewer action pending
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -128,3 +128,7 @@ Reviewer rechecked QSD `staging` `8e970dadc42d2f465b37b6bff6a6b9134d43ba30` and 
 `https://github.com/CodeByNath/qldscubadive/actions/runs/39039413643` → job `deploy-staging` → step **"Studio staging activation diagnostic"**, or that run's **Summary** tab.
 
 **Next action for Reviewer/Owner:** open that URL and confirm the zero-second recheck has not regressed activation — `gateActive:true`, `pinSource:pointer`, `releaseId` still naming `wex-studio-v1-bace0c02f8eea0accc0a34abe50b9b3f9495f04a` (or a later Owner-approved advance), and `manifestVerified:true`. No production pin change; no WEX repository access; no UI refinement. The already-accepted Phase 1I closeout evidence stands; this phase only removed the recheck delay.
+
+## Reviewer closeout — Phase 1J, 18 October 2026
+
+**Verdict: Proceed.** Audited QSD staging SHA `047cdc12d3fec589f0e95b1876a87891b164f005` against Phase 1J scope: pointer recheck short-circuit/300-second TTL removed; revalidation now occurs per new Studio request. Deployment run `39039413643` test and deploy jobs succeeded. Independently read authenticated deploy-staging job `117415855176` logs: staging environment active, deployment marker proven, `gateActive:true`, `storedSequence:4`, `pinSource:pointer`, release `wex-studio-v1-dbfda088830bbb14ad38996e6d16960b0585f9b1`, and `manifestVerified:true`. The live server selects a current approved WEX release without QSD source pin edits. Phase 1J is ACCEPTED and CLOSED. This proves backend release selection; browser-visible UI remains a separate presentation check, not grounds to reopen the zero-second caching correction.
