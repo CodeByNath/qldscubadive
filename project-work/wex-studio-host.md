@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: AWAITING REVIEWER REVIEW — Phase 1I approval-chain correction pushed/deployed; real-server pointer activation still unverified this session
+Status: AWAITING REVIEWER / OWNER RUNTIME VALIDATION — Phase 1I source reviewed with safeguards; not yet accepted
 Phase: 1I — one-time staging auto-consumer integration
-Actor: REVIEWER / OWNER — independently audit the approval-chain correction, and confirm `WP_ENVIRONMENT_TYPE=staging` on the real staging server
+Actor: REVIEWER / OWNER — verify real staging environment gate and authenticated Studio pointer behaviour; no Builder action currently assigned
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -74,3 +74,9 @@ No WEX repository access by QSD Builder; no changes to WEX release producer or A
 **Pushed/deployed:** `wex-studio-staging-package` and `staging` both fast-forwarded to `8e970dadc42d2f465b37b6bff6a6b9134d43ba30`, verified via `git ls-remote`. CI run `39008790240`: `test` and `deploy-staging` jobs both `completed`/`success` (checked via the public Actions API; `gh` was not authenticated this session). The deploy's own smoke check confirms the files landed on the server; it does not itself exercise the pointer fetch.
 
 **What's left — genuinely unverified this session, unchanged from the prior candidate:** (1) whether the real staging server's `wp-config.php` actually sets `WP_ENVIRONMENT_TYPE=staging`. (2) an authenticated `/studio/` browser/network check that a *real* pointer fetch against the live `staging-pointer.json` resolves and renders. No browser/server access this session; both stated as unverified rather than assumed. No production pin change.
+
+## Reviewer decision — 17 October 2026, candidate `8e970dadc42d2f465b37b6bff6a6b9134d43ba30`
+
+**Verdict: Proceed with safeguards (source/CI boundary only, NOT Phase 1I acceptance).** Inspected exact one-commit QSD diff from `6f27c513`, `StudioStagingPointer::chainsFromStored`, unchanged production gate and tests; independent Actions run `39008790240` completed successfully for candidate SHA. Prior unchained higher-sequence adoption is corrected: `previous.sequence/releaseId/manifestDigest` must exactly equal persisted state; invalid chain retains the last verified pin. Manifest-before-persist and stored URL validation remain. **Safeguard:** gaps with no directly linked `previous` are deliberately rejected; a consumer that misses multiple published approvals may remain pinned and need a separately approved recovery procedure. Do not claim arbitrary skipped-sequence auto-catch-up.
+
+**Acceptance still pending:** prove `WP_ENVIRONMENT_TYPE=staging` on the real QSD staging host and authenticated `/studio/` runtime pointer/manifest fetch, selected release and Logo. Current pointer is sequence 1 and matches the hardcoded pin, so a screenshot alone cannot prove dynamic adoption; obtain observable server-side activation evidence or a safe Reviewer-approved real pointer transition. No production promotion or UI refinement authorised. Until runtime proof, keep Phase 1I open with REVIEWER / OWNER. No new Builder correction assigned.
