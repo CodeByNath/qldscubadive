@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: BLOCKED — DECISION REQUIRED — no non-mutating, non-deployment server execution surface exists for this Builder
+Status: BUILDER ACTION REQUIRED — Phase 1K executable staging-only diagnostic package
 Phase: 1K — cross-repository recovery evidence only (no implementation)
-Actor: OWNER — decide how (or whether) this evidence can be obtained under the stated constraints
+Actor: BUILDER:CODER (Claude) — QSD only, implement/deploy/test once; return evidence
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -160,3 +160,11 @@ No WEX repository access, production access, wp-admin work for Owner, pointer re
 - Rely solely on WEX-side evidence for the recovery decision (Reviewer's own independent WEX pointer history access), treating QSD's last known diagnostic (`storedSequence:4`, release `wex-studio-v1-dbfda088830bbb14ad38996e6d16960b0585f9b1`, run `39039413643` at 2026-10-17 14:08 UTC) as stale but not something this Builder can safely refresh under the current constraints.
 
 No `manifestDigest` or other evidence is reported here, since no execution occurred.
+
+## Reviewer execution decision — 18 October 2026 (supersedes Phase 1K blocker)
+
+Owner expressly instructs Reviewer to issue complete, executable work without further questions. **Approved narrowly scoped exceptions:** QSD Builder MAY modify QSD source/deployment workflow to add a strictly read-only staging diagnostic and MAY use the EXISTING `deploy-staging` pipeline once to deploy it. This is a known staging deployment (rsync) and is authorised for this task only. No human SSH task, new credential, new public endpoint, WEX access, production deployment or release-state write is authorised. Previous Phase 1K prohibitions on source modification/deployment are **superseded only to this extent**; don't stop on the same capability objection again.
+
+**Implement in QSD only:** inspect current `staging` source and `.github/workflows/ci-deploy.yml`, then add a self-contained CLI-only diagnostic or job step that bootstraps the deployed platform and reads the persisted `qsd_studio_pointer_state` option by `get_option` (or equivalent read-only WP-CLI). Do **not** call `StudioStagingDiagnostic::report()`, `StudioStagingPointer::resolvePin()`, update/touch any option or make an outbound pointer fetch. Emit only timestamp, `storedSequence`, `releaseId`, `manifestDigest`, contract, and a diagnostic state label for missing/corrupt data; no secrets/nonce/other WP values. Confirm a before/after option value match in the same server execution if practicable; test nonmutation and missing/corrupt cases. Use the existing allowlisted staging SSH environment, `staging` branch and deployment target guard. Put sanitized results in the deploy job log/summary, which Reviewer can independently read via GitHub connector.
+
+**Workflow and closeout:** reuse existing `wex-studio-staging-package` work branch; do not create another branch. Implement bounded change, run repo checks, push to `staging` to invoke the existing approved deployment, verify test/deploy-staging CI success and actual read-only result, report exact commit/run and diagnostics in THIS work file, set `AWAITING REVIEWER REVIEW`, stop. Do not alter QSD's release state, pin, security verification, UI or live production. Reviewer will use the recorded state to plan WEX-only monotonic recovery, and does not treat this diagnostic as a fix to the visible dashboard. Escalate only a NEW evidenced blocker outside this approved procedure, not the already resolved permission to modify/deploy.
