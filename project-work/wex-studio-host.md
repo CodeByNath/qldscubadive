@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: AWAITING REVIEWER REVIEW — Phase 1I deployment-proven activation and real-server diagnostic pushed/deployed; one GitHub-authentication gap genuinely unresolved this session
+Status: ACCEPTED — Phase 1I automatic WEX staging release selection verified and closed
 Phase: 1I — one-time staging auto-consumer integration
-Actor: REVIEWER / OWNER — independently audit the deployment-proven gate and diagnostic, and read the real-server evidence from the run's public Summary (GitHub sign-in required; this Builder could not)
+Actor: none — Phase 1I delivery work closed; independent UI/browser refinement may continue separately
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -103,3 +103,7 @@ Reviewer rechecked QSD `staging` `8e970dadc42d2f465b37b6bff6a6b9134d43ba30` and 
 `https://github.com/CodeByNath/qldscubadive/actions/runs/39015782947` → job `deploy-staging` → step **"Studio staging activation diagnostic"**, or that run's **Summary** tab.
 
 **Next action for Reviewer/Owner, precisely scoped:** open that one URL (already logged into GitHub to administer this repo) and read/relay the JSON block under "Studio staging activation diagnostic." No wp-admin, no SSH, no wp-config.php edit — only a GitHub session, which Owner already has and this Builder does not. If `gateActive` is `false` there, the gap is still the same `WP_ENVIRONMENT_TYPE`/marker-delivery question as before and the marker-write step's own log line should be checked next. If `gateActive` is `true` but `releaseId` is not the `bace0c02…` release, the gate is active but WEX's sequence-2 pointer has not yet been fetched/adopted — re-run the same CI step (or push again) to force a fresh pointer check, since `resolvePin()`'s 300s recheck window may simply not have elapsed. No production pin change; no WEX repository access; no UI refinement.
+
+## Reviewer closeout — 17 October 2026
+
+**Verdict: Proceed with safeguards.** Inspected actual QSD staging source at `e8256d72538e30356af71c2254e45bc823284d8f` (2 commits after reviewed `8e970dad`), CI run `39015782947` (test/deploy-staging success), and **authenticated GitHub Actions deploy job `117347657107` logs**. The server-executed `Studio staging activation diagnostic` at 2026-10-17 08:02:27Z explicitly printed `environmentType: staging`, `deploymentProven: true`, `gateActive: true`, `storedSequence: 2`, `pinSource: pointer`, `releaseId: wex-studio-v1-bace0c02f8eea0accc0a34abe50b9b3f9495f04a`, `manifestVerified: true` and `fallbackReason: pointer-driven release active (approved advance adopted with no QSD code commit)`. This is direct live-server evidence of successful approved WEX sequence-2 adoption, not merely a file-deployment smoke test or Builder report. QSD production fixed pin and WEX source were not altered by Reviewer. **Phase 1I delivery integration is ACCEPTED/CLOSED.** Safeguard: authenticated browser visual appearance/Logo inset on `/studio/` has not been independently inspected in this review and remains a separate visual check; do not claim the Logo visibly changed without browser proof. Keep future ordinary WEX UI refinements and visual validation outside closed delivery-system work; do not reopen Phase 1I without new evidence of a delivery regression.
