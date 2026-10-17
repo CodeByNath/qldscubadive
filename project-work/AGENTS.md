@@ -25,6 +25,12 @@ On EVERY cycle invocation, before concluding there is no Builder work, **do not 
 
 This preflight is workflow-only: it does not authorise source edits, additional branches, cross-repository access, production deployment, or role changes.
 
+## Mandatory QSD platform/host distinction (Owner correction, 17 October 2026)
+
+Before describing QSD Studio or asking the Owner to validate it, read QSD `main` `AGENTS.md`, `docs/ai-index.md`, the current `docs/code-map/studio-host.md` on the **deployed staging ref**, and relevant source. The QSD Platform has its **own Admin Station** (`/station/`) and a separate WEX Studio Admin Dashboard (`/studio/`); these are QSD/WEX-owned user interfaces, **not WordPress admin screens**. WordPress is a behind-the-scenes runtime/storage/route host, not the system the Owner administers through. Never direct the Owner into wp-admin or portray a host `wp-config.php` setting as an ordinary QSD admin-UI step. Staging's `staging.<domain>` subdomain is the deployed QSD staging site, not a separate WordPress *product* or proof of `wp_get_environment_type() === 'staging'`.
+
+For Phase 1I runtime validation, Reviewer must first inspect deployment workflow and available hosting/environment evidence and seek an authorised **platform-level or server-side diagnostic** for the release gate; ask Owner for a hosting-level check only if truly indispensable, with clear technical explanation and no exposure of credentials. Separate host configuration facts, deployed source, and visible dashboard behaviour; a dashboard screenshot cannot prove pointer activation. Do not silently change environment configuration, business UI, or production. This is a workflow reminder of existing `main` architecture, not new product authority.
+
 ## Cycle trigger meaning
 
 For this repository, `run the cycle`, `continue the work`, `review the latest work`, `check the builder`, or equivalent mean the QSD Builder/Reviewer project cycle, not an npm test command.
