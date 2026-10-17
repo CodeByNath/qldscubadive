@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: ACCEPTED — Phase 1I automatic WEX staging release selection verified and closed
-Phase: 1I — one-time staging auto-consumer integration
-Actor: none — Phase 1I delivery work closed; independent UI/browser refinement may continue separately
+Status: BUILDER ACTION REQUIRED — Owner-directed zero-second Studio pointer cache
+Phase: 1J — zero-second pointer recheck on each staging Studio request
+Actor: BUILDER:CODER — QSD only; implement, test and deploy staging; report evidence
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -107,3 +107,9 @@ Reviewer rechecked QSD `staging` `8e970dadc42d2f465b37b6bff6a6b9134d43ba30` and 
 ## Reviewer closeout — 17 October 2026
 
 **Verdict: Proceed with safeguards.** Inspected actual QSD staging source at `e8256d72538e30356af71c2254e45bc823284d8f` (2 commits after reviewed `8e970dad`), CI run `39015782947` (test/deploy-staging success), and **authenticated GitHub Actions deploy job `117347657107` logs**. The server-executed `Studio staging activation diagnostic` at 2026-10-17 08:02:27Z explicitly printed `environmentType: staging`, `deploymentProven: true`, `gateActive: true`, `storedSequence: 2`, `pinSource: pointer`, `releaseId: wex-studio-v1-bace0c02f8eea0accc0a34abe50b9b3f9495f04a`, `manifestVerified: true` and `fallbackReason: pointer-driven release active (approved advance adopted with no QSD code commit)`. This is direct live-server evidence of successful approved WEX sequence-2 adoption, not merely a file-deployment smoke test or Builder report. QSD production fixed pin and WEX source were not altered by Reviewer. **Phase 1I delivery integration is ACCEPTED/CLOSED.** Safeguard: authenticated browser visual appearance/Logo inset on `/studio/` has not been independently inspected in this review and remains a separate visual check; do not claim the Logo visibly changed without browser proof. Keep future ordinary WEX UI refinements and visual validation outside closed delivery-system work; do not reopen Phase 1I without new evidence of a delivery regression.
+
+## Phase 1J — Owner directive: 0-second cache (17 October 2026)
+
+**Exact requested behaviour:** remove the existing five-minute recheck delay from QSD staging. Set the release-pointer recheck interval to **0 seconds**: every new authenticated `/studio/` page request re-fetches the allowlisted WEX staging pointer and checks for an approved release immediately. Do not replace it with another positive TTL or an invented debounce. Existing immutable assets may retain normal cache behaviour; do not change their integrity contracts.
+
+**Bounded QSD Builder action:** `StudioStagingPointer.php` currently uses `RECHECK_TTL = 300` and `withinRecheckWindow()` short-circuit. Change the pointer check to zero seconds and update focused tests to prove two consecutive independently requested page loads can select a newly advanced verified pointer with no time wait. Preserve allowlisted endpoint, strict schema/sequence/previous-chain and manifest SHA-384 verification, last-known-good fallback on failure, QSD authentication, staging-only activation and production fixed pin. No WEX repo access, no WEX source or UI changes, no new feature or diagnostics. Run required checks, push/deploy **QSD staging only**, record exact SHA and CI plus real deployment evidence in this same file, then stop for Reviewer verification; do not claim browser effect from code/tests alone. The already accepted Phase 1I historical evidence remains accepted; this is a narrow correction to its unrequested cache behaviour.
