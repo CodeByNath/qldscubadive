@@ -46,6 +46,23 @@ final class StudioReleaseLock
     private const TIMEOUT = 10;
     private const CACHE_TTL = 300; // seconds; upstream's own Cache-Control is max-age=600.
 
+    /**
+     * The fixed pin itself, as data — diagnostics only
+     * (`StudioStagingDiagnostic`), so it can tell a pointer-driven release
+     * apart from the unchanged fallback without duplicating these constants.
+     *
+     * @return array{releaseId: string, manifestUrl: string, expectedManifestDigest: string, expectedContract: string}
+     */
+    public static function staticFallback(): array
+    {
+        return [
+            'releaseId'              => self::RELEASE_ID,
+            'manifestUrl'            => self::MANIFEST_URL,
+            'expectedManifestDigest' => self::EXPECTED_MANIFEST_DIGEST,
+            'expectedContract'       => self::EXPECTED_CONTRACT,
+        ];
+    }
+
     private string $releaseId;
     private string $manifestUrl;
     private string $expectedManifestDigest;
@@ -65,12 +82,7 @@ final class StudioReleaseLock
      */
     public function __construct(?array $pin = null, ?\Closure $transport = null, ?StudioStagingPointer $pointer = null)
     {
-        $resolved = $pin ?? ($pointer ?? new StudioStagingPointer())->resolvePin([
-            'releaseId'              => self::RELEASE_ID,
-            'manifestUrl'            => self::MANIFEST_URL,
-            'expectedManifestDigest' => self::EXPECTED_MANIFEST_DIGEST,
-            'expectedContract'       => self::EXPECTED_CONTRACT,
-        ]);
+        $resolved = $pin ?? ($pointer ?? new StudioStagingPointer())->resolvePin(self::staticFallback());
 
         $this->releaseId              = $resolved['releaseId'];
         $this->manifestUrl            = $resolved['manifestUrl'];

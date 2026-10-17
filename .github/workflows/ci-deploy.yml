@@ -2,7 +2,9 @@ name: Test and deploy
 
 # Every push and pull request runs the full test suite. A push to the
 # `staging` branch (or a manual run) additionally builds the Admin Station and
-# copies the plugin and theme to the SiteGround staging site over SSH.
+# copies the plugin and theme to the SiteGround staging site over SSH, then
+# writes a deployment-proof marker and prints a non-secret Studio staging
+# activation diagnostic (see StudioStagingPointer/StudioStagingDiagnostic).
 #
 # The server never runs npm or Composer: it receives built files only.
 #
@@ -187,3 +189,41 @@ jobs:
           WP_PATH: ${{ secrets.STAGING_WP_PATH || vars.STAGING_WP_PATH }}
         run: |
           $SSH_CMD "$SSH_USER@$SSH_HOST" "ls -1 '$WP_PATH/wp-content/plugins/qsd-platform' '$WP_PATH/wp-content/plugins/qsd-platform/dist/js' '$WP_PATH/wp-content/themes/qsd-shell'"
+
+      # Writes a non-secret marker naming the exact commit/ref this job just
+      # deployed, straight to the server over this same SSH capability. This
+      # is the "deployment-proven staging" signal `StudioStagingPointer`
+      # accepts alongside (never instead of) an Owner-set
+      # `WP_ENVIRONMENT_TYPE=staging`: it needs no wp-config.php edit and no
+      # wp-admin session, and a server this job never deployed to (including
+      # production) never receives it. `github.ref_name` — not a hardcoded
+      # "staging" — so a manual dispatch from a different ref is recorded
+      # honestly and the gate correctly treats it as unproven.
+      - name: Record deployment-proven staging marker
+        working-directory: .
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || vars.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER || vars.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH || vars.STAGING_WP_PATH }}
+          DEPLOY_SHA: ${{ github.sha }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          DEPLOY_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          printf '{"deployedBy":"qsd-platform-ci","branch":"%s","sha":"%s","deployedAt":"%s"}' \
+            "$DEPLOY_BRANCH" "$DEPLOY_SHA" "$DEPLOY_AT" \
+            | $SSH_CMD "$SSH_USER@$SSH_HOST" "cat > '$WP_PATH/wp-content/qsd-studio-staging-deploy.json'"
+          echo "Marker written for $DEPLOY_BRANCH@$DEPLOY_SHA"
+
+      # Real-server evidence, not file presence: environment classification,
+      # whether the deployment-proof marker above is accepted, the currently
+      # selected release id/sequence and whether its manifest verified. Every
+      # field is non-secret (see StudioStagingDiagnostic's own docblock).
+      - name: Studio staging activation diagnostic
+        working-directory: .
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || vars.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER || vars.STAGING_SSH_USER }}
+          WP_PATH: ${{ secrets.STAGING_WP_PATH || vars.STAGING_WP_PATH }}
+        run: |
+          $SSH_CMD "$SSH_USER@$SSH_HOST" php "$WP_PATH/wp-content/plugins/qsd-platform/app/cli/studio-staging-diagnostic.php"

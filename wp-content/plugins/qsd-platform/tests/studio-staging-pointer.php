@@ -122,12 +122,18 @@ function register_candidate(array &$byUrl, string $releaseId, int $sequence, arr
 }
 
 /** @return StudioStagingPointer */
-function make_pointer_routed(array $byUrl, string $env = 'staging'): StudioStagingPointer
+function make_pointer_routed(array $byUrl, string $env = 'staging', ?\Closure $deployMarker = null): StudioStagingPointer
 {
     $transport = function (string $url) use ($byUrl): array {
         return $byUrl[$url] ?? ['status' => null, 'body' => null];
     };
-    return new StudioStagingPointer($transport, static fn(): string => $env);
+    return new StudioStagingPointer($transport, static fn(): string => $env, $deployMarker);
+}
+
+/** A well-formed deployment-proof marker for the given commit sha. */
+function good_marker(string $sha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'): array
+{
+    return ['deployedBy' => 'qsd-platform-ci', 'branch' => 'staging', 'sha' => $sha, 'deployedAt' => '2026-10-17T00:00:00Z'];
 }
 
 // Pushes the durable record's checkedAt back past the 300s recheck window,
@@ -452,6 +458,66 @@ echo "\n13) a corrupted or structurally-tampered durable record fails closed to 
     register_candidate($byUrlMismatch, R1, 1);
     $pinMismatch = make_pointer_routed($byUrlMismatch)->resolvePin(STATIC_FALLBACK);
     check_pointer($pinMismatch === STATIC_FALLBACK, 'a durable record whose manifestUrl was not actually derived from its own releaseId is treated as tampered, not trusted');
+}
+
+// ── 14) Deployment-proven staging gate: a well-formed CI-written marker
+//       activates the pointer on its own, with no Owner wp-config.php edit;
+//       any shape deviation leaves the gate inactive, same as no marker ────
+echo "\n14) the deployment-proven marker activates the gate on a non-staging environment, and any malformed shape does not\n";
+{
+    $GLOBALS['__options'] = [];
+    $byUrl = [];
+    register_candidate($byUrl, R1, 1);
+    $active = make_pointer_routed($byUrl, 'production', static fn(): ?array => good_marker());
+    $pin = $active->resolvePin(STATIC_FALLBACK);
+    check_pointer($pin['releaseId'] === R1, 'a well-formed deployment-proof marker activates the gate even though wp_get_environment_type() reports production');
+
+    $malformedCases = [
+        'missing marker (null)'        => static fn(): ?array => null,
+        'extra key'                    => static fn(): ?array => good_marker() + ['extra' => 'x'],
+        'missing key'                  => static function (): ?array { $m = good_marker(); unset($m['sha']); return $m; },
+        'wrong deployedBy'             => static function (): ?array { $m = good_marker(); $m['deployedBy'] = 'someone-else'; return $m; },
+        'wrong branch'                 => static function (): ?array { $m = good_marker(); $m['branch'] = 'main'; return $m; },
+        'malformed sha (too short)'    => static function (): ?array { $m = good_marker(); $m['sha'] = 'abc123'; return $m; },
+        'malformed sha (uppercase)'    => static function (): ?array { $m = good_marker(); $m['sha'] = strtoupper($m['sha']); return $m; },
+        'malformed deployedAt'         => static function (): ?array { $m = good_marker(); $m['deployedAt'] = '17 October 2026'; return $m; },
+    ];
+
+    foreach ($malformedCases as $label => $markerClosure) {
+        $GLOBALS['__options'] = [];
+        $inert = make_pointer_routed(
+            [RELEASES_BASE . R1 . '/manifest.json' => ['status' => 200, 'body' => good_manifest(R1)['body']], POINTER_URL => ['status' => 200, 'body' => (string) json_encode([
+                'schema' => 'wex-studio-staging-pointer@1', 'contract' => 'wex-studio-host@1', 'sequence' => 1, 'change' => 'advance',
+                'releaseId' => R1, 'manifestPath' => R1 . '/manifest.json', 'manifestDigest' => good_manifest(R1)['digest'], 'previous' => null,
+            ])]],
+            'production',
+            $markerClosure,
+        );
+        check_pointer($inert->resolvePin(STATIC_FALLBACK) === STATIC_FALLBACK, "{$label}: gate stays inactive, static fallback served");
+    }
+}
+
+// ── 15) describeGate()/storedSequence(): the non-secret diagnostic surface
+//       `StudioStagingDiagnostic` relies on, exercised directly ────────────
+echo "\n15) describeGate() and storedSequence() report accurately\n";
+{
+    $GLOBALS['__options'] = [];
+    $prod = new StudioStagingPointer(null, static fn(): string => 'production', static fn(): ?array => null);
+    check_pointer($prod->describeGate() === ['environmentType' => 'production', 'deploymentProven' => false, 'active' => false], 'describeGate() reports an inactive gate with no marker on production');
+    check_pointer($prod->storedSequence() === null, 'storedSequence() is null with no durable record');
+
+    $provenOnProd = new StudioStagingPointer(null, static fn(): string => 'production', static fn(): ?array => good_marker());
+    check_pointer($provenOnProd->describeGate() === ['environmentType' => 'production', 'deploymentProven' => true, 'active' => true], 'describeGate() reports the gate active via the marker alone, environment still reported as production');
+
+    $stagingNoMarker = new StudioStagingPointer(null, static fn(): string => 'staging', static fn(): ?array => null);
+    check_pointer($stagingNoMarker->describeGate() === ['environmentType' => 'staging', 'deploymentProven' => false, 'active' => true], 'describeGate() reports the gate active via wp_get_environment_type() alone');
+
+    $GLOBALS['__options'] = [];
+    $byUrl = [];
+    register_candidate($byUrl, R1, 1);
+    $withState = make_pointer_routed($byUrl);
+    $withState->resolvePin(STATIC_FALLBACK);
+    check_pointer($withState->storedSequence() === 1, 'storedSequence() reports the durably accepted sequence after a successful adoption');
 }
 
 if ($failures !== []) {

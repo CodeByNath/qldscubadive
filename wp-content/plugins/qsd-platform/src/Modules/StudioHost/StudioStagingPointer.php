@@ -17,8 +17,18 @@ namespace QSD\Platform\Modules\StudioHost;
  * (`get_option`) record of the highest accepted pointer `sequence` and the
  * release it named, so a stale or replayed pointer can never walk the
  * active release backwards — including across a cache expiry or a process
- * restart, where a WP transient alone would not be durable enough. A
- * candidate pointer is never persisted on shape validity alone: its named
+ * restart, where a WP transient alone would not be durable enough.
+ *
+ * The staging gate itself is never inferred from a browser URL/Host header
+ * or any request input: it is `wp_get_environment_type() === 'staging'` —
+ * Owner-set in `wp-config.php` — OR a deployment-proven marker this same
+ * CI pipeline's `deploy-staging` job writes straight to the server over its
+ * existing SSH deployment capability right after copying files, naming the
+ * exact commit and branch it deployed. Neither signal requires the Owner to
+ * edit WordPress config or sign in to wp-admin; a server with neither is
+ * inert by construction, identical to the original fixed-pin behaviour.
+ *
+ * A candidate pointer is never persisted on shape validity alone: its named
  * manifest must also pass `StudioManifestVerifier::verify()` — the same
  * digest/contract/releaseId/inventory checks `StudioReleaseLock` itself
  * applies — before the new sequence/release is accepted as the durable
@@ -45,6 +55,12 @@ final class StudioStagingPointer
     private const DIGEST_PATTERN = '/^sha384-[A-Za-z0-9+\/]{64}=*$/';
     private const OPTION_KEY = 'qsd_studio_pointer_state';
 
+    private const DEPLOY_MARKER_KEYS = ['deployedBy', 'branch', 'sha', 'deployedAt'];
+    private const DEPLOY_MARKER_BY = 'qsd-platform-ci';
+    private const DEPLOY_MARKER_BRANCH = 'staging';
+    private const DEPLOY_MARKER_SHA_PATTERN = '/^[0-9a-f]{40}$/';
+    private const DEPLOY_MARKER_TIMESTAMP_PATTERN = '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/';
+
     private const TIMEOUT = 10;
     private const RECHECK_TTL = 300; // seconds; bounds both normal revalidation and outage retry rate.
 
@@ -54,11 +70,15 @@ final class StudioStagingPointer
     /** @var \Closure(): string */
     private \Closure $environmentType;
 
+    /** @var \Closure(): ?array */
+    private \Closure $deployMarker;
+
     /**
      * @param (\Closure(string): array{status: ?int, body: ?string})|null $transport Test seam only.
      * @param (\Closure(): string)|null $environmentType Test seam only; production reads WordPress's own `wp_get_environment_type()`.
+     * @param (\Closure(): ?array)|null $deployMarker Test seam only; production reads the CI-written deployment-proof marker file.
      */
-    public function __construct(?\Closure $transport = null, ?\Closure $environmentType = null)
+    public function __construct(?\Closure $transport = null, ?\Closure $environmentType = null, ?\Closure $deployMarker = null)
     {
         $this->transport = $transport ?? static function (string $url): array {
             // `redirection => 0`: a redirect response is treated as a failure,
@@ -71,6 +91,22 @@ final class StudioStagingPointer
         };
 
         $this->environmentType = $environmentType ?? static fn(): string => wp_get_environment_type();
+
+        $this->deployMarker = $deployMarker ?? static function (): ?array {
+            if (!defined('WP_CONTENT_DIR')) {
+                return null;
+            }
+            $path = WP_CONTENT_DIR . '/qsd-studio-staging-deploy.json';
+            if (!is_file($path)) {
+                return null;
+            }
+            $contents = @file_get_contents($path);
+            if (!is_string($contents) || $contents === '') {
+                return null;
+            }
+            $decoded = json_decode($contents, true);
+            return is_array($decoded) ? $decoded : null;
+        };
     }
 
     /**
@@ -83,7 +119,7 @@ final class StudioStagingPointer
      */
     public function resolvePin(array $staticFallback): array
     {
-        if (($this->environmentType)() !== 'staging') {
+        if (!$this->isStagingGateActive()) {
             return $staticFallback;
         }
 
@@ -173,6 +209,78 @@ final class StudioStagingPointer
         ];
         update_option(self::OPTION_KEY, $newState);
         return $this->pinFromState($newState);
+    }
+
+    /**
+     * Non-secret, read-only description of this instance's current gate
+     * state, for deployment diagnostics only (`StudioStagingDiagnostic`) —
+     * never consulted by `resolvePin()` itself, which calls
+     * `isStagingGateActive()` directly.
+     *
+     * @return array{environmentType: string, deploymentProven: bool, active: bool}
+     */
+    public function describeGate(): array
+    {
+        $environmentType = ($this->environmentType)();
+        $deploymentProven = $this->isDeploymentProvenStaging();
+        return [
+            'environmentType'  => $environmentType,
+            'deploymentProven' => $deploymentProven,
+            'active'           => $environmentType === 'staging' || $deploymentProven,
+        ];
+    }
+
+    /**
+     * The highest durably accepted sequence, or `null` when no well-formed
+     * durable record exists. Diagnostics only (the published sequence is
+     * not secret); `resolvePin()` never calls this — it reads `readState()`
+     * directly.
+     */
+    public function storedSequence(): ?int
+    {
+        [$status, $stored] = $this->readState();
+        return $status === 'valid' ? $stored['sequence'] : null;
+    }
+
+    /** Never inferred from a browser URL/Host header or any request input — see class docblock. */
+    private function isStagingGateActive(): bool
+    {
+        return ($this->environmentType)() === 'staging' || $this->isDeploymentProvenStaging();
+    }
+
+    /**
+     * True only when the CI-written marker at `$deployMarker` is exactly
+     * `{deployedBy: 'qsd-platform-ci', branch: 'staging', sha: <40-hex>,
+     * deployedAt: <UTC ISO-8601>}` — proof this exact server received a
+     * `staging`-branch deploy from this pipeline's own SSH step, never a
+     * value an attacker or a generic file copy could produce by accident.
+     */
+    private function isDeploymentProvenStaging(): bool
+    {
+        $marker = ($this->deployMarker)();
+        if (!is_array($marker)) {
+            return false;
+        }
+
+        $keys = array_keys($marker);
+        if (array_diff(self::DEPLOY_MARKER_KEYS, $keys) !== [] || array_diff($keys, self::DEPLOY_MARKER_KEYS) !== []) {
+            return false;
+        }
+
+        if (($marker['deployedBy'] ?? null) !== self::DEPLOY_MARKER_BY) {
+            return false;
+        }
+        if (($marker['branch'] ?? null) !== self::DEPLOY_MARKER_BRANCH) {
+            return false;
+        }
+        if (!is_string($marker['sha'] ?? null) || preg_match(self::DEPLOY_MARKER_SHA_PATTERN, $marker['sha']) !== 1) {
+            return false;
+        }
+        if (!is_string($marker['deployedAt'] ?? null) || preg_match(self::DEPLOY_MARKER_TIMESTAMP_PATTERN, $marker['deployedAt']) !== 1) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
