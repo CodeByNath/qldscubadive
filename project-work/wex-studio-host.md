@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: ACCEPTED — Phase 1J zero-second pointer cache delivered and closed
-Phase: 1J — zero-second pointer recheck (CLOSED)
-Actor: none — no Builder or Reviewer action pending
+Status: BUILDER ACTION REQUIRED — read-only current staging release diagnostic
+Phase: 1K — cross-repository recovery evidence only (no implementation)
+Actor: BUILDER:CODER (QSD only) — obtain current staging evidence; stop at handoff
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -132,3 +132,11 @@ Reviewer rechecked QSD `staging` `8e970dadc42d2f465b37b6bff6a6b9134d43ba30` and 
 ## Reviewer closeout — Phase 1J, 18 October 2026
 
 **Verdict: Proceed.** Audited QSD staging SHA `047cdc12d3fec589f0e95b1876a87891b164f005` against Phase 1J scope: pointer recheck short-circuit/300-second TTL removed; revalidation now occurs per new Studio request. Deployment run `39039413643` test and deploy jobs succeeded. Independently read authenticated deploy-staging job `117415855176` logs: staging environment active, deployment marker proven, `gateActive:true`, `storedSequence:4`, `pinSource:pointer`, release `wex-studio-v1-dbfda088830bbb14ad38996e6d16960b0585f9b1`, and `manifestVerified:true`. The live server selects a current approved WEX release without QSD source pin edits. Phase 1J is ACCEPTED and CLOSED. This proves backend release selection; browser-visible UI remains a separate presentation check, not grounds to reopen the zero-second caching correction.
+
+## Phase 1K — Owner-authorised diagnostic handoff (18 October 2026)
+
+**Purpose:** Reviewer needs QSD staging's **CURRENT** persisted pointer state to safely recover WEX's release history. Last successful deployment diagnostic `39039413643` at 2026-10-17 14:08 UTC reported stored sequence **4**, release `wex-studio-v1-dbfda088830bbb14ad38996e6d16960b0585f9b1`; WEX later published higher sequences before reverting its pointer to 2. The earlier log is not current proof.
+
+**QSD Builder task (this repository only):** invoke existing `app/cli/studio-staging-diagnostic.php` against the currently running staging installation through authorised existing server access, **read-only**, without making a deployment, GitHub workflow rerun, source modification or release-state mutation. Return the exact diagnostic JSON (`environmentType`, `deploymentProven`, `gateActive`, `storedSequence`, `pinSource`, `releaseId`, `manifestVerified`, `fallbackReason`) and execution timestamp; separately, if an already available read-only means exists, report stored `manifestDigest` without disclosing sensitive values. IMPORTANT: existing diagnostic `report()` calls `resolvePin()`, which may fetch and update the durable option, so **it is NOT strictly read-only**. Do not invoke it as a supposedly read-only check without verifying that constraint. Instead inspect available runtime capabilities for a genuine non-mutating state inspection (for example, direct read of the existing option via an authorised safe CLI), and make no changes; if unavailable, report the exact capability blocker rather than inventing output or building a new endpoint.
+
+No WEX repository access, production access, wp-admin work for Owner, pointer reset, cache/sequence bypass, new UI or QSD deploy. On completion report verified current state with redacted non-secret-only evidence in THIS work file, set status `AWAITING REVIEWER REVIEW`, and stop. This is a bounded evidence-gathering task, not reopening accepted Phase 1I/1J implementation.
