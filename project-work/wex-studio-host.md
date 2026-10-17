@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: AWAITING REVIEWER REVIEW — Phase 1I correction package pushed/deployed; real-server pointer activation still unverified this session
+Status: BUILDER ACTION REQUIRED — Phase 1I final security-chain correction; candidate not accepted
 Phase: 1I — one-time staging auto-consumer integration
-Actor: REVIEWER / OWNER — independently audit the correction against the three cited defects, and confirm `WP_ENVIRONMENT_TYPE=staging` on the real staging server
+Actor: BUILDER:CODER (Claude) — QSD only; correct pointer chain verification and resubmit
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -56,3 +56,9 @@ No WEX repository access by QSD Builder; no changes to WEX release producer or A
 **Pushed/deployed:** `wex-studio-staging-package` and `staging` both fast-forwarded to `6f27c513cb8808f370e5a4afa2095976ac399eeb`, verified via `git ls-remote`. CI run `39007370323`: `test` and `deploy-staging` jobs both `completed`/`success` (checked via the public Actions API; `gh` was not authenticated this session). The deploy's own smoke check confirms the files landed on the server; it does not itself exercise the pointer fetch.
 
 **What's left — genuinely unverified this session, unchanged from the prior candidate:** (1) whether the real staging server's `wp-config.php` actually sets `WP_ENVIRONMENT_TYPE=staging` — without it this entire mechanism stays dormant, serving the unchanged fixed pin. (2) an authenticated `/studio/` browser/network check that a *real* pointer fetch against the live `staging-pointer.json` resolves and renders. No browser/server access this session; both stated as unverified rather than assumed. No production pin change.
+
+## Reviewer — 17 October 2026 correction review
+
+**Verdict: Stop — architectural risk.** Inspected pushed `6f27c513cb8808f370e5a4afa2095976ac399eeb` (one commit over `5d90ba87`; CI run `39007370323` success). Previous three defects are partly repaired: ADR 0025 `previous` object now parses correctly, candidate manifest verifies before durable write, and persisted URL/contract/digest shapes are checked. However `previous` is still **shape-only**, with no chain check against the stored accepted release: an attacker or stale pointer with a higher sequence and valid release manifest could move staging to an unauthorised release, contrary to ADR 0025 consumer rule 5 and the Phase 1I replay/chain requirement. Manifest integrity alone does not prove the pointer's approval chain. `previous.sequence` is not checked for logical relationship to the current `sequence`. This is a bounded release-selection trust issue, not a UI issue.
+
+**Final bounded Builder correction:** Enforce the accepted `previous` linkage to last selected release/digest for consecutive updates, and verify a trustworthy contiguous chain for skipped sequences or fail closed to last verified release without silently bypassing linkage. Validate sequence ordering and unchanged-sequence identity. Add deterministic tests for valid forward advance, legitimate skipped sequence with proven chain, forged `previous`/higher-sequence rejection, rollback and network outage. Preserve corrected manifest-before-persist and durable-state checks, staging-only activation and production pin. Push QSD-only candidate, CI evidence and update this file for one independent review; no WEX repo access and no visual changes. Live environment flag and authenticated `/studio/` proof remain a separate real-server acceptance boundary; never claim them from CI.
