@@ -219,6 +219,10 @@ jobs:
       # whether the deployment-proof marker above is accepted, the currently
       # selected release id/sequence and whether its manifest verified. Every
       # field is non-secret (see StudioStagingDiagnostic's own docblock).
+      # Written to $GITHUB_STEP_SUMMARY (not just the step log) because the
+      # run summary renders publicly on the run page for a public repo, while
+      # raw step logs sit behind a GitHub sign-in wall — this is the one copy
+      # Reviewer/Owner (and this Builder, next time) can actually read back.
       - name: Studio staging activation diagnostic
         working-directory: .
         env:
@@ -226,4 +230,12 @@ jobs:
           SSH_USER: ${{ secrets.STAGING_SSH_USER || vars.STAGING_SSH_USER }}
           WP_PATH: ${{ secrets.STAGING_WP_PATH || vars.STAGING_WP_PATH }}
         run: |
-          $SSH_CMD "$SSH_USER@$SSH_HOST" php "$WP_PATH/wp-content/plugins/qsd-platform/app/cli/studio-staging-diagnostic.php"
+          set -euo pipefail
+          OUTPUT="$($SSH_CMD "$SSH_USER@$SSH_HOST" php "$WP_PATH/wp-content/plugins/qsd-platform/app/cli/studio-staging-diagnostic.php")"
+          echo "$OUTPUT"
+          {
+            echo '### Studio staging activation diagnostic'
+            echo '```json'
+            echo "$OUTPUT"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

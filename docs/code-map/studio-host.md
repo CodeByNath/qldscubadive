@@ -27,7 +27,7 @@ Studio Host never touches `/station/`'s rewrite rule, document, `AssetLoader`, o
 
 ## Deployment-time verification
 
-`QSD_STUDIO_PRIVATE_ROOT` must be confirmed non-public by requesting its would-be URL live and getting a 403/404/connection failure, not file content. `deploy-staging` also writes a deployment-proof marker (`qsd-studio-staging-deploy.json`, under the server's `wp-content`, never committed here) and runs the diagnostic above over SSH, printing its report to the Action log.
+`QSD_STUDIO_PRIVATE_ROOT` must be confirmed non-public by requesting its would-be URL live and getting a 403/404/connection failure, not file content. `deploy-staging` also writes a deployment-proof marker (`qsd-studio-staging-deploy.json`, under the server's `wp-content`, never committed) and runs the diagnostic above over SSH, writing its report to the run's public Summary, not the sign-in-gated log.
 
 ## Related Code Maps
 
