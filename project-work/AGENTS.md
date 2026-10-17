@@ -13,6 +13,18 @@ Before any controlled project work:
 9. Do not advance until the current phase is accepted or explicitly deferred by the Reviewer.
 10. Never treat `Project-work-instructions` as QSD product architecture authority.
 
+## Mandatory remote-authority preflight (stale-checkout prevention)
+
+On EVERY cycle invocation, before concluding there is no Builder work, **do not trust the currently checked-out work file**, a local `Project-work-instructions` branch, a saved handover, or a prior chat report.
+
+1. Verify `origin` is exactly `CodeByNath/qldscubadive`. Run `git fetch origin +refs/heads/Project-work-instructions:refs/remotes/origin/Project-work-instructions`; abort if fetch fails.
+2. Capture `git rev-parse origin/Project-work-instructions` and read `project-work/AGENTS.md`, `project-work/PROJECT-RULES.md`, and the active file **from that exact remote-tracking commit** using `git show <sha>:<path>`. Reading working-tree files or `git show Project-work-instructions:<path>` does not satisfy this gate.
+3. Print the confirmed repository, exact remote instruction SHA, active work-file path, Phase, Status and Actor before making a role decision. If local and remote status differ, **remote wins**; report local divergence, but never claim there is no work from the local status.
+4. If the ref cannot be fetched/read, report `REMOTE COORDINATION UNVERIFIED` with the concrete Git error and stop. Never silently fall back to cached local instructions.
+5. For an authorised coordination edit, start from the fetched head, use non-force update, and verify remote SHA after push. Never overwrite concurrent Reviewer/Builder updates.
+
+This preflight is workflow-only: it does not authorise source edits, additional branches, cross-repository access, production deployment, or role changes.
+
 ## Cycle trigger meaning
 
 For this repository, `run the cycle`, `continue the work`, `review the latest work`, `check the builder`, or equivalent mean the QSD Builder/Reviewer project cycle, not an npm test command.
