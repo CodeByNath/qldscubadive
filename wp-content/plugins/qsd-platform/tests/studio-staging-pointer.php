@@ -136,18 +136,6 @@ function good_marker(string $sha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'): 
     return ['deployedBy' => 'qsd-platform-ci', 'branch' => 'staging', 'sha' => $sha, 'deployedAt' => '2026-10-17T00:00:00Z'];
 }
 
-// Pushes the durable record's checkedAt back past the 300s recheck window,
-// simulating a later real request where a revalidating fetch is actually due.
-function force_recheck_due(): void
-{
-    global $__options;
-    $state = $__options['qsd_studio_pointer_state'] ?? null;
-    if (is_array($state)) {
-        $state['checkedAt'] = time() - 301;
-        $__options['qsd_studio_pointer_state'] = $state;
-    }
-}
-
 const R1 = 'wex-studio-v1-1111111111111111111111111111111111111111';
 const R2 = 'wex-studio-v1-2222222222222222222222222222222222222222';
 const R5 = 'wex-studio-v1-5555555555555555555555555555555555555555';
@@ -183,8 +171,6 @@ echo "\n3) a real sequence-2 advance, whose `previous` exactly chains from the s
     $pinFirst = make_pointer_routed($byUrl1)->resolvePin(STATIC_FALLBACK);
     check_pointer($pinFirst['releaseId'] === R1, 'first request adopts sequence 1');
 
-    force_recheck_due();
-
     $byUrl2 = [];
     register_candidate($byUrl2, R2, 2, previous: previous_for(1, R1));
     $pinSecond = make_pointer_routed($byUrl2)->resolvePin(STATIC_FALLBACK);
@@ -200,7 +186,6 @@ echo "\n4) a skipped (non-consecutive) sequence whose `previous` still exactly n
     $byUrl1 = [];
     register_candidate($byUrl1, R1, 1);
     make_pointer_routed($byUrl1)->resolvePin(STATIC_FALLBACK);
-    force_recheck_due();
 
     $byUrl2 = [];
     register_candidate($byUrl2, R2, 5, previous: previous_for(1, R1)); // sequence jumps 1 -> 5
@@ -217,7 +202,6 @@ echo "\n5) a higher sequence whose `previous` does not chain from the stored rel
     $byUrl1 = [];
     register_candidate($byUrl1, R1, 1);
     make_pointer_routed($byUrl1)->resolvePin(STATIC_FALLBACK);
-    force_recheck_due();
 
     $unrelated = 'wex-studio-v1-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
     $byUrl2 = [];
@@ -238,7 +222,6 @@ echo "\n6) rollback (higher sequence, earlier release id, correctly chained `pre
     $byUrl1 = [];
     register_candidate($byUrl1, R5, 5, previous: previous_for(4, $r4));
     make_pointer_routed($byUrl1)->resolvePin(STATIC_FALLBACK);
-    force_recheck_due();
 
     $byUrl2 = [];
     register_candidate($byUrl2, R1, 6, ['change' => 'rollback'], previous: previous_for(5, R5));
@@ -246,23 +229,41 @@ echo "\n6) rollback (higher sequence, earlier release id, correctly chained `pre
     check_pointer($pin['releaseId'] === R1, 'a forward-moving sequence, correctly chained, may roll the named release back to a previously retained one');
 }
 
-// ── 7) Cache/restart: within the recheck window, a fresh instance serves
-//      the durable record without calling the transport again ────────────
-echo "\n7) within the recheck window, a fresh instance never re-fetches the pointer or any manifest\n";
+// ── 7) Zero-second recheck (Owner directive): every call re-fetches and
+//      re-validates the pointer immediately, with no cache window, TTL, or
+//      debounce of any kind — including two calls with no time gap at all ──
+echo "\n7) the recheck interval is zero seconds: a fresh instance always re-fetches the pointer immediately, and a newly advanced, chain-valid release is adopted with no wait\n";
 {
     $GLOBALS['__options'] = [];
-    $byUrl = [];
-    register_candidate($byUrl, R1, 1);
-    make_pointer_routed($byUrl)->resolvePin(STATIC_FALLBACK);
-
+    $byUrl1 = [];
+    register_candidate($byUrl1, R1, 1);
     $calls = 0;
-    $noFetch = new StudioStagingPointer(
-        function (string $url) use (&$calls): array { $calls++; return ['status' => 200, 'body' => '{}']; },
-        static fn(): string => 'staging',
-    );
-    $pin = $noFetch->resolvePin(STATIC_FALLBACK);
-    check_pointer($calls === 0, 'the transport is not called again inside the recheck window', $calls);
-    check_pointer($pin['releaseId'] === R1, 'the durable release from the earlier request is still served');
+    $countingTransport = function (string $url) use (&$calls, $byUrl1): array {
+        $calls++;
+        return $byUrl1[$url] ?? ['status' => null, 'body' => null];
+    };
+    $pinFirst = (new StudioStagingPointer($countingTransport, static fn(): string => 'staging'))->resolvePin(STATIC_FALLBACK);
+    check_pointer($pinFirst['releaseId'] === R1, 'the first call adopts sequence 1');
+    check_pointer($calls === 2, 'the first call fetches both the pointer and its manifest', $calls);
+
+    // A second, independently constructed instance calls immediately after —
+    // no sleep, no backdated checkedAt — and still re-fetches the pointer
+    // rather than serving a cached/durable result unchecked.
+    $calls = 0;
+    $unchangedTransport = function (string $url) use (&$calls, $byUrl1): array {
+        $calls++;
+        return $byUrl1[$url] ?? ['status' => null, 'body' => null];
+    };
+    $pinSame = (new StudioStagingPointer($unchangedTransport, static fn(): string => 'staging'))->resolvePin(STATIC_FALLBACK);
+    check_pointer($calls >= 1, 'the pointer is re-fetched again immediately, with no time gap since the prior call', $calls);
+    check_pointer($pinSame['releaseId'] === R1, 'the unchanged sequence still names the same stored release');
+
+    // A third instance, constructed immediately after the second, sees a
+    // freshly advanced, correctly chained pointer and adopts it with no wait.
+    $byUrl2 = [];
+    register_candidate($byUrl2, R2, 2, previous: previous_for(1, R1));
+    $pinAdvanced = make_pointer_routed($byUrl2)->resolvePin(STATIC_FALLBACK);
+    check_pointer($pinAdvanced['releaseId'] === R2, 'a newly advanced, chain-valid pointer is adopted immediately, with no elapsed time and no prior cache invalidation step');
 }
 
 // ── 8) Invalid schema/contract/keys/shape — including the ADR 0025
@@ -335,14 +336,12 @@ echo "\n9) unchanged-sequence identity and downgrade: only the stored release is
     $byUrl = [];
     register_candidate($byUrl, $r10, 10, previous: previous_for(9, $r9));
     make_pointer_routed($byUrl)->resolvePin(STATIC_FALLBACK);
-    force_recheck_due();
 
     // 9a) Same sequence, same release/digest — idempotent re-serve.
     $byUrlSame = [];
     register_candidate($byUrlSame, $r10, 10, previous: previous_for(9, $r9));
     $pinSame = make_pointer_routed($byUrlSame)->resolvePin(STATIC_FALLBACK);
     check_pointer($pinSame['releaseId'] === $r10, 'an unchanged sequence naming the same already-stored release is served as-is');
-    force_recheck_due();
 
     // 9b) Same sequence, a DIFFERENT release — integrity violation.
     $r9999 = 'wex-studio-v1-9999999999999999999999999999999999999999';
@@ -350,7 +349,6 @@ echo "\n9) unchanged-sequence identity and downgrade: only the stored release is
     register_candidate($byUrlEqual, $r9999, 10, previous: previous_for(9, $r10));
     $pinEqual = make_pointer_routed($byUrlEqual)->resolvePin(STATIC_FALLBACK);
     check_pointer($pinEqual['releaseId'] === $r10, 'a different release claiming the same already-stored sequence number is rejected, keeping the original');
-    force_recheck_due();
 
     // 9c) Lower sequence — plain downgrade.
     $r3 = 'wex-studio-v1-0303030303030303030303030303030303030303';
@@ -394,7 +392,6 @@ echo "\n11) a shape- and chain-valid pointer whose own manifest cannot be verifi
     $byUrl1 = [];
     register_candidate($byUrl1, R1, 1);
     make_pointer_routed($byUrl1)->resolvePin(STATIC_FALLBACK);
-    force_recheck_due();
 
     $byUrl2 = [];
     register_candidate($byUrl2, R2, 2, previous: previous_for(1, R1), manifestOutcome: 'tampered');
@@ -407,7 +404,6 @@ echo "\n11) a shape- and chain-valid pointer whose own manifest cannot be verifi
     $byUrl1b = [];
     register_candidate($byUrl1b, R1, 1);
     make_pointer_routed($byUrl1b)->resolvePin(STATIC_FALLBACK);
-    force_recheck_due();
 
     $byUrl2b = [];
     register_candidate($byUrl2b, R2, 2, previous: previous_for(1, R1), manifestOutcome: 'outage');
@@ -423,8 +419,6 @@ echo "\n12) an outage on the pointer fetch itself after a successful adoption se
     $byUrl = [];
     register_candidate($byUrl, R1, 1);
     make_pointer_routed($byUrl)->resolvePin(STATIC_FALLBACK);
-
-    force_recheck_due();
 
     $outage = make_pointer_routed([POINTER_URL => ['status' => null, 'body' => null]]);
     $pin = $outage->resolvePin(STATIC_FALLBACK);

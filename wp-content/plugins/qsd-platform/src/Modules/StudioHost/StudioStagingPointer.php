@@ -18,6 +18,9 @@ namespace QSD\Platform\Modules\StudioHost;
  * release it named, so a stale or replayed pointer can never walk the
  * active release backwards — including across a cache expiry or a process
  * restart, where a WP transient alone would not be durable enough.
+ * `resolvePin()` itself never skips this fetch-and-validate pass on a
+ * cached/recent result: per Owner directive, the recheck interval is zero
+ * seconds, so every call re-fetches and re-validates the pointer fresh.
  *
  * The staging gate itself is never inferred from a browser URL/Host header
  * or any request input: it is `wp_get_environment_type() === 'staging'` —
@@ -62,7 +65,6 @@ final class StudioStagingPointer
     private const DEPLOY_MARKER_TIMESTAMP_PATTERN = '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/';
 
     private const TIMEOUT = 10;
-    private const RECHECK_TTL = 300; // seconds; bounds both normal revalidation and outage retry rate.
 
     /** @var \Closure(string): array{status: ?int, body: ?string} */
     private \Closure $transport;
@@ -125,10 +127,9 @@ final class StudioStagingPointer
 
         [$status, $stored] = $this->readState();
 
-        if ($status === 'valid' && $this->withinRecheckWindow($stored)) {
-            return $this->pinFromState($stored);
-        }
-
+        // Owner-directed: zero-second recheck — every call re-fetches and
+        // re-validates the pointer, never a cached/skipped check. No TTL,
+        // transient, or invented debounce stands in for this.
         $pointer = $this->fetchAndValidatePointer();
 
         if ($pointer === null) {
@@ -459,12 +460,6 @@ final class StudioStagingPointer
             return false;
         }
         return true;
-    }
-
-    /** @param array{checkedAt:int} $state */
-    private function withinRecheckWindow(array $state): bool
-    {
-        return (time() - $state['checkedAt']) < self::RECHECK_TTL;
     }
 
     /** @param array{sequence:int,releaseId:string,manifestUrl:string,manifestDigest:string,contract:string,checkedAt:int} $state */
