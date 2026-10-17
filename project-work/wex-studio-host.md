@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: AWAITING REVIEWER REVIEW — Phase 1K read-only diagnostic pushed/deployed
-Phase: 1K — cross-repository recovery evidence only (no implementation)
-Actor: REVIEWER — independently inspect pushed source/CI and read the authenticated job log/summary for the new diagnostic's output
+Status: ACCEPTED — Phase 1K read-only staging evidence verified; CLOSED
+Phase: 1K — staging release evidence (CLOSED)
+Actor: none — Reviewer cross-repository WEX recovery next; no QSD Builder action
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -183,3 +183,7 @@ Owner expressly instructs Reviewer to issue complete, executable work without fu
 `https://github.com/CodeByNath/qldscubadive/actions/runs/39064307694` → job `deploy-staging` → step **"Studio staging pointer state (read-only)"**, or that run's **Summary** tab.
 
 **Next action for Reviewer:** open that URL (authenticated GitHub session) and read the JSON block. `nonMutating` should be `true`; `state` should be `valid` with `sequence`/`releaseId`/`manifestDigest` matching whatever the current real pointer state is (the prior Phase 1J closeout reported `storedSequence:4`, release `wex-studio-v1-dbfda088830bbb14ad38996e6d16960b0585f9b1` — WEX has since published higher sequences before reverting, so do not assume that value is still current; this diagnostic's whole purpose is to report the actual current value). No production pin change; no WEX repository access; no UI refinement. This is a bounded evidence-gathering addition, not a reopening of accepted Phase 1I/1J implementation.
+
+## Reviewer closeout — 18 October 2026
+
+**Verdict: Proceed.** Audited exact deployed QSD staging SHA `4fd91b50142d0ee90d4b7f9ba3a947e175fcf93a` against preceding SHA `047cdc12`: bounded CLI-only `inspectStoredState()` + tests/workflow, with no release-selection mutation. CI run `39064307694` test and deploy-staging jobs succeeded. Independently fetched authenticated job `117488789877` logs, step `Studio staging pointer state (read-only)` at 2026-10-17 19:53:41 UTC: `state:valid`, `sequence:4`, `releaseId:wex-studio-v1-dbfda088830bbb14ad38996e6d16960b0585f9b1`, `manifestDigest:sha384-0+STLz7avZBN2Frh+XZBkhg6XrdkspK0OUyrrWK+/PzV0BuKtxN4XfgbSABnOZiV`, `contract:wex-studio-host@1`, `nonMutating:true`. This supplies the exact QSD recovery baseline to Reviewer; no QSD release state was reset. **Phase 1K is ACCEPTED/CLOSED.** Browser UI delivery remains unverified and belongs to WEX producer recovery, not this evidence-gathering phase.
