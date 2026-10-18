@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: AWAITING REVIEWER REVIEW — Phase 1L skip-safe catch-up pushed/deployed
-Phase: 1L — accept latest verified WEX Studio pointer despite skipped intermediary sequences
-Actor: REVIEWER — independently inspect pushed source/CI and read the authenticated job log/summary for the adopted release
+Status: ACCEPTED — Phase 1L skip-safe adoption confirmed on QSD staging; CLOSED
+Phase: 1L — CLOSED; visual UI inspection separate
+Actor: none — QSD Builder complete; Reviewer visual validation remaining
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -212,3 +212,7 @@ Owner expressly instructs Reviewer to issue complete, executable work without fu
 `https://github.com/CodeByNath/qldscubadive/actions/runs/39110214065` → job `deploy-staging` → steps **"Studio staging activation diagnostic"** and **"Studio staging pointer state (read-only)"**, or that run's **Summary** tab.
 
 **Next action for Reviewer:** open that URL (authenticated GitHub session) and read both JSON blocks. Confirm `gateActive:true`/`state:valid` and report the actual `releaseId`/`sequence` adopted — this is the real test of skip-safe catch-up: if WEX's pointer is at sequence 6 (or any sequence above whatever QSD last held), this consumer should now show that release without any QSD code commit, regardless of whether it ever saw an intermediate pointer. No production pin change; no WEX repository access; no UI refinement. Browser-visible `/studio/` rendering remains a separate check, not required to accept this backend correction.
+
+## Reviewer closeout — 18 October 2026
+
+**Verdict: Proceed with safeguards.** Audited QSD staging SHA `e88b69b48da3e4cbc984ec4c39f2a106daf72d36` against previous `4fd91b5`: changes limited to Studio pointer implementation, tests and documentation; no production pin work. The higher-sequence consumer no longer requires adjacent `previous` matching and still checks manifest before updating durable state. CI run `39110214065` test and deploy-staging both succeeded. Independently accessed authenticated deploy job `117624718586`: activation diagnostic recorded `gateActive:true`, `storedSequence:6` and release `wex-studio-v1-583474a1fb8a5cb7f0719db48ae5ccb03eb47149`; separate read-only diagnostic recorded `state:valid`, `sequence:6`, matching release/digest `sha384-KaKuzmkI0BUA8rVQeJ6ZX/d1/Bd0RYcALzqEiU+WFWw4Ji2MwzTbw9/fRiRoeDNB`, `nonMutating:true`. QSD has **actually adopted** WEX sequence 6; previous backend delivery blocker resolved. Connected staging browser tab displays Logo and sidebar DOM but does not expose enough visual CSS evidence to certify the Owner's header appearance. Phase 1L accepted and CLOSED; browser-visible design review remains a separate Owner/Reviewer presentation check, not a backend blocker. No new QSD Builder task.
