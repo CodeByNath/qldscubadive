@@ -1,8 +1,8 @@
 # QSD Studio — automatic WEX staging release consumer
 
-Status: ACCEPTED — Phase 1K read-only staging evidence verified; CLOSED
-Phase: 1K — staging release evidence (CLOSED)
-Actor: none — Reviewer cross-repository WEX recovery next; no QSD Builder action
+Status: BUILDER ACTION REQUIRED — QSD staging consumer skip-safe adoption
+Phase: 1L — accept latest verified WEX Studio pointer despite skipped intermediary sequences
+Actor: BUILDER:CODER (Claude, QSD repo only)
 Owner authorisation: eliminate manual QSD release pin edits/deployments for each approved WEX UI refinement. Work as one complete package; no micro-review gates.
 
 ## Phase 1H boundary
@@ -187,3 +187,13 @@ Owner expressly instructs Reviewer to issue complete, executable work without fu
 ## Reviewer closeout — 18 October 2026
 
 **Verdict: Proceed.** Audited exact deployed QSD staging SHA `4fd91b50142d0ee90d4b7f9ba3a947e175fcf93a` against preceding SHA `047cdc12`: bounded CLI-only `inspectStoredState()` + tests/workflow, with no release-selection mutation. CI run `39064307694` test and deploy-staging jobs succeeded. Independently fetched authenticated job `117488789877` logs, step `Studio staging pointer state (read-only)` at 2026-10-17 19:53:41 UTC: `state:valid`, `sequence:4`, `releaseId:wex-studio-v1-dbfda088830bbb14ad38996e6d16960b0585f9b1`, `manifestDigest:sha384-0+STLz7avZBN2Frh+XZBkhg6XrdkspK0OUyrrWK+/PzV0BuKtxN4XfgbSABnOZiV`, `contract:wex-studio-host@1`, `nonMutating:true`. This supplies the exact QSD recovery baseline to Reviewer; no QSD release state was reset. **Phase 1K is ACCEPTED/CLOSED.** Browser UI delivery remains unverified and belongs to WEX producer recovery, not this evidence-gathering phase.
+
+## Phase 1L — Owner-authorised narrow runtime fix (18 October 2026)
+
+**Owner requirement:** QSD staging must load the latest approved WEX Studio UI even when it missed earlier published releases. No one-release-at-a-time requirement. The WEX producer has already published immutable release sequence 6 from source `583474a1` and live Pages verified it. Last measured QSD stored release was sequence 4. Reviewer has supplied this cross-repo contract data; **QSD Builder must not read WEX**.
+
+**Implement ONLY in QSD:** In `StudioStagingPointer::resolvePin()` remove the blocking `chainsFromStored()` immediate-predecessor requirement for a **strictly higher** sequence. Still enforce fixed allowlisted HTTPS pointer origin and schema, compatible contract, canonical releaseId/manifestPath, verified raw SHA-384 manifest digest, asset inventory/SRI, staging-only gate, durable monotonic highest accepted sequence and last-known-good fallback. Lower sequence must be rejected. Same sequence with a different releaseId/digest must be rejected, not simply retained silently as valid. A verified higher-sequence explicit rollback is permitted. No sequence reset, security bypass, new infrastructure or production pin change. Maintain WEX producer's sequential publishing rule separately; it is not a QSD consumer catch-up rule.
+
+**Tests and delivery:** Add focused tests for stored 4 → fetched 6 accepted, stored 5 → 6, downgrade rejected, equal-sequence conflicting identity rejected, invalid manifest rejected, network failure retains stored verified release, staging gate and production unchanged; preserve existing tests. Keep edits constrained to QSD pointer consumer/test/docs as necessary. Reuse existing `wex-studio-staging-package` / `staging` branches and established CI deployment. Owner authorises QSD staging deployment through existing workflow, not production. After deployment run existing pointer state diagnostic and report **actual** durable sequence/releaseId (expect sequence 6 only if staging has fetched current pointer). Record commit, tests, workflow and real diagnostic evidence in this file, set `AWAITING REVIEWER REVIEW`, stop. Reviewer will verify source+CI+QSD adoption and browser-visible UI independently.
+
+**Existing ADR difference is acknowledged:** WEX ADR 0025 currently says consumer `previous` must match selected release; Owner has explicitly directed this staged consumer skip-safe correction. Reviewer will reconcile WEX documentation separately. Do NOT block this QSD-only implementation on another Builder/repo; no WEX Builder work is assigned.
