@@ -36,13 +36,18 @@ namespace QSD\Platform\Modules\StudioHost;
  * digest/contract/releaseId/inventory checks `StudioReleaseLock` itself
  * applies — before the new sequence/release is accepted as the durable
  * baseline; a shape-valid but unverifiable candidate (outage or tamper)
- * leaves the retained last-known-good release untouched. A candidate's own
- * manifest integrity never substitutes for proof of its *approval chain*:
- * a sequence strictly above the stored one is only ever adopted when its
- * `previous` exactly names the currently stored sequence/releaseId/
- * manifestDigest — a gap this instance cannot independently verify (there
- * is no accessible history of past pointer states) is never silently
- * bridged, and fails closed to the retained release instead.
+ * leaves the retained last-known-good release untouched. Per Owner
+ * directive (18 October 2026, Phase 1L), a strictly higher sequence is
+ * adopted on manifest verification alone: this consumer no longer requires
+ * its `previous` to chain to the currently stored release, so an instance
+ * that missed one or more intermediate published sequences still catches
+ * up to the latest verified release on its next check, rather than
+ * remaining permanently stuck. Replay/downgrade protection is unchanged —
+ * a lower sequence, or an equal sequence naming a different release, is
+ * still rejected outright; only a strictly higher sequence skips the
+ * chain requirement. WEX's own ADR 0025 publishing-side `previous`
+ * contract is unchanged; only this consumer's acceptance rule for it was
+ * relaxed.
  */
 final class StudioStagingPointer
 {
@@ -166,18 +171,12 @@ final class StudioStagingPointer
             return $this->pinFromState($stored);
         }
 
-        if ($status === 'valid' && !$this->chainsFromStored($pointer, $stored)) {
-            // A higher sequence proves nothing on its own: only a `previous`
-            // that exactly names our currently stored sequence/releaseId/
-            // manifestDigest proves this candidate is a genuine, unbroken
-            // continuation of what we already verified. A gap (whether a
-            // legitimate multi-step skip or a forged pointer) can never be
-            // independently verified from a single current-state fetch, so
-            // it fails closed to the retained release rather than silently
-            // bridging it.
-            $this->touchRecheckedAt($stored);
-            return $this->pinFromState($stored);
-        }
+        // Per Owner directive (Phase 1L), a strictly higher sequence is no
+        // longer required to chain its `previous` to the currently stored
+        // release — WEX's sequential publishing plus full manifest
+        // verification below is treated as sufficient proof on its own, so
+        // a skipped intermediate sequence no longer leaves this consumer
+        // permanently stuck on the last release it directly chained from.
 
         $candidateManifestUrl = self::RELEASES_BASE . $pointer['manifestPath'];
         $verified = StudioManifestVerifier::verify(
@@ -390,28 +389,6 @@ final class StudioStagingPointer
             'contract'       => $decoded['contract'],
             'previous'       => $previous,
         ];
-    }
-
-    /**
-     * A candidate above the stored sequence is adopted only when its own
-     * `previous` exactly names the currently stored sequence/releaseId/
-     * manifestDigest — proof this candidate is a verified continuation of
-     * what this instance already holds, not merely a higher number with a
-     * manifest that happens to verify. `$pointer['previous']` is always a
-     * well-formed object here: `$pointer['sequence'] > $stored['sequence']
-     * >= 1` forces `$pointer['sequence'] > 1`, which `fetchAndValidatePointer()`
-     * already required to carry an object, never `null`.
-     *
-     * @param array{previous: array{sequence:int,releaseId:string,manifestDigest:string}} $pointer
-     * @param array{sequence:int,releaseId:string,manifestDigest:string} $stored
-     */
-    private function chainsFromStored(array $pointer, array $stored): bool
-    {
-        $previous = $pointer['previous'];
-        return is_array($previous)
-            && $previous['sequence'] === $stored['sequence']
-            && $previous['releaseId'] === $stored['releaseId']
-            && $previous['manifestDigest'] === $stored['manifestDigest'];
     }
 
     /** Exactly `{sequence: int>=1, releaseId: well-formed, manifestDigest: well-formed}`, no other keys. */
